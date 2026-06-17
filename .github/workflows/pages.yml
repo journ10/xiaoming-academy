@@ -28,6 +28,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Run tests
         run: npm test
 
@@ -45,10 +48,16 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare Pages artifact
+        run: |
+          mkdir _site
+          cp index.html app.js core.js sample-data.js styles.css _site/
+          cp -R assets src _site/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
