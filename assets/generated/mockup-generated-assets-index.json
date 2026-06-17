@@ -1,0 +1,305 @@
+{
+  "generatedFor": "current desktop and mobile mockup pixel-level implementation",
+  "method": "image_gen source images plus chroma-key background removal; split assets are cropped from image_gen sheets",
+  "noSvg": true,
+  "noProceduralPilArtwork": true,
+  "assets": [
+    {
+      "id": "ui.shell.hud.desktop.textless",
+      "output": "assets/generated/ui/shell/mockup-hud-desktop-textless-alpha.png",
+      "source": "assets/generated/_sources/imagegen/ui/shell/mockup-hud-desktop-textless-source.png"
+    },
+    {
+      "id": "ui.shell.hud.mobile.textless",
+      "output": "assets/generated/ui/shell/mockup-hud-mobile-textless-alpha.png",
+      "source": "assets/generated/_sources/imagegen/ui/shell/mockup-hud-mobile-textless-source.png"
+    },
+    {
+      "id": "ui.nav.desktop.textless",
+      "output": "assets/generated/ui/nav/mockup-bottom-nav-desktop-alpha.png",
+      "source": "assets/generated/_sources/imagegen/ui/nav/mockup-bottom-nav-desktop-source.png"
+    },
+    {
+      "id": "ui.nav.mobile.textless",
+      "output": "assets/generated/ui/nav/mockup-bottom-nav-mobile-alpha.png",
+      "source": "assets/generated/_sources/imagegen/ui/nav/mockup-bottom-nav-mobile-source.png"
+    },
+    {
+      "id": "ui.panels.parchment.sheet",
+      "output": "assets/generated/ui/mockup-panels/parchment-panel-sheet-alpha.png",
+      "source": "assets/generated/_sources/imagegen/ui/panels/mockup-parchment-panel-sheet-source.png"
+    },
+    {
+      "id": "ui.panels.dark.sheet",
+      "output": "assets/generated/ui/mockup-panels/dark-panel-sheet-alpha.png",
+      "source": "assets/generated/_sources/imagegen/ui/panels/mockup-dark-panel-sheet-source.png"
+    },
+    {
+      "id": "map.mockup.components.sheet",
+      "output": "assets/generated/map/mockup-components/world-map-components-alpha.png",
+      "source": "assets/generated/_sources/imagegen/map/mockup-world-map-components-source.png"
+    },
+    {
+      "id": "story.mockup.components.sheet",
+      "output": "assets/generated/story/mockup-components/story-components-alpha.png",
+      "source": "assets/generated/_sources/imagegen/story/mockup-story-components-source.png"
+    },
+    {
+      "id": "training.mockup.components.sheet",
+      "output": "assets/generated/training/mockup-components/training-components-alpha.png",
+      "source": "assets/generated/_sources/imagegen/training/mockup-training-components-source.png"
+    },
+    {
+      "id": "battle.mockup.components.sheet",
+      "output": "assets/generated/battle/mockup-components/battle-components-alpha.png",
+      "source": "assets/generated/_sources/imagegen/battle/mockup-battle-components-source.png"
+    },
+    {
+      "id": "mindDemon.mockup.components.sheet",
+      "output": "assets/generated/mind-demon/mockup-components/mind-demon-components-alpha.png",
+      "source": "assets/generated/_sources/imagegen/mind-demon/mockup-mind-demon-components-source.png"
+    },
+    {
+      "id": "report.mockup.components.sheet",
+      "output": "assets/generated/report/mockup-components/report-components-alpha.png",
+      "source": "assets/generated/_sources/imagegen/report/mockup-report-components-source.png"
+    },
+    {
+      "id": "daily.mockup.components.sheet",
+      "output": "assets/generated/daily/mockup-components/daily-components-alpha.png",
+      "source": "assets/generated/_sources/imagegen/daily/mockup-daily-components-source.png"
+    },
+    {
+      "id": "roster.mockup.components.sheet",
+      "output": "assets/generated/roster/mockup-components/roster-artifact-components-alpha.png",
+      "source": "assets/generated/_sources/imagegen/roster/mockup-roster-artifact-components-source.png"
+    },
+    {
+      "id": "characters.mockup.uiVariants.sheet",
+      "output": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png"
+    },
+    {
+      "id": "items.mockup.iconSheet",
+      "output": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png"
+    },
+    {
+      "id": "characters.mockup.mingche.bust",
+      "output": "assets/generated/characters/mockup-variants/split/mingche-bust.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.mingche.half",
+      "output": "assets/generated/characters/mockup-variants/split/mingche-half.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.mingche.avatar",
+      "output": "assets/generated/characters/mockup-variants/split/mingche-avatar.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.azhi.bust",
+      "output": "assets/generated/characters/mockup-variants/split/azhi-bust.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.azhi.half",
+      "output": "assets/generated/characters/mockup-variants/split/azhi-half.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.azhi.avatar",
+      "output": "assets/generated/characters/mockup-variants/split/azhi-avatar.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.qinglan.bust",
+      "output": "assets/generated/characters/mockup-variants/split/qinglan-bust.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.qinglan.half",
+      "output": "assets/generated/characters/mockup-variants/split/qinglan-half.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.qinglan.avatar",
+      "output": "assets/generated/characters/mockup-variants/split/qinglan-avatar.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.xiaomo.bust",
+      "output": "assets/generated/characters/mockup-variants/split/xiaomo-bust.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.xiaomo.half",
+      "output": "assets/generated/characters/mockup-variants/split/xiaomo-half.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "characters.mockup.xiaomo.avatar",
+      "output": "assets/generated/characters/mockup-variants/split/xiaomo-avatar.png",
+      "source": "assets/generated/_sources/imagegen/characters/mockup-character-ui-variants-source.png",
+      "derivedFrom": "assets/generated/characters/mockup-variants/character-ui-variants-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.currency.starSand",
+      "output": "assets/generated/items/mockup-components/split/currency-star-sand.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.currency.spiritPage",
+      "output": "assets/generated/items/mockup-components/split/currency-spirit-page.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.material.inkJade",
+      "output": "assets/generated/items/mockup-components/split/material-ink-jade.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.artifact.heartToken",
+      "output": "assets/generated/items/mockup-components/split/artifact-heart-token.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.artifact.lotusToken",
+      "output": "assets/generated/items/mockup-components/split/artifact-lotus-token.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.artifact.brush",
+      "output": "assets/generated/items/mockup-components/split/artifact-brush.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.artifact.bell",
+      "output": "assets/generated/items/mockup-components/split/artifact-bell.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.artifact.medallion",
+      "output": "assets/generated/items/mockup-components/split/artifact-medallion.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.artifact.mirror",
+      "output": "assets/generated/items/mockup-components/split/artifact-mirror.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.artifact.book",
+      "output": "assets/generated/items/mockup-components/split/artifact-book.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.reward.sparkBurst",
+      "output": "assets/generated/items/mockup-components/split/reward-spark-burst.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.material.stone",
+      "output": "assets/generated/items/mockup-components/split/material-stone.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.material.scroll",
+      "output": "assets/generated/items/mockup-components/split/material-scroll.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.reward.lotus",
+      "output": "assets/generated/items/mockup-components/split/lotus-reward.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.rarity.common",
+      "output": "assets/generated/items/mockup-components/split/rarity-gem-common.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.rarity.rare",
+      "output": "assets/generated/items/mockup-components/split/rarity-gem-rare.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.rarity.epic",
+      "output": "assets/generated/items/mockup-components/split/rarity-gem-epic.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.rarity.legendary",
+      "output": "assets/generated/items/mockup-components/split/rarity-gem-legendary.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    },
+    {
+      "id": "items.mockup.reward.chestToken",
+      "output": "assets/generated/items/mockup-components/split/reward-chest-token.png",
+      "source": "assets/generated/_sources/imagegen/items/mockup-item-artifact-icon-sheet-source.png",
+      "derivedFrom": "assets/generated/items/mockup-components/item-artifact-icon-sheet-alpha.png",
+      "postProcess": "alpha crop from image_gen sheet"
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+  <symbol id="art-gate" viewBox="0 0 96 96">
+    <rect x="13" y="70" width="70" height="12" rx="4" fill="#17345b"/>
+    <path d="M20 70V30l28-16 28 16v40" fill="#f8fbff"/>
+    <path d="M20 31 48 15l28 16M31 70V40h34v30" fill="none" stroke="#17345b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M38 49h20M38 59h20" stroke="#d97706" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="48" cy="31" r="6" fill="#14b8a6"/>
+  </symbol>
+
+  <symbol id="art-lesson-scroll" viewBox="0 0 96 96">
+    <path d="M24 14h48v60H24z" fill="#fff5d1"/>
+    <path d="M24 14c-9 0-12 8-7 15h7V14ZM72 74c9 0 12 8 7 15H24c-9 0-12-8-7-15h55Z" fill="#d97706"/>
+    <path d="M35 31h29M35 43h26M35 55h19" stroke="#17345b" stroke-width="6" stroke-linecap="round"/>
+    <path d="m62 22 8-8 6 6-8 8" fill="#14b8a6"/>
+  </symbol>
+
+  <symbol id="art-book" viewBox="0 0 96 96">
+    <path d="M17 18h30c8 0 13 5 13 13v45c0-8-5-13-13-13H17z" fill="#e6faf2"/>
+    <path d="M79 18H49c-8 0-13 5-13 13v45c0-8 5-13 13-13h30z" fill="#eef8ff"/>
+    <path d="M17 18h30c8 0 13 5 13 13v45c0-8-5-13-13-13H17zM79 18H49c-8 0-13 5-13 13v45c0-8 5-13 13-13h30z" fill="none" stroke="#17345b" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M29 33h17M29 45h14M56 33h16M56 45h13" stroke="#2563eb" stroke-width="4" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-pdf" viewBox="0 0 96 96">
+    <path d="M25 10h31l16 16v60H25z" fill="#fff" stroke="#17345b" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M56 10v17h16" fill="#e6faf2" stroke="#17345b" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M32 58h32" stroke="#dc2626" stroke-width="15" stroke-linecap="round"/>
+    <path d="M34 56h7c5 0 8 3 8 7s-3 7-8 7h-7M54 56v14M54 56h11M54 63h9" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-spark" viewBox="0 0 96 96">
+    <path d="m48 8 9 25 27 2-21 17 7 27-22-15-22 15 7-27-21-17 27-2 9-25Z" fill="#f59e0b"/>
+    <path d="M48 23v28M34 43h28" stroke="#fff7d6" stroke-width="7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-heart" viewBox="0 0 96 96">
+    <path d="M48 80S16 61 16 34c0-12 8-20 19-20 7 0 12 4 13 8 1-4 6-8 13-8 11 0 19 8 19 20 0 27-32 46-32 46Z" fill="#dc2626"/>
+    <path d="M30 34c0-5 3-8 8-8" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-spirit-page" viewBox="0 0 96 96">
+    <path d="M26 12h38l10 12v60H26z" fill="#fff9e8" stroke="#17345b" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M64 12v14h10" fill="#f59e0b" stroke="#17345b" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M39 36h22M39 49h18M39 62h12" stroke="#14b8a6" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="31" cy="36" r="3" fill="#d97706"/>
+    <circle cx="31" cy="49" r="3" fill="#d97706"/>
+    <circle cx="31" cy="62" r="3" fill="#d97706"/>
+  </symbol>
+
+  <symbol id="art-method" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="33" fill="#e6faf2" stroke="#0f766e" stroke-width="6"/>
+    <path d="M48 20v56M20 48h56M29 29l38 38M67 29 29 67" stroke="#14b8a6" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="48" cy="48" r="10" fill="#17345b"/>
+  </symbol>
+
+  <symbol id="art-stance-steady" viewBox="0 0 96 96">
+    <path d="M48 12 78 26v23c0 18-12 29-30 35-18-6-30-17-30-35V26z" fill="#e6faf2" stroke="#0f766e" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M34 48h28M48 34v28" stroke="#0f766e" stroke-width="8" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-stance-assault" viewBox="0 0 96 96">
+    <path d="M22 72 66 18l8 8-44 54H18z" fill="#fff0ee" stroke="#dc2626" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M58 26 70 14l12 12-12 12" fill="#f59e0b" stroke="#17345b" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M31 65 16 80" stroke="#dc2626" stroke-width="7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-stance-observe" viewBox="0 0 96 96">
+    <path d="M14 48s13-24 34-24 34 24 34 24-13 24-34 24-34-24-34-24Z" fill="#eef8ff" stroke="#2563eb" stroke-width="6" stroke-linejoin="round"/>
+    <circle cx="48" cy="48" r="13" fill="#2563eb"/>
+    <circle cx="53" cy="43" r="5" fill="#fff"/>
+    <path d="M31 24 24 13M65 24l7-11" stroke="#d97706" stroke-width="6" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-node-normal" viewBox="0 0 96 96">
+    <rect x="20" y="20" width="56" height="56" rx="14" fill="#eef8ff" stroke="#2563eb" stroke-width="6"/>
+    <path d="M33 48h30M48 33v30" stroke="#2563eb" stroke-width="7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-node-elite" viewBox="0 0 96 96">
+    <path d="m48 10 34 22v32L48 86 14 64V32z" fill="#fff0ee" stroke="#dc2626" stroke-width="6" stroke-linejoin="round"/>
+    <path d="m48 27 7 14 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z" fill="#f59e0b"/>
+  </symbol>
+
+  <symbol id="art-node-recover" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="34" fill="#e6faf2" stroke="#0f766e" stroke-width="6"/>
+    <path d="M48 25v46M25 48h46" stroke="#0f766e" stroke-width="10" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-node-treasure" viewBox="0 0 96 96">
+    <path d="M18 41h60v37H18z" fill="#fff9e8" stroke="#17345b" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M22 41c2-16 14-25 26-25s24 9 26 25" fill="#f59e0b" stroke="#17345b" stroke-width="6"/>
+    <path d="M48 41v37M18 54h60" stroke="#d97706" stroke-width="6"/>
+    <circle cx="48" cy="58" r="5" fill="#17345b"/>
+  </symbol>
+
+  <symbol id="art-node-demon" viewBox="0 0 96 96">
+    <path d="M20 55c0-22 12-37 28-37s28 15 28 37c0 17-12 28-28 28S20 72 20 55Z" fill="#7c3aed"/>
+    <path d="M25 28 15 14l3 24M71 28l10-14-3 24" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M37 54h1M58 54h1" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+    <path d="M38 69c6 4 14 4 20 0" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-demon-born" viewBox="0 0 96 96">
+    <path d="M23 59c0-20 10-34 25-34s25 14 25 34c0 15-11 25-25 25S23 74 23 59Z" fill="#8b5cf6"/>
+    <path d="M29 34 19 21l3 22M67 34l10-13-3 22" fill="none" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+    <path d="M38 56h1M57 56h1" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-demon-weakened" viewBox="0 0 96 96">
+    <path d="M24 60c0-19 10-32 24-32s24 13 24 32c0 14-10 23-24 23s-24-9-24-23Z" fill="#14b8a6"/>
+    <path d="M34 55h1M61 55h1" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+    <path d="M38 68c6 3 14 3 20 0" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+    <path d="m29 31-8-12M67 31l8-12" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-demon-rampaging" viewBox="0 0 96 96">
+    <path d="M18 58c0-24 13-40 30-40s30 16 30 40c0 18-13 30-30 30S18 76 18 58Z" fill="#6d28d9"/>
+    <path d="M24 29 11 12l4 29M72 29l13-17-4 29" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M36 55h1M60 55h1" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
+    <path d="M38 72c7-5 13-5 20 0" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+    <path d="M28 45h16M52 45h16" stroke="#fca5a5" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-impact" viewBox="0 0 96 96">
+    <path d="M48 6 59 34l30-4-23 20 18 25-29-10-7 30-7-30-29 10 18-25L7 30l30 4z" fill="#f59e0b"/>
+    <path d="M48 24v29M36 47h24" stroke="#fff7d6" stroke-width="7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-report-gold" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="35" fill="#f59e0b" stroke="#17345b" stroke-width="6"/>
+    <path d="m48 23 7 15 17 2-13 12 4 17-15-9-15 9 4-17-13-12 17-2z" fill="#fff9e8"/>
+    <path d="M26 80 17 92M70 80l9 12" stroke="#dc2626" stroke-width="8" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-report-jade" viewBox="0 0 96 96">
+    <path d="M48 10 78 31 68 82H28L18 31z" fill="#14b8a6" stroke="#17345b" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M48 10v72M18 31h60M28 82l20-51 20 51" fill="none" stroke="#dffcf4" stroke-width="5" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="art-route" viewBox="0 0 96 96">
+    <path d="M19 25h22c15 0 15 22 0 22H55c15 0 15 24 0 24H28" fill="none" stroke="#17345b" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="19" cy="25" r="10" fill="#2563eb"/>
+    <circle cx="48" cy="47" r="10" fill="#14b8a6"/>
+    <circle cx="28" cy="71" r="10" fill="#f59e0b"/>
+    <path d="m65 61 12 10-12 10" fill="none" stroke="#dc2626" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="art-lantern" viewBox="0 0 96 96">
+    <path d="M32 18h32M32 78h32" stroke="#17345b" stroke-width="6" stroke-linecap="round"/>
+    <path d="M28 26c7-8 33-8 40 0v44c-7 8-33 8-40 0z" fill="#ef4444" stroke="#17345b" stroke-width="6"/>
+    <path d="M48 18v60M34 34h28M34 62h28" stroke="#fff7d6" stroke-width="4" stroke-linecap="round"/>
+    <path d="M48 78v11" stroke="#d97706" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-brush" viewBox="0 0 96 96">
+    <path d="M60 16 79 35 43 71 24 52z" fill="#eef8ff" stroke="#17345b" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M24 52c-8 8-12 17-10 29 12 2 21-2 29-10z" fill="#14b8a6" stroke="#17345b" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M58 18 78 38" stroke="#2563eb" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-x" viewBox="0 0 96 96">
+    <path d="M27 27 69 69M69 27 27 69" stroke="#17345b" stroke-width="10" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-character-mingche" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="38" fill="#fff7e6" stroke="#51324d" stroke-width="5"/>
+    <path d="M25 54c3-22 13-35 23-35s20 13 23 35" fill="#d6b36a"/>
+    <circle cx="48" cy="49" r="18" fill="#ffd9c9"/>
+    <path d="M31 79c4-15 14-23 17-23s13 8 17 23" fill="#ffffff" stroke="#51324d" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M34 39c8-7 20-7 28 0" stroke="#51324d" stroke-width="5" stroke-linecap="round"/>
+    <path d="M40 50h1M55 50h1" stroke="#51324d" stroke-width="6" stroke-linecap="round"/>
+    <path d="M41 60c5 3 9 3 14 0" stroke="#b65a7a" stroke-width="4" stroke-linecap="round"/>
+    <path d="M48 12v12M39 18h18" stroke="#c9892b" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-character-azhi" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="38" fill="#fff0f5" stroke="#51324d" stroke-width="5"/>
+    <path d="M24 58c0-24 10-39 24-39s24 15 24 39c-9-8-39-8-48 0Z" fill="#6b405b"/>
+    <circle cx="48" cy="48" r="18" fill="#ffd9c9"/>
+    <path d="M29 80c5-14 15-22 19-22s14 8 19 22" fill="#f9d7e7" stroke="#51324d" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M36 33c9 4 21 4 30 0" stroke="#f0a7bf" stroke-width="7" stroke-linecap="round"/>
+    <path d="M39 50h1M56 50h1" stroke="#51324d" stroke-width="6" stroke-linecap="round"/>
+    <path d="M42 60c4 3 8 3 12 0" stroke="#b65a7a" stroke-width="4" stroke-linecap="round"/>
+    <path d="m25 30 8-7 6 8-8 7z" fill="#f0a7bf" stroke="#51324d" stroke-width="3"/>
+  </symbol>
+
+  <symbol id="art-character-qinglan" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="38" fill="#e9fbf4" stroke="#51324d" stroke-width="5"/>
+    <path d="M25 54c2-23 12-36 23-36s21 13 23 36c-12-6-34-6-46 0Z" fill="#244d55"/>
+    <circle cx="48" cy="48" r="18" fill="#ffd9c9"/>
+    <path d="M27 80c5-15 17-23 21-23s16 8 21 23" fill="#aee7d8" stroke="#51324d" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M31 42c11-7 25-8 36-2" stroke="#1f8b76" stroke-width="5" stroke-linecap="round"/>
+    <path d="M39 50h1M56 50h1" stroke="#51324d" stroke-width="6" stroke-linecap="round"/>
+    <path d="M41 60c5 4 9 4 14 0" stroke="#1f8b76" stroke-width="4" stroke-linecap="round"/>
+    <path d="m66 23 11 5-12 9" fill="#c9892b" stroke="#51324d" stroke-width="4" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="art-character-xiaomo" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="38" fill="#f5efff" stroke="#51324d" stroke-width="5"/>
+    <path d="M23 56c0-24 11-38 25-38s25 14 25 38c-10-8-40-8-50 0Z" fill="#39284b"/>
+    <circle cx="48" cy="49" r="17" fill="#ffd9c9"/>
+    <path d="M31 80c5-13 14-20 17-20s12 7 17 20" fill="#d7c8ff" stroke="#51324d" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M38 50h1M57 50h1" stroke="#51324d" stroke-width="7" stroke-linecap="round"/>
+    <path d="M42 60c4 2 8 2 12 0" stroke="#7c5bbd" stroke-width="4" stroke-linecap="round"/>
+    <path d="m23 25 6-10 7 11M60 26l7-11 6 11" fill="none" stroke="#c9892b" stroke-width="5" stroke-linecap="round"/>
+    <path d="m70 58 5 6 8-12" fill="none" stroke="#c9892b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="art-star-glimmer" viewBox="0 0 96 96">
+    <path d="m48 8 8 24 25 1-20 15 8 25-21-15-21 15 8-25-20-15 25-1z" fill="#f6c453" stroke="#51324d" stroke-width="5" stroke-linejoin="round"/>
+    <circle cx="48" cy="48" r="9" fill="#fff7e6"/>
+    <path d="M18 70h10M72 22h9M70 75l7 7M18 21l7 7" stroke="#b65a7a" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="art-bond-ribbon" viewBox="0 0 96 96">
+    <path d="M24 15h48v62L48 65 24 77z" fill="#f9d7e7" stroke="#51324d" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M33 30h30M33 43h30" stroke="#b65a7a" stroke-width="6" stroke-linecap="round"/>
+    <path d="M48 56c-9-6-14-11-14-18 0-5 4-8 8-8 3 0 5 2 6 4 1-2 3-4 6-4 4 0 8 3 8 8 0 7-5 12-14 18Z" fill="#fff7e6" stroke="#51324d" stroke-width="4"/>
+  </symbol>
+
+  <symbol id="art-chapter-seal" viewBox="0 0 96 96">
+    <path d="M48 8 78 24v48L48 88 18 72V24z" fill="#fff7e6" stroke="#51324d" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M48 20 66 31v34L48 76 30 65V31z" fill="#e9fbf4" stroke="#1f8b76" stroke-width="5" stroke-linejoin="round"/>
+    <path d="m48 30 5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1z" fill="#f6c453" stroke="#51324d" stroke-width="4" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="art-flower" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="9" fill="#f6c453" stroke="#51324d" stroke-width="4"/>
+    <path d="M48 16c9 9 9 20 0 27-9-7-9-18 0-27ZM48 80c-9-9-9-20 0-27 9 7 9 18 0 27ZM16 48c9-9 20-9 27 0-7 9-18 9-27 0ZM80 48c-9 9-20 9-27 0 7-9 18-9 27 0Z" fill="#f9d7e7" stroke="#51324d" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M26 26c12 0 20 8 20 20-12 0-20-8-20-20ZM70 26c0 12-8 20-20 20 0-12 8-20 20-20ZM26 70c0-12 8-20 20-20 0 12-8 20-20 20ZM70 70c-12 0-20-8-20-20 12 0 20 8 20 20Z" fill="#aee7d8" stroke="#51324d" stroke-width="3" stroke-linejoin="round"/>
+  </symbol>
+</svg>
