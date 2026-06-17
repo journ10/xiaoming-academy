@@ -1,0 +1,133 @@
+{
+  "source": "docs/10小明课堂 《历年真题答案》.pdf",
+  "sourceType": "ocr-answer-page-sample",
+  "notice": "该 PDF 当前识别为扫描版答案解析页，缺少完整原题选项。以下题目是从第 1 页 OCR 得到的“参考答案回忆”样例，适合验证导入链路，不等同于完整真题题库。",
+  "questions": [
+    {
+      "id": "pdf-2013-answer-001",
+      "year": "2013",
+      "type": "答案回忆",
+      "topic": "教育法规",
+      "difficulty": 1,
+      "enemy": "律令心魔",
+      "realm": "2013 入门秘境",
+      "stem": "2013 年 1 月 12 日深圳事业单位教师招聘考试（小学）教育类第 1 题参考答案是？",
+      "options": [
+        { "key": "A", "text": "A" },
+        { "key": "B", "text": "B" },
+        { "key": "C", "text": "C" },
+        { "key": "D", "text": "D" }
+      ],
+      "answer": "B",
+      "explanation": "OCR 解析页显示：第 1 题答案 B。解析提到《义务教育法》第十二条“免试入学”，地方各级人民政府应保障适龄儿童、少年在户籍所在地学校就近入学。",
+      "xp": 12,
+      "coins": 8,
+      "drops": ["书页"]
+    },
+    {
+      "id": "pdf-2013-answer-002",
+      "year": "2013",
+      "type": "答案回忆",
+      "topic": "教育法规",
+      "difficulty": 1,
+      "enemy": "律令心魔",
+      "realm": "2013 入门秘境",
+      "stem": "2013 年深圳小学教育类第 2 题参考答案是？",
+      "options": [
+        { "key": "A", "text": "A" },
+        { "key": "B", "text": "B" },
+        { "key": "C", "text": "C" },
+        { "key": "D", "text": "D" }
+      ],
+      "answer": "B",
+      "explanation": "OCR 解析页显示：第 2 题答案 B。解析围绕《教师法》第十条“教师资格制度”，强调遵守宪法法律、热爱教育事业、具备良好思想品德和教育教学能力。",
+      "xp": 12,
+      "coins": 8,
+      "drops": ["书页"]
+    },
+    {
+      "id": "pdf-2013-answer-003",
+      "year": "2013",
+      "type": "答案回忆",
+      "topic": "教学设计",
+      "difficulty": 1,
+      "enemy": "授业心魔",
+      "realm": "2013 入门秘境",
+      "stem": "2013 年深圳小学教育类第 3 题参考答案是？",
+      "options": [
+        { "key": "A", "text": "A" },
+        { "key": "B", "text": "B" },
+        { "key": "C", "text": "C" },
+        { "key": "D", "text": "D" }
+      ],
+      "answer": "B",
+      "explanation": "OCR 解析页显示：第 3 题答案 B。解析提到 1986 年公布的义务教育全日制小学、初级中学教育计划，第一次把课外活动正式列入课程总计划。",
+      "xp": 12,
+      "coins": 8,
+      "drops": ["书页"]
+    },
+    {
+      "id": "pdf-2013-answer-004",
+      "year": "2013",
+      "type": "答案回忆",
+      "topic": "教学设计",
+      "difficulty": 2,
+      "enemy": "授业心魔",
+      "realm": "2013 入门秘境",
+      "stem": "2013 年深圳小学教育类第 4 题参考答案是？",
+      "options": [
+        { "key": "A", "text": "A" },
+        { "key": "B", "text": "B" },
+        { "key": "C", "text": "C" },
+        { "key": "D", "text": "D" }
+      ],
+      "answer": "C",
+      "explanation": "OCR 解析页显示：第 4 题答案 C。解析围绕“悬念导入”，说明在教学中创设悬念性问题，激发学生好奇心和求知欲。",
+      "xp": 14,
+      "coins": 9,
+      "drops": ["书页", "星砂"]
+    },
+    {
+      "id": "pdf-2013-answer-005",
+      "year": "2013",
+      "type": "答案回忆",
+      "topic": "儿童发展",
+      "difficulty": 2,
+      "enemy": "童心心魔",
+      "realm": "2013 入门秘境",
+      "stem": "2013 年深圳小学教育类第 5 题参考答案是？",
+      "options": [
+        { "key": "A", "text": "A" },
+        { "key": "B", "text": "B" },
+        { "key": "C", "text": "C" },
+        { "key": "D", "text": "D" }
+      ],
+      "answer": "A",
+      "explanation": "OCR 解析页显示：第 5 题答案 A。解析总结小学儿童情感稳定性、可控性、丰富性和深刻性的发展。",
+      "xp": 14,
+      "coins": 9,
+      "drops": ["书页", "灵签"]
+    },
+    {
+      "id": "pdf-2013-answer-006",
+      "year": "2013",
+      "type": "答案回忆",
+      "topic": "教育法规",
+      "difficulty": 1,
+      "enemy": "律令心魔",
+      "realm": "2013 入门秘境",
+      "stem": "OCR 解析页中，第 6 题对应《教育法》2021 版第二十二条学业证书制度，参考答案是？",
+      "options": [
+        { "key": "A", "text": "A" },
+        { "key": "B", "text": "B" },
+        { "key": "C", "text": "C" },
+        { "key": "D", "text": "D" }
+      ],
+      "answer": "D",
+      "explanation": "OCR 解析页显示：第 6 题答案 D。解析提到国家实行学业证书制度，经批准设立或认可的学校及其他教育机构按规定颁发学历证书或其他学业证书。",
+      "xp": 12,
+      "coins": 8,
+      "drops": ["书页"]
+    }
+  ]
+}

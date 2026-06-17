@@ -1,0 +1,50 @@
+{
+  "questions": [
+    {
+      "id": "example-001",
+      "year": "2026",
+      "type": "单项选择",
+      "topic": "教育法规",
+      "stem": "义务教育阶段入学保障的关键词是什么？",
+      "options": [
+        { "key": "A", "text": "成绩筛选" },
+        { "key": "B", "text": "政府保障与就近入学" },
+        { "key": "C", "text": "家长自由决定" },
+        { "key": "D", "text": "学校自行定价" }
+      ],
+      "answer": "B",
+      "explanation": "义务教育强调政府保障、免试就近入学和适龄儿童少年接受教育的权利。",
+      "sourceRef": "人工清洗 JSON",
+      "difficulty": 1,
+      "lesson": {
+        "title": "教育法规 · 入学保障讲解",
+        "sourceRef": "人工清洗 JSON",
+        "keyPoint": "政府保障、免试、就近、适龄",
+        "studyPrompt": "练功目标：先记住入学保障的四个关键词，再进入题阵检验。"
+      }
+    },
+    {
+      "id": "example-002",
+      "year": "2026",
+      "type": "多项选择",
+      "topic": "教学设计",
+      "stem": "教案通常需要考虑哪些内容？",
+      "options": [
+        { "key": "A", "text": "教学目标" },
+        { "key": "B", "text": "学生已有基础" },
+        { "key": "C", "text": "评价方式" },
+        { "key": "D", "text": "教师个人喜好优先" }
+      ],
+      "answer": "ABC",
+      "explanation": "教案要围绕目标、学情、活动、评价和资源组织。",
+      "sourceRef": "人工清洗 JSON",
+      "difficulty": 3,
+      "lesson": {
+        "title": "教学设计 · 教案要素讲解",
+        "sourceRef": "人工清洗 JSON",
+        "keyPoint": "目标、学情、活动、评价",
+        "studyPrompt": "练功目标：先排除违背课程标准和学生中心原则的选项。"
+      }
+    }
+  ]
+}
