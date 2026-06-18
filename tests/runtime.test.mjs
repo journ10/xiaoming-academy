@@ -111,6 +111,16 @@ test("runtime loads the built-in PDF question bank instead of sample data or imp
   assert.doesNotMatch(app, /sample-data\.js|sampleQuestions|savedState\.questions|questionSource/);
 });
 
+test("runtime retries the PDF question bank from deployment-safe paths", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /questionBankUrls/);
+  assert.match(app, /\.\/data\/questions\.from-pdf\.json/);
+  assert.match(app, /\/xiaoming-academy\/data\/questions\.from-pdf\.json/);
+  assert.match(app, /for \(const url of questionBankUrls\)/);
+  assert.match(app, /lastError/);
+});
+
 test("runtime preserves PDF bank metadata for source-slot progress", () => {
   const app = readFileSync("app.js", "utf8");
 

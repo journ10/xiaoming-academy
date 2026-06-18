@@ -40,7 +40,10 @@ import {
 } from "./core.js";
 
 const storageKey = "xiaoming-academy-text-game-v1";
-const questionBankUrl = "./data/questions.from-pdf.json";
+const questionBankUrls = [
+  "./data/questions.from-pdf.json",
+  "/xiaoming-academy/data/questions.from-pdf.json",
+];
 const playableScenes = new Set(["world", "story", "training", "battle", "review", "roster", "daily", "dashboard", "report"]);
 const navItems = [
   ["world", "地图"],
@@ -126,15 +129,28 @@ async function initializeGame() {
 }
 
 async function loadBuiltInQuestionBank() {
-  const response = await fetch(questionBankUrl);
-  if (!response.ok) {
-    throw new Error(`内置题库加载失败：${response.status}`);
+  let lastError = null;
+  for (const url of questionBankUrls) {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`${url} 返回 ${response.status}`);
+      }
+      const payload = await response.json();
+      const parsedQuestions = parseQuestionImport(payload);
+      if (!parsedQuestions.length) {
+        throw new Error(`${url} 没有可玩题`);
+      }
+      return {
+        questions: parsedQuestions,
+        summary: summarizeQuestionBank(payload),
+      };
+    } catch (error) {
+      lastError = error;
+    }
   }
-  const payload = await response.json();
-  return {
-    questions: parseQuestionImport(payload),
-    summary: summarizeQuestionBank(payload),
-  };
+
+  throw new Error(`内置题库加载失败：${lastError?.message || "所有路径不可用"}`);
 }
 
 function render() {

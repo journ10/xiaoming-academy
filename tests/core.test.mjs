@@ -1184,6 +1184,7 @@ test("mind demon corridor purifies an old wrong question after two correct revie
   assert.equal(secondReview.purifiedDemonId, "law-1");
   assert.equal(secondReview.player.mindDemons["law-1"], undefined);
   assert.deepEqual(secondReview.player.purifiedDemonIds, ["law-1"]);
+  assert.equal(secondReview.player.dailyQuestProgress.demonPurifications, 1);
 });
 
 test("run report summarizes stance choices, resources, and next training target", () => {
@@ -1271,6 +1272,15 @@ test("daily quest state includes weekly quests, fatigue warning, and dashboard t
   assert.match(dashboard.topicCoverageBars[0].bar, /█|░/);
   assert.equal(dashboard.averageTimeTrend.averageSeconds, 47.7);
   assert.match(dashboard.averageTimeTrend.label, /变快|稳定|放慢/);
+});
+
+test("daily demon quest is not completed by default when no demons exist", () => {
+  const prepared = prepareQuestions(rawQuestions.slice(0, 1));
+  const questState = createDailyQuestState(prepared, initialPlayerState());
+  const demonQuest = questState.daily.find((quest) => quest.id === "daily-demon");
+
+  assert.equal(demonQuest.progress.current, 0);
+  assert.equal(demonQuest.progress.target, 1);
 });
 
 test("heart methods turn topic mastery into stance bonuses", () => {

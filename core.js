@@ -533,6 +533,9 @@ export function initialPlayerState() {
     wrongQuestionIds: [],
     mindDemons: {},
     purifiedDemonIds: [],
+    dailyQuestProgress: {
+      demonPurifications: 0,
+    },
     chapterClears: {},
     errorStats: {},
     retestStats: { attempts: 0, correct: 0 },
@@ -1400,6 +1403,12 @@ export function applyTrialAnswer(player, run, action) {
   const nextPurifiedIds = demonResult.purifiedDemonId
     ? unique([...(player.purifiedDemonIds || []), demonResult.purifiedDemonId])
     : [...(player.purifiedDemonIds || [])];
+  const nextDailyQuestProgress = {
+    ...(player.dailyQuestProgress || {}),
+    demonPurifications: demonResult.purifiedDemonId
+      ? Math.min(1, Number(player.dailyQuestProgress?.demonPurifications || 0) + 1)
+      : Number(player.dailyQuestProgress?.demonPurifications || 0),
+  };
   const starGlimmerGain = Math.max(0, Math.round(calculateBattleStarGlimmer({ question, isCorrect, studiedBeforeBattle }) * styleEffect.rewardMultiplier));
   const growthXpGain = Math.max(0, Math.round(calculateBattleGrowthXp({ question, isCorrect, studiedBeforeBattle }) * styleEffect.rewardMultiplier));
   const bondGains = calculateBattleBondGains({
@@ -1439,6 +1448,7 @@ export function applyTrialAnswer(player, run, action) {
     wrongQuestionIds: nextWrongIds,
     mindDemons: demonResult.mindDemons,
     purifiedDemonIds: nextPurifiedIds,
+    dailyQuestProgress: nextDailyQuestProgress,
     stanceStats: nextStanceStats,
     styleStats: nextStyleStats,
     errorStats: nextErrorStats,
@@ -1606,6 +1616,7 @@ export function createDailyChallenges(questions = [], player = initialPlayerStat
   const studiedCount = prepared.filter((question) => studiedLessonIds.has(question.lesson.id)).length;
   const correctCount = prepared.filter((question) => correctQuestionIds.has(question.id)).length;
   const demonCount = Object.keys(player.mindDemons || {}).length;
+  const demonPurifications = Math.min(1, Number(player.dailyQuestProgress?.demonPurifications || 0));
   const resonanceCount = Object.values(player.mastery || {}).filter((value) => Number(value || 0) >= 50).length;
 
   return [
@@ -1617,7 +1628,9 @@ export function createDailyChallenges(questions = [], player = initialPlayerStat
       shuye: 4,
       xingsha: 2,
     }),
-    dailyChallenge("daily-demon", "净墨回廊", "处理错题心魔，降低秘卷黑墨压迫。", demonCount ? 0 : 1, 1, {
+    dailyChallenge("daily-demon", "净墨回廊", demonCount
+      ? "处理错题心魔，降低秘卷黑墨压迫。"
+      : "战斗中出现错题心魔后，再回净墨回廊处理。", demonPurifications, 1, {
       moyu: 2,
       shuye: 1,
     }),
