@@ -1,0 +1,15 @@
+/* Shared UI tokens for the visual shell prototypes. */
+:root {
+  --paper: #fff8ee;
+  --ink: #241b2d;
+  --ink-2: #5d5367;
+  --muted: #756a78;
+  --line: rgba(54, 42, 62, 0.16);
+  --jade: #2f9a83;
+  --gold: #c9943a;
+  --gold-2: #efd38a;
+  --violet: #6e5ab8;
+  --danger: #ba3d51;
+  --radius: 8px;
+  --soft-shadow: 0 18px 48px rgba(44, 34, 51, 0.16);
+}

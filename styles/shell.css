@@ -1,0 +1,35 @@
+/* Shared shell styles for src/app.js review routes. */
+.shell-stage {
+  min-height: 420px;
+}
+
+.shell-stage-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: min(58vh, 560px);
+  padding: 32px;
+  text-align: center;
+}
+
+.shell-stage-placeholder .eyebrow {
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.shell-stage-placeholder h2,
+.shell-stage-placeholder p {
+  margin: 8px auto 0;
+  max-width: 560px;
+}
+
+.shell-stage-placeholder h2 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+.shell-stage-placeholder p {
+  color: var(--muted);
+  font-weight: 820;
+  line-height: 1.6;
+}

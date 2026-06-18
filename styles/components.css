@@ -1,0 +1,232 @@
+/* Review component styles for src/components/primitives.js. */
+.stage-background {
+  position: relative;
+  min-height: 640px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(20, 15, 26, 0.22), rgba(20, 15, 26, 0.58)),
+    var(--stage-background-image) center / cover no-repeat;
+  padding: 24px;
+}
+
+.primitive-sandbox {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 18px;
+  color: var(--paper);
+}
+
+.primitive-sandbox-header,
+.review-viewports,
+.button-state-grid,
+.character-review-row,
+.mobile-preview-stack,
+.confirm-modal-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.primitive-sandbox-header {
+  justify-content: space-between;
+}
+
+.primitive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.primitive-wide {
+  grid-column: 1 / -1;
+}
+
+.parchment-panel,
+.dark-glass-panel,
+.confirm-modal {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--soft-shadow);
+  padding: 18px;
+}
+
+.parchment-panel {
+  background: rgba(255, 248, 238, 0.92);
+  color: var(--ink);
+}
+
+.dark-glass-panel,
+.confirm-modal {
+  background: rgba(26, 20, 36, 0.78);
+  color: var(--paper);
+  backdrop-filter: blur(16px);
+}
+
+.panel-heading h3,
+.panel-heading .eyebrow {
+  margin: 0;
+}
+
+.panel-heading .eyebrow {
+  color: var(--gold);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.game-button {
+  display: inline-flex;
+  min-width: 104px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(239, 211, 138, 0.48);
+  padding: 8px 14px;
+  font-weight: 900;
+}
+
+.game-button-primary {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.game-button-secondary {
+  background: rgba(255, 248, 238, 0.12);
+  color: inherit;
+}
+
+.game-button-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.game-button.is-active,
+.game-button.is-pressed {
+  box-shadow: 0 0 0 4px rgba(239, 211, 138, 0.22);
+}
+
+.game-button.is-icon-only {
+  min-width: 44px;
+  padding: 8px;
+}
+
+.game-button-icon,
+.character-art img {
+  display: block;
+  object-fit: contain;
+}
+
+.game-button-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.game-button-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+}
+
+.progress-meter {
+  display: grid;
+  gap: 8px;
+}
+
+.progress-meter-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 900;
+}
+
+.progress-meter-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(36, 27, 45, 0.18);
+}
+
+.progress-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--jade), var(--gold));
+}
+
+.character-art {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  text-align: center;
+}
+
+.character-art-frame {
+  display: grid;
+  place-items: end center;
+  min-height: 190px;
+  border-radius: var(--radius);
+  background: rgba(255, 248, 238, 0.12);
+}
+
+.character-art img {
+  max-width: 150px;
+  max-height: 220px;
+}
+
+.character-art figcaption {
+  display: grid;
+  gap: 3px;
+}
+
+.confirm-modal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+}
+
+.confirm-modal-actions {
+  grid-column: 1 / -1;
+  justify-content: end;
+}
+
+.confirm-modal-mark {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 950;
+}
+
+@media (max-width: 760px) {
+  .primitive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .primitive-sandbox-header,
+  .review-viewports,
+  .character-review-row {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .game-button-spinner {
+    animation: primitive-spin 800ms linear infinite;
+  }
+
+  @keyframes primitive-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
