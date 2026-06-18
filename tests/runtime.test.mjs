@@ -121,6 +121,14 @@ test("runtime retries the PDF question bank from deployment-safe paths", () => {
   assert.match(app, /lastError/);
 });
 
+test("pages deployment publishes the runtime PDF question bank", () => {
+  const workflow = readFileSync(".github/workflows/pages.yml", "utf8");
+
+  assert.match(workflow, /--exclude 'data\/'/);
+  assert.match(workflow, /mkdir -p _site\/data/);
+  assert.match(workflow, /cp data\/questions\.from-pdf\.json _site\/data\/questions\.from-pdf\.json/);
+});
+
 test("runtime preserves PDF bank metadata for source-slot progress", () => {
   const app = readFileSync("app.js", "utf8");
 
