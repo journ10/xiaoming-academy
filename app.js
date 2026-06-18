@@ -1,18 +1,28 @@
 import {
   applyTrialAnswer,
-  createDailyChallenges,
+  buildChapterMechanicState,
+  buildKnowledgeGraphPreview,
+  createDailyQuestState,
+  createLearningDashboard,
   createMindDemonRun,
   createRouteRun,
   createRunReport,
   createStoryChapters,
   getArtifactRoster,
+  getBlackInkCollection,
+  getBondStories,
   getChapterActionState,
+  getChapterAvailability,
   getChapterProgress,
+  getAvailableLearningStyles,
   getDialogueForChapter,
   getEnergyState,
+  getEndingOptions,
   getHeartMethod,
+  getRecommendedLearningStyle,
   initialPlayerState,
   isBankMastered,
+  learningStyleDefinitions,
   markChapterStorySeen,
   markIntroSeen,
   materialTypes,
@@ -20,15 +30,18 @@ import {
   createSaveArchive,
   parseQuestionImport,
   parseSaveArchive,
+  selectRouteQuestions,
+  setLearningStyle,
   stances,
   storyCharacters,
   studyNode,
+  summarizeQuestionBank,
   upgradeArtifact,
 } from "./core.js";
 
 const storageKey = "xiaoming-academy-text-game-v1";
 const questionBankUrl = "./data/questions.from-pdf.json";
-const playableScenes = new Set(["world", "story", "training", "battle", "review", "roster", "daily", "report"]);
+const playableScenes = new Set(["world", "story", "training", "battle", "review", "roster", "daily", "dashboard", "report"]);
 const navItems = [
   ["world", "地图"],
   ["training", "练功"],
@@ -36,6 +49,7 @@ const navItems = [
   ["review", "心魔"],
   ["roster", "队伍"],
   ["daily", "日课"],
+  ["dashboard", "仪表"],
 ];
 
 const dom = {
@@ -65,6 +79,7 @@ let storyMode = scene === "story" ? "intro" : "";
 let storyLines = scene === "story" ? getIntroDialogue() : [];
 let storyIndex = 0;
 let logLine = "题库加载中。";
+let bankSummary = summarizeQuestionBank([]);
 
 dom.importAction.addEventListener("click", showImportPanel);
 dom.exportAction.addEventListener("click", showExportPanel);
@@ -82,7 +97,9 @@ initializeGame();
 
 async function initializeGame() {
   try {
-    questions = await loadBuiltInQuestionBank();
+    const builtInBank = await loadBuiltInQuestionBank();
+    questions = builtInBank.questions;
+    bankSummary = builtInBank.summary;
     chapters = createStoryChapters(questions);
     const saved = loadSavedState();
     player = saved.player;
@@ -96,6 +113,7 @@ async function initializeGame() {
     render();
   } catch (error) {
     questions = [];
+    bankSummary = summarizeQuestionBank([]);
     chapters = [];
     player = initialPlayerState();
     selectedChapterId = "";
@@ -112,7 +130,11 @@ async function loadBuiltInQuestionBank() {
   if (!response.ok) {
     throw new Error(`内置题库加载失败：${response.status}`);
   }
-  return parseQuestionImport(await response.json());
+  const payload = await response.json();
+  return {
+    questions: parseQuestionImport(payload),
+    summary: summarizeQuestionBank(payload),
+  };
 }
 
 function render() {
@@ -137,6 +159,8 @@ function renderHud() {
     hudStat("能量", `${energy.energy}/${energy.maxEnergy}`),
     hudStat("星辉", player.starGlimmer || 0),
     hudStat("书页", materials.shuye || 0),
+    hudStat("题库", `${bankSummary.playableQuestionCount}/${bankSummary.sourceTotalQuestionSlots || questions.length}`),
+    hudStat("复核", bankSummary.reviewQuestionCount),
   );
 }
 
@@ -147,6 +171,7 @@ function renderStage() {
   if (scene === "review") return renderReviewStage();
   if (scene === "roster") return renderRosterStage();
   if (scene === "daily") return renderDailyStage();
+  if (scene === "dashboard") return renderDashboardStage();
   if (scene === "report") return renderReport();
   return renderWorldStage();
 }
@@ -154,20 +179,29 @@ function renderStage() {
 function renderWorldStage() {
   const selected = getSelectedChapter();
   const action = selected ? getChapterActionState(selected, questions, player) : null;
+  const selectedAvailability = selected ? getChapterAvailability(selected, chapters, player) : null;
   const chapterCards = chapters.map((chapter) => {
     const progress = getChapterProgress(chapter, questions, player);
     const state = getChapterActionState(chapter, questions, player);
+    const availability = getChapterAvailability(chapter, chapters, player);
+    const cardClass = [
+      "text-choice",
+      selectedChapterId === chapter.id ? "is-selected" : "",
+      availability.available ? "" : "is-locked",
+    ].filter(Boolean).join(" ");
     const button = textButton(
-      `${chapter.title} · ${actionLabel(state.recommendedAction)}`,
+      `${availability.available ? "🔓" : "🔒"} ${chapter.title} · ${availability.available ? actionLabel(state.recommendedAction) : "未解锁"}`,
       () => {
         selectedChapterId = chapter.id;
         resetRunForChapter();
         render();
       },
-      selectedChapterId === chapter.id ? "text-choice is-selected" : "text-choice",
+      cardClass,
     );
     button.append(
-      el("small", "", {}, [`练功 ${progress.studiedCount}/${progress.total} · 答对 ${progress.correctCount}/${progress.total} · 心魔 ${progress.demonCount}`]),
+      el("small", "", {}, [availability.available
+        ? `练功 ${progress.studiedCount}/${progress.total} · 答对 ${progress.correctCount}/${progress.total} · 心魔 ${progress.demonCount}`
+        : availability.reason]),
     );
     return button;
   });
@@ -179,7 +213,7 @@ function renderWorldStage() {
     body: [
       panel("章节", el("div", "text-choice-list", {}, chapterCards)),
       panel("当前目标", [
-        el("p", "", {}, [action?.reason || "选择一章开始。"]),
+        el("p", "", {}, [selectedAvailability?.available ? action?.reason || "选择一章开始。" : selectedAvailability?.reason || "选择一章开始。"]),
         meter("章节完成度", getWorldProgressPercent(selected ? getChapterProgress(selected, questions, player) : null), 100),
       ]),
     ],
@@ -225,6 +259,9 @@ function renderTrainingStage() {
   }
 
   const studied = (player.studiedLessonIds || []).includes(question.lesson.id);
+  const trainingLog = studied && logLine.startsWith("练功完成")
+    ? logLine
+    : studied ? "这道题已经练过，可以直接进题阵。" : logLine;
   dom.stage.replaceChildren(textScreen({
     kicker: "练功",
     title: question.lesson.title,
@@ -236,15 +273,17 @@ function renderTrainingStage() {
       ]),
       panel("当前阵位", [
         el("p", "", {}, [`${nodeTypes[node.type]?.name || node.typeName}：${node.nodeFlavor}`]),
+        el("p", "", {}, [`章节机制：${node.mechanicName || "常规题阵"} · ${node.mechanicPrompt || "按题眼稳定检验。"}`]),
         el("p", "text-muted", {}, [node.rewardPreview || "完成后获得成长资源。"]),
       ]),
+      panel("学习风格", renderLearningStyleChoices()),
     ],
     choices: [
       [studied ? "复看完成" : "完成练功", studyCurrentNode, "text-choice is-primary"],
       ["进入战斗", enterBattleAfterTraining],
       ["回地图", () => goScene("world")],
     ],
-    log: studied ? "这道题已经练过，可以直接进题阵。" : logLine,
+    log: trainingLog,
   }));
 }
 
@@ -256,6 +295,11 @@ function renderBattleStage() {
     dom.stage.replaceChildren(emptyScreen("没有可战斗题阵", "先选择章节，或等待内置题库加载完成。"));
     return;
   }
+  const mechanicState = buildChapterMechanicState(question, player, {
+    node,
+    nodeType: node.type,
+    reveal: selectedStanceId === "observe",
+  });
 
   const options = question.options.map((option) => {
     const button = textButton(optionButtonLabel(question, option), () => toggleOption(option.key), getOptionClass(question, option.key));
@@ -265,9 +309,10 @@ function renderBattleStage() {
 
   dom.stage.replaceChildren(textScreen({
     kicker: "战斗",
-    title: `${question.enemy} · ${nodeTypes[node.type]?.name || node.typeName}`,
-    intro: question.stem,
+    title: `${question.enemy} · ${nodeTypes[node.type]?.name || node.typeName} · ${node.mechanicName || "常规题阵"}`,
+    intro: mechanicState.displayStem,
     body: [
+      renderChapterMechanicState(mechanicState),
       panel(answerPanelTitle(question), el("div", "text-choice-list", {}, options)),
       panel("招式", el("div", "text-grid", {}, stances.map((stance) => {
         const mastery = player.stanceMastery?.[stance.id] || { level: 1 };
@@ -279,11 +324,7 @@ function renderBattleStage() {
       submittedResult ? renderBattleFeedback(question) : renderBattleHint(question),
     ],
     choices: submittedResult
-      ? [
-          [run.completed ? "查看战报" : "下一题", handleBattleAdvance, "text-choice is-primary"],
-          ["回看讲解", startTraining],
-          ["回地图", () => goScene("world")],
-        ]
+      ? getBattleResultChoices()
       : [
           ["释放破招", handleBattleAction, "text-choice is-primary"],
           ["回练功", startTraining],
@@ -322,6 +363,33 @@ function renderBattleHint(question) {
   return panel("提示", "选择答案后释放破招。");
 }
 
+function renderChapterMechanicState(mechanicState) {
+  const lines = [
+    el("p", "", {}, [`${mechanicState.name}：${mechanicState.prompt}`]),
+  ];
+  if (mechanicState.borrowedMechanic) {
+    lines.push(el("p", "text-muted", {}, [`万象混沌借用：${mechanicState.borrowedMechanic}`]));
+  }
+  if (mechanicState.timeLimitSeconds) {
+    lines.push(el("p", "text-muted", {}, [`⏳ 本题建议限时 ${mechanicState.timeLimitSeconds} 秒${mechanicState.recoverAddsSeconds ? `；息阵时间 +${mechanicState.recoverAddsSeconds} 秒` : ""}`]));
+  }
+  if (mechanicState.optionWarnings?.length) {
+    lines.push(el("div", "text-log", {}, mechanicState.optionWarnings.map((warning) =>
+      el("p", "", {}, [`${warning.key} · ${warning.level}：${warning.text}`]),
+    )));
+  }
+  if (mechanicState.warning) {
+    lines.push(el("p", "text-muted", {}, [`道德天平：${mechanicState.warning}`]));
+  }
+  if (mechanicState.strategySteps?.length) {
+    lines.push(el("p", "text-muted", {}, [`策略链：${mechanicState.strategySteps.map((step) => step.name).join(" → ")}`]));
+  }
+  if (mechanicState.exactAnswerRequired) {
+    lines.push(el("p", "text-muted", {}, [`精确记忆：仅 ${mechanicState.attemptsAllowed} 次机会。${mechanicState.memoryHint || ""}`]));
+  }
+  return panel("章节机制", lines);
+}
+
 function renderReviewStage() {
   const demonRun = createMindDemonRun(questions, player, { title: "错题净化" });
   const demons = Object.values(player.mindDemons || {});
@@ -334,7 +402,10 @@ function renderReviewStage() {
         ? el("div", "text-choice-list", {}, demons.map((demon) =>
             el("article", "text-panel", {}, [
               el("h3", "", {}, [demon.enemy]),
-              el("p", "", {}, [`主题：${demon.topic || "未知"} · 压力：${demon.pressure || 0}`]),
+              el("p", "", {}, [`主题：${demon.topic || "未知"} · 压力：${demon.pressure || 0} · 错因：${demon.demonType || "未诊断"}`]),
+              el("p", "text-muted", {}, [`概念：${demon.concept || "未知概念"}`]),
+              el("p", "text-muted", {}, [`诊断：${demon.diagnosis || "复看题眼，确认错误来源。"}`]),
+              el("p", "text-muted", {}, [`净化建议：${demon.remedy || "先练功，再净化。"}`]),
             ]),
           ))
         : "没有待处理错题。"),
@@ -351,6 +422,9 @@ function renderReviewStage() {
 function renderRosterStage() {
   const artifacts = getArtifactRoster(player);
   const totalBond = Object.values(player.bonds || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+  const inkCollection = getBlackInkCollection(chapters, player);
+  const bondStories = getBondStories(player);
+  const endings = getEndingOptions(chapters, player);
   dom.stage.replaceChildren(textScreen({
     kicker: "队伍",
     title: "同伴与法器",
@@ -366,6 +440,19 @@ function renderRosterStage() {
       panel("法器", el("div", "text-choice-list", {}, artifacts.map((artifact) =>
         textButton(`${artifact.name} Lv.${artifact.level}`, () => upgradeArtifactAction(artifact.id), artifact.canUpgrade ? "text-choice is-primary" : "text-choice", formatCost(artifact.cost)),
       ))),
+      panel("黑色墨迹", el("div", "text-log", {}, inkCollection.map((item) =>
+        el("p", "", {}, [item.unlocked ? `✓ ${item.text}` : "🔒 未收集墨迹"]),
+      ))),
+      panel("羁绊剧情", el("div", "text-log", {}, bondStories.map((story) =>
+        el("p", "", {}, [story.unlocked
+          ? `✓ ${story.title}：${story.text}`
+          : `🔒 ${story.characterName} 羁绊 ${story.bond}/${story.requiredBond}`]),
+      ))),
+      panel("结局", endings.length
+        ? el("div", "text-log", {}, endings.map((ending) =>
+            el("p", "", {}, [`${ending.title}：${ending.text}`]),
+          ))
+        : "第七章万象书阁通关后解锁双结局。"),
     ],
     choices: [
       ["回地图", () => goScene("world"), "text-choice is-primary"],
@@ -376,20 +463,36 @@ function renderRosterStage() {
 }
 
 function renderDailyStage() {
-  const challenges = createDailyChallenges(questions, player);
+  const questState = createDailyQuestState(questions, player);
+  const challenges = questState.daily;
+  const weekly = questState.weekly;
+  const fatigue = questState.fatigue;
   dom.stage.replaceChildren(textScreen({
     kicker: "日课",
     title: "今日清单",
-    intro: "日课只负责告诉你现在最该补哪一块。",
+    intro: "日课和周课只负责告诉你现在最该补哪一块。",
     body: [
-      panel("任务", el("div", "text-choice-list", {}, challenges.map((challenge) =>
+      panel("日课", el("div", "text-choice-list", {}, challenges.map((challenge) =>
         el("article", "text-panel", {}, [
           el("h3", "", {}, [challenge.title]),
           el("p", "", {}, [challenge.description]),
           meter(`${challenge.progress.current}/${challenge.progress.target}`, challenge.progress.current, challenge.progress.target),
-          el("p", "text-muted", {}, [formatMaterials(challenge.rewards.materials)]),
+          el("p", "text-muted", {}, [formatQuestReward(challenge.rewards)]),
         ]),
       ))),
+      panel("周课", el("div", "text-choice-list", {}, weekly.map((quest) =>
+        el("article", "text-panel", {}, [
+          el("h3", "", {}, [quest.title]),
+          el("p", "", {}, [quest.description]),
+          meter(`${quest.progress.current}/${quest.progress.target}`, quest.progress.current, quest.progress.target),
+          el("p", "text-muted", {}, [formatQuestReward(quest.rewards)]),
+        ]),
+      ))),
+      panel("休息提醒", [
+        statLine("连续破阵", fatigue.consecutiveRouteRuns),
+        statLine("收益倍率", `${Math.round(fatigue.rewardMultiplier * 100)}%`),
+        el("p", "text-muted", {}, [fatigue.warning]),
+      ]),
     ],
     choices: [
       ["按日课练功", startTraining, "text-choice is-primary"],
@@ -397,6 +500,59 @@ function renderDailyStage() {
       ["回地图", () => goScene("world")],
     ],
     log: logLine,
+  }));
+}
+
+function renderDashboardStage() {
+  const dashboard = createLearningDashboard(questions, player);
+  const weakest = dashboard.weakestTopic;
+  const topicCoverageBars = dashboard.topicCoverageBars;
+  const averageTimeTrend = dashboard.averageTimeTrend;
+  dom.stage.replaceChildren(textScreen({
+    kicker: "仪表",
+    title: "学习仪表盘",
+    intro: weakest
+      ? `当前优先补：${weakest.title}。心魔 ${weakest.demonCount}，心法 ${weakest.mastery}。`
+      : "暂无薄弱主题，继续按章节推进。",
+    body: [
+      panel("总体进度", [
+        statLine("题目练功", `${dashboard.questionProgress.studiedCount}/${dashboard.questionProgress.total} · ${dashboard.questionProgress.studiedPercent}%`),
+        statLine("答对覆盖", `${dashboard.questionProgress.correctCount}/${dashboard.questionProgress.total} · ${dashboard.questionProgress.correctPercent}%`),
+        statLine("章节封印", `${dashboard.chapterStats.clearedCount}/${dashboard.chapterStats.totalCount}`),
+        statLine("心魔", `活跃 ${dashboard.demonStats.activeCount} · 已净化 ${dashboard.demonStats.purifiedCount} · 压力 ${dashboard.demonStats.totalPressure}`),
+      ]),
+      panel("错题画像", dashboard.errorPatternStats.length
+        ? el("div", "text-log", {}, dashboard.errorPatternStats.map((item) =>
+            el("p", "", {}, [`${item.name} · ${item.demonType}：${item.count}`]),
+          ))
+        : "当前没有活跃错因。"),
+      panel("累计画像", el("div", "text-log", {}, dashboard.errorPortrait.map((item) =>
+        el("p", "", {}, [`${item.name} ${item.bar} ${item.percent}% · ${item.wrongAttempts} 次`]),
+      ))),
+      panel("复测正确率", `${dashboard.retestAccuracy.correct}/${dashboard.retestAccuracy.attempts} · ${dashboard.retestAccuracy.percent}%`),
+      panel("主题覆盖", el("div", "text-log", {}, topicCoverageBars.map((item) =>
+        el("p", "", {}, [`${item.title}：${item.correctCount}/${item.total} · ${item.bar} ${item.percent}%`]),
+      ))),
+      panel("平均耗时趋势", [
+        statLine("样本", averageTimeTrend.samples),
+        statLine("平均秒数", averageTimeTrend.averageSeconds),
+        statLine("趋势", averageTimeTrend.label),
+      ]),
+      panel("流派胜率", el("div", "text-log", {}, dashboard.styleWinRates.map((item) =>
+        el("p", "", {}, [`${item.name}：${item.correct}/${item.attempts} · ${item.winRate}%`]),
+      ))),
+      panel("复习清单", dashboard.reviewItems.length
+        ? el("div", "text-log", {}, dashboard.reviewItems.slice(0, 6).map((item) =>
+            el("p", "", {}, [`${item.topic}：${item.text} · 压力 ${item.pressure}`]),
+          ))
+        : "当前没有待复习心魔。"),
+    ],
+    choices: [
+      ["导出复习清单", showReviewChecklist, "text-choice is-primary"],
+      ["去心魔", () => goScene("review")],
+      ["回地图", () => goScene("world")],
+    ],
+    log: "仪表盘根据本地存档实时生成，不上传数据。",
   }));
 }
 
@@ -437,15 +593,22 @@ function renderQuestPanel() {
   const progress = getChapterProgress(chapter, questions, player);
   const method = getHeartMethod(chapter.topic, progress.mastery);
   const clearedCount = chapters.filter((item) => getChapterProgress(item, questions, player).cleared).length;
+  const graphPreview = buildKnowledgeGraphPreview(chapter, questions, player, { maxLines: 10 });
   dom.questPanel.replaceChildren(
     el("h2", "", {}, ["当前卷宗"]),
     questLine("章节", chapter.title),
+    questLine("源题位", `${bankSummary.sourceExamCount || chapters.length} 套卷 · ${bankSummary.sourceTotalQuestionSlots || questions.length}`),
+    questLine("可玩题", `${bankSummary.playableQuestionCount || questions.length} · 覆盖 ${bankSummary.sourceCoveragePercent || 0}%`),
+    questLine("需复核", String(bankSummary.reviewQuestionCount || 0)),
     questLine("剧情", player.storyFlags?.[chapter.id] ? "完成" : "未读"),
     questLine("练功", `${progress.studiedCount}/${progress.total}`),
     questLine("答对", `${progress.correctCount}/${progress.total}`),
     questLine("心魔", String(progress.demonCount)),
     questLine(method.name, `${progress.mastery}/${progress.requiredMastery}`),
     questLine("总进度", isBankMastered(questions, player) ? "秘卷归元" : `${clearedCount}/${chapters.length}`),
+    questLine("图谱", `${graphPreview.masteredConcepts}/${graphPreview.totalConcepts}`),
+    el("h3", "", {}, ["知识图谱预览"]),
+    el("pre", "knowledge-graph", {}, [graphPreview.lines.join("\n")]),
   );
 }
 
@@ -472,6 +635,7 @@ function startIntro(forced = false) {
 }
 
 function startChapterStory() {
+  if (!isSelectedChapterAvailable()) return;
   const chapter = getSelectedChapter();
   storyMode = "chapter";
   storyLines = getDialogueForChapter(chapter, player);
@@ -510,6 +674,7 @@ function leaveStoryFor(nextScene) {
 }
 
 function startTraining() {
+  if (!isSelectedChapterAvailable()) return;
   ensureRun();
   scene = "training";
   submittedResult = null;
@@ -523,12 +688,46 @@ function studyCurrentNode() {
   const result = studyNode(player, run, node.id, { bankQuestions: questions });
   player = result.player;
   run = result.run;
-  logLine = `练功完成：星辉 +${result.rewards.starGlimmerGain}，修为 +${result.rewards.growthXpGain}。`;
+  logLine = `练功完成：星辉 +${result.rewards.starGlimmerGain}，修为 +${result.rewards.growthXpGain}。${result.rewards.styleFeedback || ""}`;
   savePlayer(player);
   render();
 }
 
+function renderLearningStyleChoices() {
+  const styles = getAvailableLearningStyles(player, chapters);
+  const recommended = getRecommendedLearningStyle(questions, player, chapters);
+  return el("div", "text-choice-list", {}, [
+    el("p", "text-muted", {}, [`当前推荐：${recommended.name}。${recommended.reason}`]),
+    el("div", "text-grid", {}, styles.map((style) => {
+      const className = [
+        "text-choice",
+        player.learningStyleId === style.id ? "is-selected" : "",
+        style.unlocked ? "" : "is-locked",
+      ].filter(Boolean).join(" ");
+      return textButton(
+        `${style.unlocked ? "🔓" : "🔒"} ${style.name}`,
+        () => selectLearningStyle(style.id),
+        className,
+        style.unlocked ? style.description : `${style.unlockReason} · ${style.description}`,
+      );
+    })),
+  ]);
+}
+
+function selectLearningStyle(styleId) {
+  try {
+    player = setLearningStyle(player, styleId, { chapters });
+    const style = learningStyleDefinitions.find((item) => item.id === styleId);
+    logLine = `学习风格已切换：${style?.name || styleId}。`;
+    savePlayer(player);
+    render();
+  } catch (error) {
+    showToast(error.message || "学习风格切换失败");
+  }
+}
+
 function enterBattleAfterTraining() {
+  if (!isSelectedChapterAvailable()) return;
   scene = "battle";
   submittedResult = null;
   selectedKeys = [];
@@ -536,6 +735,7 @@ function enterBattleAfterTraining() {
 }
 
 function startBattle() {
+  if (!isSelectedChapterAvailable()) return;
   resetRunForChapter();
   scene = "battle";
   render();
@@ -552,6 +752,18 @@ function startDemonBattle(demonRun) {
   selectedKeys = [];
   scene = "battle";
   render();
+}
+
+function getBattleResultChoices() {
+  const choices = [
+    [run.completed ? "查看战报" : "下一题", handleBattleAdvance, "text-choice is-primary"],
+    ["去练功", startTraining],
+  ];
+  if (submittedResult?.errorDiagnosis?.primary) {
+    choices.push(["直接净化", () => startDemonBattle(createMindDemonRun(questions, player, { title: "诊断净化" }))]);
+  }
+  choices.push(["回地图", () => goScene("world")]);
+  return choices;
 }
 
 function toggleOption(key) {
@@ -649,6 +861,24 @@ function showImportPanel() {
   field.focus();
 }
 
+function showReviewChecklist() {
+  const checklistText = createReviewChecklistText(createLearningDashboard(questions, player));
+  const field = saveTextArea(checklistText, true);
+  dom.stage.replaceChildren(textScreen({
+    kicker: "仪表",
+    title: "导出复习清单",
+    intro: "这份清单只包含当前活跃心魔和复习建议。",
+    body: [panel("复习清单", [field])],
+    choices: [
+      ["复制", () => copySaveText(checklistText, field), "text-choice is-primary"],
+      ["返回仪表", () => goScene("dashboard")],
+    ],
+    log: "导出内容是纯文本，不包含题库原文全量数据。",
+  }));
+  field.focus();
+  field.select();
+}
+
 async function copySaveText(saveText, field) {
   try {
     if (navigator.clipboard?.writeText) {
@@ -668,6 +898,28 @@ async function copySaveText(saveText, field) {
 
 function createSaveText() {
   return encodeSaveText(createCurrentArchive());
+}
+
+function createReviewChecklistText(dashboard) {
+  const lines = [
+    "小明书院复习清单",
+    `题目练功：${dashboard.questionProgress.studiedCount}/${dashboard.questionProgress.total}`,
+    `答对覆盖：${dashboard.questionProgress.correctCount}/${dashboard.questionProgress.total}`,
+    `活跃心魔：${dashboard.demonStats.activeCount}`,
+    "",
+  ];
+
+  if (!dashboard.reviewItems.length) {
+    lines.push("当前没有待复习心魔。");
+  } else {
+    dashboard.reviewItems.forEach((item, index) => {
+      lines.push(`${index + 1}. ${item.topic} · ${item.demonType} · 压力 ${item.pressure}`);
+      lines.push(`   概念：${item.concept}`);
+      lines.push(`   建议：先回练功，再进心魔回廊净化。`);
+    });
+  }
+
+  return lines.join("\n");
 }
 
 function importSaveText(saveText) {
@@ -724,14 +976,33 @@ function resetRunForChapter() {
 function createRunForSelectedChapter() {
   const chapter = getSelectedChapter();
   const bank = getChapterQuestions(chapter);
-  return createRouteRun(bank.length ? bank : questions, {
+  if (chapter && !getChapterAvailability(chapter, chapters, player).available) {
+    return createRouteRun([], {
+      title: chapter?.title || "今日破阵",
+      length: 5,
+    });
+  }
+  const selectedQuestions = selectRouteQuestions(bank.length ? bank : questions, player, { length: 5 });
+  return createRouteRun(selectedQuestions, {
     title: chapter?.title || "今日破阵",
-    length: Math.max(1, bank.length || Math.min(5, questions.length)),
+    length: 5,
   });
 }
 
 function getSelectedChapter() {
   return chapters.find((chapter) => chapter.id === selectedChapterId) || chapters[0] || null;
+}
+
+function isSelectedChapterAvailable() {
+  const chapter = getSelectedChapter();
+  const availability = getChapterAvailability(chapter, chapters, player);
+  if (availability.available) return true;
+
+  logLine = `章节未解锁：${availability.reason}`;
+  showToast(logLine);
+  scene = "world";
+  render();
+  return false;
 }
 
 function getChapterQuestions(chapter) {
@@ -755,11 +1026,35 @@ function ensureRunIndex() {
 }
 
 function renderBattleFeedback(question) {
-  return panel(submittedResult.isCorrect ? "结算：成功" : "结算：失误", [
+  const demon = submittedResult.demonProfile;
+  const content = [
     el("p", "", {}, [submittedResult.isCorrect
       ? `伤害 ${submittedResult.damage}，星辉 +${submittedResult.starGlimmerGain}，修为 +${submittedResult.growthXpGain}。`
-      : `正解 ${question.answer}。心力 ${signed(submittedResult.heartDelta)}，已记录复训目标。`]),
+      : `正解 ${question.answer}。心力 ${signed(submittedResult.heartDelta)}，${demon ? `${demon.demonType}已生成。` : "已记录复训目标。"}`]),
+    submittedResult.styleFeedback ? el("p", "text-muted", {}, [submittedResult.styleFeedback]) : "",
     el("p", "text-muted", {}, [submittedResult.learningCheck]),
+  ];
+
+  if (demon) {
+    content.push(
+      el("p", "text-muted", {}, [`错因：${demon.errorPatternName || demon.demonType}。${demon.diagnosis}`]),
+      el("p", "text-muted", {}, [`净化建议：${demon.remedy}`]),
+    );
+  }
+  if (submittedResult.errorDiagnosis?.primary) {
+    content.push(renderErrorDiagnosisPanel(submittedResult.errorDiagnosis));
+  }
+
+  return panel(submittedResult.isCorrect ? "结算：成功" : "结算：失误", content);
+}
+
+function renderErrorDiagnosisPanel(errorDiagnosis) {
+  return el("div", "text-log", {}, [
+    el("p", "", {}, [`错误诊断：${errorDiagnosis.primary.name} · ${errorDiagnosis.primary.probability}%`]),
+    ...errorDiagnosis.probabilities.map((item) =>
+      el("p", "", {}, [`${item.bar} ${item.probability}% ${item.name}：${item.diagnosis}`]),
+    ),
+    el("p", "text-muted", {}, [`建议：${errorDiagnosis.suggestions.join("；")}`]),
   ]);
 }
 
@@ -909,6 +1204,15 @@ function formatMaterials(materials = {}) {
     .filter(([, value]) => value > 0)
     .map(([name, value]) => `${name}+${value}`)
     .join(" · ");
+}
+
+function formatQuestReward(rewards = {}) {
+  const parts = [];
+  const materialText = formatMaterials(rewards.materials || rewards);
+  if (materialText) parts.push(materialText);
+  if (Number(rewards.starGlimmer || 0) > 0) parts.push(`星辉+${rewards.starGlimmer}`);
+  if (rewards.title) parts.push(`称号：${rewards.title}`);
+  return parts.join(" · ") || "完成后记录进度";
 }
 
 function formatCost(cost = {}) {

@@ -193,7 +193,7 @@ button:disabled {
 .bottom-nav {
   grid-area: nav;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
   padding: 10px;
 }
@@ -299,6 +299,12 @@ button:disabled {
   background: #edf8f4;
 }
 
+.text-choice.is-locked {
+  border-color: var(--text-line);
+  background: #f0e8dc;
+  color: var(--text-muted);
+}
+
 .battle-option.is-selected {
   border-color: var(--text-accent);
   background: #f0faf6;
@@ -346,6 +352,27 @@ button:disabled {
   gap: 10px;
   border-bottom: 1px solid var(--text-line);
   padding: 9px 0;
+}
+
+.knowledge-graph {
+  max-height: 260px;
+  margin: 10px 0 0;
+  overflow: auto;
+  border: 1px solid var(--text-line);
+  border-radius: var(--radius);
+  background: #fffdf8;
+  color: var(--text-ink);
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 0.78rem;
+  line-height: 1.55;
 }
 
 .toast {
