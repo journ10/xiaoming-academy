@@ -83,23 +83,35 @@ for (imageIndex, path) in imagePaths.enumerated() {
         fail("Cannot create CGImage: \(path)")
     }
 
-    let request = VNRecognizeTextRequest()
-    request.recognitionLevel = .accurate
-    request.usesLanguageCorrection = true
-    let preferredLanguages = ["zh-Hans", "en-US"]
-    let supportedLanguages = try VNRecognizeTextRequest.supportedRecognitionLanguages(
-        for: request.recognitionLevel,
-        revision: request.revision
-    )
-    let recognitionLanguages = preferredLanguages.filter { supportedLanguages.contains($0) }
-    if !recognitionLanguages.isEmpty {
-        request.recognitionLanguages = recognitionLanguages
+    func makeRequest(useExplicitLanguages: Bool) throws -> VNRecognizeTextRequest {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
+        if useExplicitLanguages {
+            let preferredLanguages = ["zh-Hans", "en-US"]
+            let supportedLanguages = try VNRecognizeTextRequest.supportedRecognitionLanguages(
+                for: request.recognitionLevel,
+                revision: request.revision
+            )
+            let recognitionLanguages = preferredLanguages.filter { supportedLanguages.contains($0) }
+            if !recognitionLanguages.isEmpty {
+                request.recognitionLanguages = recognitionLanguages
+            }
+        }
+        request.minimumTextHeight = 0.006
+        return request
     }
-    request.minimumTextHeight = 0.006
 
     let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+    var request: VNRecognizeTextRequest
     do {
-        try handler.perform([request])
+        request = try makeRequest(useExplicitLanguages: true)
+        do {
+            try handler.perform([request])
+        } catch {
+            request = try makeRequest(useExplicitLanguages: false)
+            try handler.perform([request])
+        }
     } catch {
         fail("Vision OCR failed for \(path): \(error)")
     }

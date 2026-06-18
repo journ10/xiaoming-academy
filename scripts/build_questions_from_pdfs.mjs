@@ -1,9 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import {
+  buildExamManifestFromQuestionPages,
+  detectExamTitleLine,
+  examKey as sourceExamKey,
+  getTotalExpectedQuestionSlots,
+} from "./pdf_source_manifest.mjs";
 
 const DEFAULT_QUESTION_OCR = "data/question-ocr-pages.jsonl";
-const DEFAULT_ANSWER_BANK = "data/questions.from-pdf.json";
+const DEFAULT_ANSWER_BANK = "data/answers.from-pdf.hybrid.json";
 const DEFAULT_OUTPUT = "data/questions.from-pdf.json";
 const QUESTION_PDF = "docs/09小明课堂 历年真题.pdf";
 const ANSWER_PDF = "docs/10小明课堂 《历年真题答案》.pdf";
@@ -28,9 +34,9 @@ export function parseQuestionPages(pages = []) {
     if (!currentEntry) return;
     const parsed = parseQuestionBody(currentEntry.lines, currentSection);
     if (parsed.stem) {
-      entries.push({
-        examTitle: currentEntry.examTitle,
-        examKey: examKey(currentEntry.examTitle),
+        entries.push({
+          examTitle: currentEntry.examTitle,
+        examKey: sourceExamKey(currentEntry.examTitle),
         section: currentEntry.section,
         questionNumber: currentEntry.questionNumber,
         page: currentEntry.page,
@@ -164,30 +170,45 @@ export function mergeQuestionAndAnswerBanks(questionEntries = [], answerPayload 
 }
 
 export function buildQuestionBankPayload({ questionPages, answerPayload, generatedAt = new Date().toISOString() }) {
+  const sourceManifest = buildExamManifestFromQuestionPages(questionPages);
+  const sourceTotalQuestionSlots = getTotalExpectedQuestionSlots(sourceManifest);
   const questionEntries = parseQuestionPages(questionPages);
   const questions = mergeQuestionAndAnswerBanks(questionEntries, answerPayload);
   const answerCount = Array.isArray(answerPayload.questions) ? answerPayload.questions.length : 0;
+  const isHybridAnswerBank = String(answerPayload.sourceType || "").includes("hybrid");
 
   return {
     source: {
       questionsPdf: QUESTION_PDF,
       answersPdf: ANSWER_PDF,
     },
-    sourceType: "vision-ocr-question-answer-pages",
+    sourceType: isHybridAnswerBank ? "hybrid-vision-ocr-question-answer-pages" : "vision-ocr-question-answer-pages",
     generatedAt,
     notice:
       "题干和选项来自《历年真题》PDF 的 OCR；答案和解析来自《历年真题答案》PDF 的 OCR。少量 OCR 低置信度或答案选项未完全识别的条目标记在 ocr.requiresReview 中。",
     ocr: {
       questionPageCount: questionPages.length,
+      sourceExamCount: sourceManifest.length,
+      sourceTotalQuestionSlots,
       parsedQuestionCount: questionEntries.length,
       answerQuestionCount: answerCount,
       mergedQuestionCount: questions.length,
+      unmatchedQuestionSlotCount: Math.max(0, sourceTotalQuestionSlots - questions.length),
+      unmatchedParsedQuestionCount: Math.max(0, questionEntries.length - questions.length),
       unmatchedQuestionCount: Math.max(0, questionEntries.length - questions.length),
       unmatchedAnswerCount: Math.max(0, answerCount - questions.length),
       reviewQuestionCount: questions.filter((question) => question.ocr?.requiresReview).length,
       questionPagesJsonl: DEFAULT_QUESTION_OCR,
       answerBankJson: DEFAULT_ANSWER_BANK,
+      sourceManifestJson: "data/pdf-source-manifest.json",
+      answerOcrPagesJsonl: answerPayload.ocr?.answerOcrPagesJsonl || answerPayload.ocr?.rawPagesJsonl || null,
+      answerOcr3xPagesJsonl: answerPayload.ocr?.answerOcr3xPagesJsonl || null,
+      hybridAnswerStrategy: answerPayload.ocr?.hybridAnswerStrategy || null,
+      hybridReplacedWith3x: answerPayload.ocr?.hybridReplacedWith3x ?? null,
+      hybridKeptOld: answerPayload.ocr?.hybridKeptOld ?? null,
+      hybridAddedFrom3x: answerPayload.ocr?.hybridAddedFrom3x ?? null,
     },
+    sourceManifest,
     questions,
   };
 }
@@ -291,7 +312,7 @@ function hasDuplicateOptionKeys(options = []) {
 function answerEntryKey(question) {
   const title = question.ocr?.answerExamTitle || question.ocr?.examTitle || question.stem || "";
   const number = question.ocr?.questionNumber || inferQuestionNumber(question);
-  const key = examKey(title);
+  const key = sourceExamKey(title);
   return key && number ? `${key}::${number}` : "";
 }
 
@@ -301,23 +322,9 @@ function inferQuestionNumber(question) {
   return match ? Number(match[1]) : 0;
 }
 
-function examKey(title) {
-  const normalized = normalizeBodyText(title);
-  const dateMatch = normalized.match(/(20\d{2}|19\d{2})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/u);
-  const levelMatch = normalized.match(/[（(](小学|初中|高中)[）)]/u) || normalized.match(/(小学|初中|高中)/u);
-  if (dateMatch) {
-    return `${dateMatch[1]}-${dateMatch[2].padStart(2, "0")}-${dateMatch[3].padStart(2, "0")}-${levelMatch?.[1] || ""}`;
-  }
-  const yearMatch = normalized.match(/(20\d{2}|19\d{2})/u);
-  if (yearMatch) return `${yearMatch[1]}-${levelMatch?.[1] || normalized}`;
-  return normalized;
-}
-
 function detectExamTitle(line) {
   const normalized = normalizeBodyText(line);
-  return /(20\d{2}|19\d{2})\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日.{0,80}(考试|招聘|招考|真题)/u.test(normalized)
-    ? normalized
-    : "";
+  return detectExamTitleLine(normalized);
 }
 
 function detectSection(line) {
@@ -393,6 +400,7 @@ function main() {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`);
   console.log(`Parsed ${payload.ocr.parsedQuestionCount} original questions from ${questionOcrPath}`);
+  console.log(`Detected ${payload.ocr.sourceExamCount} source exams / ${payload.ocr.sourceTotalQuestionSlots} source question slots`);
   console.log(`Merged ${payload.ocr.mergedQuestionCount}/${payload.ocr.answerQuestionCount} answer entries`);
   console.log(`${payload.ocr.reviewQuestionCount} merged questions require OCR review`);
   console.log(`Wrote ${outputPath}`);

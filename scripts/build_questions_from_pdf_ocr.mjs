@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const DEFAULT_INPUT = "data/pdf-ocr-pages.jsonl";
-const DEFAULT_OUTPUT = "data/questions.from-pdf.json";
+const DEFAULT_OUTPUT = "data/answers.from-pdf.ocr.json";
 const SOURCE_PDF = "docs/10小明课堂 《历年真题答案》.pdf";
 const OPTION_KEYS = "ABCDEFGH".split("");
 

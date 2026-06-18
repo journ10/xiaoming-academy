@@ -1,0 +1,372 @@
+{
+  "source": "docs/09小明课堂 历年真题.pdf",
+  "questionPagesJsonl": "data/question-ocr-pages.jsonl",
+  "examCount": 52,
+  "sourceTotalQuestionSlots": 4680,
+  "exams": [
+    {
+      "title": "2013年1月12日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2013-01-12-小学",
+      "startPage": 1,
+      "endPage": 10,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2013年5月26日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2013-05-26-小学",
+      "startPage": 10,
+      "endPage": 20,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2014年6月29日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2014-06-29-小学",
+      "startPage": 20,
+      "endPage": 28,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2014年11月23日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2014-11-23-小学",
+      "startPage": 28,
+      "endPage": 38,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2015年5月24日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2015-05-24-小学",
+      "startPage": 38,
+      "endPage": 47,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2016年7月31日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2016-07-31-小学",
+      "startPage": 47,
+      "endPage": 56,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2016年11月27日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2016-11-27-小学",
+      "startPage": 56,
+      "endPage": 67,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2017年5月24日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2017-05-24-小学",
+      "startPage": 67,
+      "endPage": 77,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2017年11月12日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2017-11-12-小学",
+      "startPage": 77,
+      "endPage": 88,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2018年5月27日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2018-05-27-小学",
+      "startPage": 88,
+      "endPage": 97,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2018年11月25日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2018-11-25-小学",
+      "startPage": 97,
+      "endPage": 107,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2019年6月2日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2019-06-02-小学",
+      "startPage": 107,
+      "endPage": 117,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2021 年9月25日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2021-09-25-小学",
+      "startPage": 117,
+      "endPage": 126,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2022 年5月21日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2022-05-21-小学",
+      "startPage": 126,
+      "endPage": 135,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2023年6月10日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2023-06-10-小学",
+      "startPage": 135,
+      "endPage": 144,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2024年6月2日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2024-06-02-小学",
+      "startPage": 144,
+      "endPage": 154,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2025 年7月5日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2025-07-05-小学",
+      "startPage": 154,
+      "endPage": 164,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2013年1月12 日深圳事业单住数师招聘考试（初中）",
+      "examKey": "2013-01-12-初中",
+      "startPage": 164,
+      "endPage": 173,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2013 年5月26日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2013-05-26-初中",
+      "startPage": 173,
+      "endPage": 182,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2014年6月29日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2014-06-29-初中",
+      "startPage": 182,
+      "endPage": 191,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2014年11月23日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2014-11-23-初中",
+      "startPage": 191,
+      "endPage": 199,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2015年5月24日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2015-05-24-初中",
+      "startPage": 199,
+      "endPage": 209,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2016年7月31日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2016-07-31-初中",
+      "startPage": 209,
+      "endPage": 216,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2016年11月27日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2016-11-27-初中",
+      "startPage": 216,
+      "endPage": 224,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2017年5月24日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2017-05-24-初中",
+      "startPage": 224,
+      "endPage": 234,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2017年11月12-日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2017-11-12-初中",
+      "startPage": 234,
+      "endPage": 243,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2018年5月27日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2018-05-27-初中",
+      "startPage": 243,
+      "endPage": 252,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2018年11月25日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2018-11-25-初中",
+      "startPage": 252,
+      "endPage": 261,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2019 年6月2日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2019-06-02-初中",
+      "startPage": 261,
+      "endPage": 270,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2021年9月25日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2021-09-25-初中",
+      "startPage": 270,
+      "endPage": 279,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2022 年5月21日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2022-05-21-初中",
+      "startPage": 279,
+      "endPage": 288,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2023年6月10日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2023-06-10-初中",
+      "startPage": 288,
+      "endPage": 298,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2024 年6月2日深圳事业单位教师招聘考试（初中）",
+      "examKey": "2024-06-02-初中",
+      "startPage": 298,
+      "endPage": 307,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2012年11月23日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2012-11-23-高中",
+      "startPage": 307,
+      "endPage": 316,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2013 年1月12日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2013-01-12-高中",
+      "startPage": 316,
+      "endPage": 324,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2014年6月29日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2014-06-29-高中",
+      "startPage": 324,
+      "endPage": 332,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2014年11月23日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2014-11-23-高中",
+      "startPage": 332,
+      "endPage": 340,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2015年5月24日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2015-05-24-高中",
+      "startPage": 340,
+      "endPage": 348,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2016年7月31日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2016-07-31-高中",
+      "startPage": 348,
+      "endPage": 357,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2016年11月27日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2016-11-27-高中",
+      "startPage": 357,
+      "endPage": 365,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2017 年5月24日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2017-05-24-高中",
+      "startPage": 365,
+      "endPage": 374,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2017年11月12日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2017-11-12-高中",
+      "startPage": 374,
+      "endPage": 383,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2018年5月27日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2018-05-27-高中",
+      "startPage": 383,
+      "endPage": 391,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2018 年11月25日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2018-11-25-高中",
+      "startPage": 391,
+      "endPage": 399,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2019年6月2日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2019-06-02-高中",
+      "startPage": 399,
+      "endPage": 407,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2021 年9月25日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2021-09-25-高中",
+      "startPage": 407,
+      "endPage": 415,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2022 年5月21日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2022-05-21-高中",
+      "startPage": 415,
+      "endPage": 422,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2023年6月10日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2023-06-10-高中",
+      "startPage": 422,
+      "endPage": 429,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2024 年6月2日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2024-06-02-高中",
+      "startPage": 429,
+      "endPage": 436,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2025年7月5日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2025-07-05-高中",
+      "startPage": 436,
+      "endPage": 446,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2025年12月27日深圳事业单位教师招聘考试（小学）",
+      "examKey": "2025-12-27-小学",
+      "startPage": 446,
+      "endPage": 457,
+      "expectedQuestionCount": 90
+    },
+    {
+      "title": "2025年12月27日深圳事业单位教师招聘考试（高中）",
+      "examKey": "2025-12-27-高中",
+      "startPage": 457,
+      "endPage": 465,
+      "expectedQuestionCount": 90
+    }
+  ]
+}
