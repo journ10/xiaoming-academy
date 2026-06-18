@@ -81,7 +81,7 @@ let report = null;
 let storyMode = scene === "story" ? "intro" : "";
 let storyLines = scene === "story" ? getIntroDialogue() : [];
 let storyIndex = 0;
-let logLine = "题库加载中。";
+let logLine = "秘卷正在展开。";
 let bankSummary = summarizeQuestionBank([]);
 
 dom.importAction.addEventListener("click", showImportPanel);
@@ -122,7 +122,7 @@ async function initializeGame() {
     selectedChapterId = "";
     scene = "world";
     run = createRouteRun([]);
-    logLine = error.message || "内置题库加载失败。";
+    logLine = error.message || "秘卷暂时无法展开。";
     render();
     showToast(logLine);
   }
@@ -134,12 +134,12 @@ async function loadBuiltInQuestionBank() {
     try {
       const response = await fetch(url, { cache: "no-store" });
       if (!response.ok) {
-        throw new Error(`${url} 返回 ${response.status}`);
+        throw new Error("卷宗入口暂时没有回应。");
       }
       const payload = await response.json();
       const parsedQuestions = parseQuestionImport(payload);
       if (!parsedQuestions.length) {
-        throw new Error(`${url} 没有可玩题`);
+        throw new Error("卷宗里还没有可练内容");
       }
       return {
         questions: parsedQuestions,
@@ -150,7 +150,7 @@ async function loadBuiltInQuestionBank() {
     }
   }
 
-  throw new Error(`内置题库加载失败：${lastError?.message || "所有路径不可用"}`);
+  throw new Error(lastError?.message || "秘卷暂时无法展开，请稍后再试。");
 }
 
 function render() {
@@ -175,8 +175,8 @@ function renderHud() {
     hudStat("能量", `${energy.energy}/${energy.maxEnergy}`),
     hudStat("星辉", player.starGlimmer || 0),
     hudStat("书页", materials.shuye || 0),
-    hudStat("题库", `${bankSummary.playableQuestionCount}/${bankSummary.sourceTotalQuestionSlots || questions.length}`),
-    hudStat("复核", bankSummary.reviewQuestionCount),
+    hudStat("秘卷", `${bankSummary.playableQuestionCount}/${bankSummary.sourceTotalQuestionSlots || questions.length}`),
+    hudStat("待校", bankSummary.reviewQuestionCount),
   );
 }
 
@@ -270,7 +270,7 @@ function renderTrainingStage() {
   const node = getCurrentNode();
   const question = getCurrentQuestion();
   if (!chapter || !node || !question) {
-    dom.stage.replaceChildren(emptyScreen("没有可练题目", "内置题库加载后会自动生成练功内容。"));
+    dom.stage.replaceChildren(emptyScreen("暂时没有可练短课", "秘卷展开后会显示本章练功内容。"));
     return;
   }
 
@@ -308,7 +308,7 @@ function renderBattleStage() {
   const node = getCurrentNode();
   const question = getCurrentQuestion();
   if (!node || !question) {
-    dom.stage.replaceChildren(emptyScreen("没有可战斗题阵", "先选择章节，或等待内置题库加载完成。"));
+    dom.stage.replaceChildren(emptyScreen("暂时没有题阵", "先选择已开放章节，或稍后再回来。"));
     return;
   }
   const mechanicState = buildChapterMechanicState(question, player, {
@@ -370,7 +370,7 @@ function isAnswerRecallQuestion(question) {
 
 function renderBattleHint(question) {
   if (selectedStanceId === "observe") {
-    const explanation = question.lesson?.explanation || question.explanation || question.lesson?.keyPoint || "暂无解析。";
+    const explanation = question.lesson?.explanation || question.explanation || question.lesson?.keyPoint || "讲解还在整理中。";
     return panel("提示", [
       el("p", "", {}, [explanation]),
       question.lesson?.keyPoint ? el("p", "text-muted", {}, [`题眼：${question.lesson.keyPoint}`]) : "",
@@ -411,15 +411,15 @@ function renderReviewStage() {
   const demons = Object.values(player.mindDemons || {});
   dom.stage.replaceChildren(textScreen({
     kicker: "心魔",
-    title: demons.length ? "错题回廊" : "暂无心魔",
-    intro: demons.length ? "这些错题会保留压迫值，重新答对可以净化。" : "当前没有真实错题。先去战斗，答错后这里会出现复训目标。",
+    title: demons.length ? "错题回廊" : "心魔未现",
+    intro: demons.length ? "这些错题会保留压迫值，重新答对可以净化。" : "当前没有错题心魔。先去战斗检验，答错后这里会出现复训目标。",
     body: [
       panel("心魔列表", demons.length
         ? el("div", "text-choice-list", {}, demons.map((demon) =>
             el("article", "text-panel", {}, [
               el("h3", "", {}, [demon.enemy]),
-              el("p", "", {}, [`主题：${demon.topic || "未知"} · 压力：${demon.pressure || 0} · 错因：${demon.demonType || "未诊断"}`]),
-              el("p", "text-muted", {}, [`概念：${demon.concept || "未知概念"}`]),
+              el("p", "", {}, [`主题：${demon.topic || "待定主题"} · 压力：${demon.pressure || 0} · 错因：${demon.demonType || "待诊断"}`]),
+              el("p", "text-muted", {}, [`概念：${demon.concept || "待梳理概念"}`]),
               el("p", "text-muted", {}, [`诊断：${demon.diagnosis || "复看题眼，确认错误来源。"}`]),
               el("p", "text-muted", {}, [`净化建议：${demon.remedy || "先练功，再净化。"}`]),
             ]),
@@ -428,7 +428,7 @@ function renderReviewStage() {
     ],
     choices: [
       ["开始净化", () => startDemonBattle(demonRun), "text-choice is-primary"],
-      ["去战斗制造检验", startBattle],
+      ["去战斗检验", startBattle],
       ["回地图", () => goScene("world")],
     ],
     log: logLine,
@@ -444,7 +444,7 @@ function renderRosterStage() {
   dom.stage.replaceChildren(textScreen({
     kicker: "队伍",
     title: "同伴与法器",
-    intro: `总羁绊 ${totalBond}。法器升级会消耗材料，但核心玩法不依赖素材。`,
+    intro: `总羁绊 ${totalBond}。法器升级会消耗材料；不升级也能继续巡游。`,
     body: [
       panel("同伴", el("div", "text-grid", {}, storyCharacters.map((character) =>
         el("article", "text-panel", {}, [
@@ -486,7 +486,7 @@ function renderDailyStage() {
   dom.stage.replaceChildren(textScreen({
     kicker: "日课",
     title: "今日清单",
-    intro: "日课和周课只负责告诉你现在最该补哪一块。",
+    intro: "日课和周课会提示你现在最该补哪一块。",
     body: [
       panel("日课", el("div", "text-choice-list", {}, challenges.map((challenge) =>
         el("article", "text-panel", {}, [
@@ -529,7 +529,7 @@ function renderDashboardStage() {
     title: "学习仪表盘",
     intro: weakest
       ? `当前优先补：${weakest.title}。心魔 ${weakest.demonCount}，心法 ${weakest.mastery}。`
-      : "暂无薄弱主题，继续按章节推进。",
+      : "还没有明显薄弱主题，继续按章节推进。",
     body: [
       panel("总体进度", [
         statLine("题目练功", `${dashboard.questionProgress.studiedCount}/${dashboard.questionProgress.total} · ${dashboard.questionProgress.studiedPercent}%`),
@@ -550,7 +550,7 @@ function renderDashboardStage() {
         el("p", "", {}, [`${item.title}：${item.correctCount}/${item.total} · ${item.bar} ${item.percent}%`]),
       ))),
       panel("平均耗时趋势", [
-        statLine("样本", averageTimeTrend.samples),
+        statLine("记录", averageTimeTrend.samples),
         statLine("平均秒数", averageTimeTrend.averageSeconds),
         statLine("趋势", averageTimeTrend.label),
       ]),
@@ -568,7 +568,7 @@ function renderDashboardStage() {
       ["去心魔", () => goScene("review")],
       ["回地图", () => goScene("world")],
     ],
-    log: "仪表盘根据本地存档实时生成，不上传数据。",
+    log: "所有进度只保存在这台设备的存档里。",
   }));
 }
 
@@ -596,7 +596,7 @@ function renderReport() {
       ["去心魔", () => goScene("review")],
       ["回地图", () => goScene("world")],
     ],
-    log: "战报只保留结论和下一步。"
+    log: "战报会指出下一步巡游方向。"
   }));
 }
 
@@ -613,9 +613,9 @@ function renderQuestPanel() {
   dom.questPanel.replaceChildren(
     el("h2", "", {}, ["当前卷宗"]),
     questLine("章节", chapter.title),
-    questLine("源题位", `${bankSummary.sourceExamCount || chapters.length} 套卷 · ${bankSummary.sourceTotalQuestionSlots || questions.length}`),
-    questLine("可玩题", `${bankSummary.playableQuestionCount || questions.length} · 覆盖 ${bankSummary.sourceCoveragePercent || 0}%`),
-    questLine("需复核", String(bankSummary.reviewQuestionCount || 0)),
+    questLine("原卷", `${bankSummary.sourceExamCount || chapters.length} 套卷 · ${bankSummary.sourceTotalQuestionSlots || questions.length} 题位`),
+    questLine("入阵题", `${bankSummary.playableQuestionCount || questions.length} · 收录 ${bankSummary.sourceCoveragePercent || 0}%`),
+    questLine("待校题", String(bankSummary.reviewQuestionCount || 0)),
     questLine("剧情", player.storyFlags?.[chapter.id] ? "完成" : "未读"),
     questLine("练功", `${progress.studiedCount}/${progress.total}`),
     questLine("答对", `${progress.correctCount}/${progress.total}`),
@@ -738,7 +738,7 @@ function selectLearningStyle(styleId) {
     savePlayer(player);
     render();
   } catch (error) {
-    showToast(error.message || "学习风格切换失败");
+    showToast(error.message || "暂时无法切换学习风格");
   }
 }
 
@@ -852,12 +852,12 @@ function showExportPanel() {
         ["复制", () => copySaveText(saveText, field), "text-choice is-primary"],
         ["返回", render],
       ],
-      log: `题库固定内置，存档码只包含进度。`,
+      log: "存档码只会带走当前巡游进度。",
     }));
     field.focus();
     field.select();
   } catch (error) {
-    showToast(error.message || "导出失败");
+    showToast(error.message || "暂时无法导出存档码");
   }
 }
 
@@ -872,7 +872,7 @@ function showImportPanel() {
       ["导入", () => importSaveText(field.value), "text-choice is-primary"],
       ["返回", render],
     ],
-    log: `题库固定内置，导入不会替换题库。`,
+    log: "导入只替换巡游进度，不会改动书院秘卷。",
   }));
   field.focus();
 }
@@ -889,7 +889,7 @@ function showReviewChecklist() {
       ["复制", () => copySaveText(checklistText, field), "text-choice is-primary"],
       ["返回仪表", () => goScene("dashboard")],
     ],
-    log: "导出内容是纯文本，不包含题库原文全量数据。",
+    log: "清单只包含当前复习目标和建议。",
   }));
   field.focus();
   field.select();
@@ -951,7 +951,7 @@ function importSaveText(saveText) {
     logLine = "已导入存档。";
     render();
   } catch (error) {
-    showToast(error.message || "导入存档失败");
+    showToast(error.message || "暂时无法导入存档码");
   }
 }
 
@@ -1066,7 +1066,7 @@ function renderBattleFeedback(question) {
 
 function renderErrorDiagnosisPanel(errorDiagnosis) {
   return el("div", "text-log", {}, [
-    el("p", "", {}, [`错误诊断：${errorDiagnosis.primary.name} · ${errorDiagnosis.primary.probability}%`]),
+    el("p", "", {}, [`失误诊断：${errorDiagnosis.primary.name} · ${errorDiagnosis.primary.probability}%`]),
     ...errorDiagnosis.probabilities.map((item) =>
       el("p", "", {}, [`${item.bar} ${item.probability}% ${item.name}：${item.diagnosis}`]),
     ),
@@ -1093,7 +1093,7 @@ function textScreen({ kicker, title, intro, body = [], choices = [], log = "" })
 
 function emptyScreen(title, detail) {
   return textScreen({
-    kicker: "空",
+    kicker: "提示",
     title,
     intro: detail,
     choices: [["回地图", () => goScene("world"), "text-choice is-primary"]],
@@ -1209,7 +1209,7 @@ function getIntroDialogue() {
     { speakerName: "明澈", text: "小明书院是一座显化书院。知识会变成秘境，遗忘会凝成雾。" },
     { speakerName: "阿芷", text: "先练功，把讲解拆成题眼。战斗应该是检验，不是硬猜。" },
     { speakerName: "青岚", text: "破阵时选稳破、强攻或观照。答错会留下心魔，之后要回来处理。" },
-    { speakerName: "小墨", text: "六章全亮，代表题库里的题都练过、答对过、清过心魔。" },
+    { speakerName: "小墨", text: "六章全亮，代表秘卷里的题都练过、答对过、清过心魔。" },
   ];
 }
 
@@ -1280,7 +1280,7 @@ function encodeSaveText(payload) {
 
 function parseSaveText(saveText) {
   const text = String(saveText || "").trim();
-  if (!text) throw new Error("存档码为空");
+  if (!text) throw new Error("请先粘贴存档码。");
   if (text.startsWith("{")) return JSON.parse(text);
 
   const encoded = text.replace(/^XMA1-/i, "").replace(/\s/g, "");

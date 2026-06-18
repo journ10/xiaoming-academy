@@ -372,7 +372,7 @@ test("learning styles can be selected and change study feedback", () => {
   assert.equal(styled.player.learningStyleId, "law");
   assert.ok(styled.rewards.growthXpGain > baseline.rewards.growthXpGain);
   assert.match(styled.rewards.styleFeedback, /律令派|教育法规/);
-  assert.throws(() => setLearningStyle(initialPlayerState(), "missing-style"), /未知学习风格/);
+  assert.throws(() => setLearningStyle(initialPlayerState(), "missing-style"), /找不到这种学习风格/);
 });
 
 test("learning style build exposes base styles, advanced unlock gates, and recommendations", () => {
@@ -421,7 +421,7 @@ test("learning style build exposes base styles, advanced unlock gates, and recom
     "concept",
   ]);
   assert.equal(initialAvailability.find((style) => style.id === "review").unlocked, false);
-  assert.throws(() => setLearningStyle(initialPlayerState(), "review", { chapters }), /尚未解锁/);
+  assert.throws(() => setLearningStyle(initialPlayerState(), "review", { chapters }), /还未解锁/);
   assert.deepEqual(advancedAvailability.filter((style) => style.unlocked).map((style) => style.id), [
     "balanced",
     "law",
@@ -710,7 +710,7 @@ test("parseQuestionImport rejects malformed imported questions before they enter
           options: [{ key: "A", text: "A" }],
         },
       ]),
-    /第 1 题缺少 answer/,
+    /第 1 题还没有正解/,
   );
 
   assert.throws(
@@ -759,7 +759,7 @@ test("save archives preserve player progress without embedding the built-in ques
 test("save archive import rejects question-bank payloads because questions are built in", () => {
   assert.throws(
     () => parseSaveArchive({ questions: rawQuestions.slice(0, 1), source: "legacy-bank.json" }),
-    /导入存档只接受存档 JSON，不导入题库/,
+    /这段内容像题卷，不是存档码/,
   );
 });
 

@@ -448,7 +448,7 @@ const chapterNarrativeBeats = {
   "chapter-child": [
     ["xiaomo", "童心星谷是最后一处。这里的心魔最轻，却最容易被大人忽略。"],
     ["azhi", "理解孩子的发展，不是降低要求，是知道怎样把要求递到他们够得到的地方。"],
-    ["mingche", "全库通关后，创始人的试炼会真正开启。那时书院会承认你是新的守卷人。"],
+    ["mingche", "六章点亮后，创始人的试炼会真正开启。那时书院会承认你是新的守卷人。"],
   ],
   "chapter-final": [
     ["xiaomo", "万象书阁不会只考一章。它会把你走过的每种错误、每种题眼都重新混在一起。"],
@@ -555,7 +555,7 @@ export function prepareQuestions(rawQuestions = []) {
     const options = normalizeOptions(raw.options);
     const id = String(raw.id || `question-${index + 1}`);
     const difficulty = clamp(Number(raw.difficulty || inferDifficulty(raw)), 1, 5);
-    const explanation = String(raw.explanation || raw.analysis || "暂无讲解。");
+    const explanation = String(raw.explanation || raw.analysis || "讲解还在整理中。");
     const lesson = normalizeLesson(raw.lesson, {
       id,
       topic,
@@ -583,7 +583,7 @@ export function prepareQuestions(rawQuestions = []) {
       year: String(raw.year || "未标注"),
       type: String(raw.type || "练习题"),
       topic,
-      stem: String(raw.stem || "题干待补充"),
+      stem: String(raw.stem || "题干还在整理中"),
       options,
       answer: normalizeAnswer(raw.answer, options),
       explanation,
@@ -603,7 +603,7 @@ export function prepareQuestions(rawQuestions = []) {
 export function parseQuestionImport(payload) {
   const rawQuestions = Array.isArray(payload) ? payload : payload?.questions;
   if (!Array.isArray(rawQuestions) || !rawQuestions.length) {
-    throw new Error("JSON 需要是题目数组或包含 questions 数组");
+    throw new Error("秘卷格式不对：需要一组题目。");
   }
 
   return prepareQuestions(rawQuestions.map((raw, index) => validateImportedQuestion(raw, index)));
@@ -654,13 +654,13 @@ export function createSaveArchive({
 
 export function parseSaveArchive(payload, options = {}) {
   if (!payload || typeof payload !== "object") {
-    throw new Error("JSON 需要是小明书院存档或题库数据");
+    throw new Error("这不是小明书院存档。");
   }
   if (Array.isArray(payload) || (payload.questions && !payload.player)) {
-    throw new Error("导入存档只接受存档 JSON，不导入题库");
+    throw new Error("这段内容像题卷，不是存档码。请粘贴从“导出存档”得到的存档码。");
   }
   if (payload.type && payload.type !== "xiaoming-academy-save") {
-    throw new Error("存档类型不匹配");
+    throw new Error("这段存档不属于小明书院。");
   }
 
   const contextQuestions = Array.isArray(options) ? options : options.questions || [];
@@ -748,7 +748,7 @@ function getLearningStyleAvailability(style, player = initialPlayerState(), chap
       ? { unlocked: true, reason: "第七章已通关" }
       : { unlocked: false, reason: "需要第七章通关" };
   }
-  return { unlocked: false, reason: "未满足解锁条件" };
+  return { unlocked: false, reason: "条件还不够" };
 }
 
 function withRecommendationReason(style, reason) {
@@ -850,7 +850,7 @@ export function getChapterAvailability(chapter, chapters = [], player = initialP
     return {
       available: false,
       status: "locked",
-      reason: "未选择章节。",
+      reason: "先选择一个章节。",
       requiredChapterIds: [],
       missingChapterIds: [],
     };
@@ -950,7 +950,7 @@ export function buildKnowledgeGraphPreview(chapter, questions = [], player = ini
   ];
 
   if (!graph.root.children.length) {
-    lines.push("暂无概念节点");
+    lines.push("还没有概念节点");
   } else {
     let truncatedCount = 0;
     graph.root.children.forEach((child, index) => {
@@ -987,7 +987,7 @@ export function getDialogueForChapter(chapter, player = initialPlayerState()) {
   if (state === "cleared") {
     return [
       dialogueLine("xiaomo", `这一章的封印已经亮了。错题心魔也安静下来，秘卷的字迹正在复原。`),
-      dialogueLine(lead.id, `继续巡游下一处裂隙吧。真正的通关，是整本题库都能稳稳答对。`),
+      dialogueLine(lead.id, `继续巡游下一处裂隙吧。真正的通关，是整本秘卷都能稳稳答对。`),
     ];
   }
 
@@ -1240,9 +1240,9 @@ export function buildErrorDiagnosis(question, selectedAnswer = "") {
 
 export function setLearningStyle(player = initialPlayerState(), styleId = "balanced", options = {}) {
   const style = learningStyleDefinitions.find((item) => item.id === styleId);
-  if (!style) throw new Error(`未知学习风格：${styleId}`);
+  if (!style) throw new Error("找不到这种学习风格。");
   const availability = getLearningStyleAvailability(style, player, options.chapters || []);
-  if (!availability.unlocked) throw new Error(`${style.name}尚未解锁：${availability.reason}`);
+  if (!availability.unlocked) throw new Error(`${style.name}还未解锁：${availability.reason}`);
   return {
     ...player,
     learningStyleId: style.id,
@@ -1572,7 +1572,7 @@ export function getArtifactRoster(player = initialPlayerState()) {
 
 export function upgradeArtifact(player = initialPlayerState(), artifactId) {
   const definition = artifactDefinitions.find((artifact) => artifact.id === artifactId);
-  if (!definition) throw new Error(`未知法器：${artifactId}`);
+  if (!definition) throw new Error("找不到这件法器。");
 
   const artifacts = normalizeArtifacts(player.artifacts);
   const current = artifacts[artifactId] || { level: 1, unlocked: true };
@@ -1583,7 +1583,7 @@ export function upgradeArtifact(player = initialPlayerState(), artifactId) {
     throw new Error(`${definition.name} 已达满级`);
   }
   if (!hasMaterials(materials, cost)) {
-    throw new Error(`${definition.name} 升级材料不足`);
+    throw new Error(`${definition.name} 升级材料还不够`);
   }
 
   const nextArtifacts = {
@@ -1706,7 +1706,7 @@ export function createLearningDashboard(questions = [], player = initialPlayerSt
   const errorPatternStats = Object.entries(countErrorPatterns(activeDemons))
     .map(([errorPattern, count]) => ({
       errorPattern,
-      name: errorPatternDefinitions[errorPattern]?.name || "未诊断",
+      name: errorPatternDefinitions[errorPattern]?.name || "待诊断",
       demonType: errorPatternDefinitions[errorPattern]?.demonType || "心魔",
       count,
     }))
@@ -1716,12 +1716,12 @@ export function createLearningDashboard(questions = [], player = initialPlayerSt
       const question = questionById.get(demon.questionId || demon.id);
       return {
         questionId: demon.questionId || demon.id || "",
-        topic: demon.topic || question?.topic || "未知主题",
+        topic: demon.topic || question?.topic || "待定主题",
         pressure: Number(demon.pressure || 0),
         errorPattern: demon.errorPattern || "memory-gap",
         demonType: demon.demonType || errorPatternDefinitions["memory-gap"].demonType,
-        concept: demon.concept || question?.concept || `${question?.topic || "未知主题"} · 基础概念`,
-        text: `${demon.topic || question?.topic || "未知主题"} · ${demon.demonType || "心魔"} · ${question?.lesson?.keyPoint || "复看题眼"}`,
+        concept: demon.concept || question?.concept || `${question?.topic || "待定主题"} · 基础概念`,
+        text: `${demon.topic || question?.topic || "待定主题"} · ${demon.demonType || "心魔"} · ${question?.lesson?.keyPoint || "复看题眼"}`,
       };
     })
     .sort((a, b) => b.pressure - a.pressure || a.topic.localeCompare(b.topic));
@@ -1809,7 +1809,7 @@ function normalizeLesson(rawLesson, source) {
   return {
     id: String(rawLesson?.id || `lesson-${source.id}`),
     title: String(rawLesson?.title || `${source.topic} · ${source.year || "真题"}讲解`),
-    sourceRef: String(rawLesson?.sourceRef || source.sourceRef || "练功讲解样本"),
+    sourceRef: String(rawLesson?.sourceRef || source.sourceRef || "书院讲解"),
     keyPoint,
     explanation: String(rawLesson?.explanation || source.explanation),
     studyPrompt: String(rawLesson?.studyPrompt || `练功目标：先记住“${keyPoint}”，再用战斗检验。`),
@@ -1818,20 +1818,20 @@ function normalizeLesson(rawLesson, source) {
 
 function validateImportedQuestion(raw, index) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new Error(`第 ${index + 1} 题必须是对象`);
+    throw new Error(`第 ${index + 1} 题格式不对`);
   }
 
   const options = normalizeOptions(raw.options);
   const answer = String(raw.answer ?? "").trim().toUpperCase().replace(/\s+/g, "");
 
   if (!String(raw.stem ?? "").trim()) {
-    throw new Error(`第 ${index + 1} 题缺少 stem`);
+    throw new Error(`第 ${index + 1} 题还没有题干`);
   }
   if (!String(raw.topic ?? "").trim()) {
-    throw new Error(`第 ${index + 1} 题缺少 topic`);
+    throw new Error(`第 ${index + 1} 题还没有主题`);
   }
   if (!answer) {
-    throw new Error(`第 ${index + 1} 题缺少 answer`);
+    throw new Error(`第 ${index + 1} 题还没有正解`);
   }
   if (options.length < 2) {
     throw new Error(`第 ${index + 1} 题至少需要 2 个选项`);
@@ -1840,7 +1840,7 @@ function validateImportedQuestion(raw, index) {
   const optionKeys = new Set(options.map((option) => option.key));
   const missingKeys = answer.split("").filter((key) => !optionKeys.has(key));
   if (missingKeys.length) {
-    throw new Error(`第 ${index + 1} 题答案包含不存在的选项 ${missingKeys.join("")}`);
+    throw new Error(`第 ${index + 1} 题正解里有题面没有出现的选项 ${missingKeys.join("")}`);
   }
 
   return {
@@ -1852,7 +1852,7 @@ function validateImportedQuestion(raw, index) {
     stem: String(raw.stem).trim(),
     options,
     answer,
-    explanation: String(raw.explanation || raw.analysis || "暂无讲解。"),
+    explanation: String(raw.explanation || raw.analysis || "讲解还在整理中。"),
   };
 }
 
@@ -2949,7 +2949,7 @@ function getNextRecommendation(run, player) {
 
 function getRunNode(run, nodeId) {
   const node = run.nodes.find((item) => item.id === nodeId);
-  if (!node) throw new Error(`未知路线节点：${nodeId}`);
+  if (!node) throw new Error("这处题阵已经失效，请回地图重进。");
   return node;
 }
 
@@ -2960,7 +2960,7 @@ function getQuestionForNode(node, questions = []) {
 
 function getStance(stanceId) {
   const stance = stances.find((item) => item.id === stanceId);
-  if (!stance) throw new Error(`未知破招式：${stanceId}`);
+  if (!stance) throw new Error("这式破招暂时不可用。");
   return stance;
 }
 
