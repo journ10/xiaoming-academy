@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  buildExamManifestFromQuestionPages,
+  getTotalExpectedQuestionSlots,
+} from "../scripts/pdf_source_manifest.mjs";
+import {
   mergeQuestionAndAnswerBanks,
   parseQuestionPages,
 } from "../scripts/build_questions_from_pdfs.mjs";
@@ -80,6 +84,24 @@ test("question and answer banks merge by exam and question number", () => {
   assert.match(merged[0].explanation, /义务教育法/);
 });
 
+test("question PDF manifest exposes the real source question count", () => {
+  const pages = readFileSync("data/question-ocr-pages.jsonl", "utf8")
+    .trim()
+    .split(/\n+/u)
+    .map((line) => JSON.parse(line));
+
+  const manifest = buildExamManifestFromQuestionPages(pages);
+
+  assert.equal(manifest.length, 52);
+  assert.equal(getTotalExpectedQuestionSlots(manifest), 4680);
+  assert.ok(manifest.some((exam) =>
+    exam.examKey === "2017-11-12-初中"
+    && exam.startPage === 234
+    && exam.expectedQuestionCount === 90,
+  ));
+  assert.ok(manifest.every((exam) => exam.expectedQuestionCount === 90));
+});
+
 test("built-in PDF bank uses original question stems and option texts", () => {
   const payload = JSON.parse(readFileSync("data/questions.from-pdf.json", "utf8"));
   const [first] = payload.questions;
@@ -88,10 +110,42 @@ test("built-in PDF bank uses original question stems and option texts", () => {
       || question.options.every((option) => String(option.key).trim() === String(option.text).trim()),
   );
 
-  assert.equal(payload.sourceType, "vision-ocr-question-answer-pages");
+  assert.equal(payload.sourceType, "hybrid-vision-ocr-question-answer-pages");
+  assert.equal(payload.ocr.mergedQuestionCount, payload.questions.length);
+  assert.ok(payload.questions.length >= 4290);
+  assert.equal(payload.ocr.reviewQuestionCount, payload.questions.filter((question) => question.ocr?.requiresReview).length);
+  assert.ok(payload.ocr.reviewQuestionCount <= payload.questions.length);
+  assert.equal(payload.ocr.answerOcr3xPagesJsonl, "data/pdf-ocr-pages.3x.jsonl");
   assert.match(first.stem, /由于特殊情况/);
   assert.doesNotMatch(first.stem, /参考答案是/);
   assert.equal(first.options.find((option) => option.key === "B")?.text, "为其提供平等接受义务教育的条件");
   assert.equal(first.answer, "B");
   assert.equal(placeholderQuestions.length, 0);
+});
+
+test("built-in PDF bank reports source slots separately from playable questions", () => {
+  const payload = JSON.parse(readFileSync("data/questions.from-pdf.json", "utf8"));
+
+  assert.equal(payload.sourceType, "hybrid-vision-ocr-question-answer-pages");
+  assert.equal(payload.ocr.sourceExamCount, 52);
+  assert.equal(payload.ocr.sourceTotalQuestionSlots, 4680);
+  assert.equal(payload.ocr.mergedQuestionCount, payload.questions.length);
+  assert.ok(payload.questions.length >= 4292);
+  assert.ok(payload.ocr.unmatchedQuestionSlotCount >= 0);
+  assert.ok(payload.ocr.reviewQuestionCount >= 0);
+});
+
+test("top-level design docs use the verified PDF source-slot count", () => {
+  const docs = [
+    "docs/01-game-overview.md",
+    "docs/02-story-design.md",
+    "docs/03-gameplay-systems.md",
+    "docs/04-ui-spec.md",
+    "docs/06-content-pipeline.md",
+    "docs/07-implementation-roadmap.md",
+    "docs/08-verification-report.md",
+  ].map((filePath) => readFileSync(filePath, "utf8")).join("\n");
+
+  assert.match(docs, /4680/);
+  assert.doesNotMatch(docs, /4077/);
 });

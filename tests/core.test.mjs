@@ -2,28 +2,44 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   applyTrialAnswer,
+  buildChapterMechanicState,
+  buildErrorDiagnosis,
+  buildKnowledgeGraphPreview,
+  chapterMechanicDefinitions,
+  createDailyQuestState,
+  createLearningDashboard,
   createMindDemonRun,
   createRouteRun,
   createRunReport,
   createSaveArchive,
   createStoryChapters,
+  getBlackInkCollection,
+  getBondStories,
+  getChapterAvailability,
   getChapterProgress,
   getChapterActionState,
+  getAvailableLearningStyles,
   getDialogueForChapter,
   getEnergyState,
+  getEndingOptions,
   getHeartMethod,
   getPlayerTitle,
+  getRecommendedLearningStyle,
   initialPlayerState,
   isBankMastered,
   isChapterCleared,
+  learningStyleDefinitions,
   markIntroSeen,
   parseSaveArchive,
   parseQuestionImport,
   prepareQuestions,
   prunePlayerForQuestions,
+  selectRouteQuestions,
+  setLearningStyle,
   studyNode,
   storyCharacters,
   stances,
+  summarizeQuestionBank,
 } from "../core.js";
 
 const rawQuestions = [
@@ -137,6 +153,7 @@ test("initial RPG state includes first-run intro, growth, bonds, and chapter pro
   assert.equal(player.starGlimmer, 0);
   assert.equal(player.energy, 12);
   assert.equal(player.maxEnergy, 12);
+  assert.equal(player.learningStyleId, "balanced");
   assert.equal(player.seenIntro, false);
   assert.deepEqual(player.bonds, {
     mingche: 0,
@@ -166,15 +183,93 @@ test("story characters and chapters bind the question bank to RPG progress", () 
   assert.ok(chapters.every((chapter) => chapter.title && chapter.characterId));
 });
 
-test("chapter dialogue returns visual-novel beats with speakers and portraits", () => {
+test("chapter availability gates sequential chapters and the final comprehensive chapter", () => {
+  const prepared = prepareQuestions([
+    ...rawQuestions,
+    {
+      ...rawQuestions[0],
+      id: "mixed-1",
+      topic: "综合知识",
+      concept: "综合知识 · 跨主题 · 秘卷总试",
+    },
+  ]);
+  const chapters = createStoryChapters(prepared, { requiredMastery: 16 });
+  const [first, second, third, fourth, fifth, sixth, final] = chapters;
+  const firstSixClears = Object.fromEntries(chapters.slice(0, 6).map((chapter) => [chapter.id, true]));
+
+  assert.equal(chapters.length, 7);
+  assert.equal(getChapterAvailability(first, chapters, initialPlayerState()).available, true);
+  assert.equal(getChapterAvailability(second, chapters, initialPlayerState()).available, false);
+  assert.match(getChapterAvailability(second, chapters, initialPlayerState()).reason, /第一章|律令花窗/);
+  assert.equal(getChapterAvailability(final, chapters, initialPlayerState()).available, false);
+  assert.match(getChapterAvailability(final, chapters, initialPlayerState()).reason, /前六章/);
+
+  assert.equal(getChapterAvailability(second, chapters, {
+    ...initialPlayerState(),
+    chapterClears: { [first.id]: true },
+  }).available, true);
+  assert.equal(getChapterAvailability(third, chapters, {
+    ...initialPlayerState(),
+    chapterClears: { [first.id]: true },
+  }).available, false);
+  assert.equal(getChapterAvailability(final, chapters, {
+    ...initialPlayerState(),
+    chapterClears: firstSixClears,
+  }).available, true);
+
+  assert.ok([fourth, fifth, sixth].every((chapter) => chapter.order >= 4));
+});
+
+test("chapter dialogue returns visual-novel beats with pure text speaker marks", () => {
   const prepared = prepareQuestions(rawQuestions);
   const [chapter] = createStoryChapters(prepared, { requiredMastery: 16 });
   const dialogue = getDialogueForChapter(chapter, initialPlayerState());
 
   assert.equal(dialogue.length >= 3, true);
   assert.deepEqual(dialogue.map((line) => line.speakerId).slice(0, 2), ["mingche", "azhi"]);
-  assert.ok(dialogue.every((line) => line.text && line.avatar && line.standee));
+  assert.ok(dialogue.every((line) => line.text && line.speakerMark));
+  assert.ok(dialogue.every((line) => !line.avatar && !line.standee));
   assert.match(dialogue.at(-1).text, /练功|题阵|心魔|封印/);
+});
+
+test("story collection exposes black ink sayings, bond stories, and final endings", () => {
+  const prepared = prepareQuestions([
+    ...rawQuestions,
+    {
+      ...rawQuestions[0],
+      id: "mixed-1",
+      topic: "综合知识",
+      concept: "综合知识 · 跨主题 · 秘卷总试",
+    },
+  ]);
+  const chapters = createStoryChapters(prepared, { requiredMastery: 16 });
+  const clearedPlayer = {
+    ...initialPlayerState(),
+    seenIntro: true,
+    chapterClears: Object.fromEntries(chapters.map((chapter) => [chapter.id, true])),
+    bonds: {
+      mingche: 20,
+      azhi: 25,
+      qinglan: 20,
+      xiaomo: 30,
+    },
+  };
+  const ink = getBlackInkCollection(chapters, clearedPlayer);
+  const bondStories = getBondStories(clearedPlayer);
+  const endings = getEndingOptions(chapters, clearedPlayer);
+
+  assert.equal(chapters.at(-1).topic, "综合知识");
+  assert.equal(chapters.at(-1).title, "第七章 万象书阁");
+  assert.equal(ink.length, 8);
+  assert.equal(ink.every((item) => item.unlocked), true);
+  assert.deepEqual(bondStories.filter((story) => story.unlocked).map((story) => story.characterId), [
+    "mingche",
+    "azhi",
+    "qinglan",
+    "xiaomo",
+  ]);
+  assert.deepEqual(endings.map((ending) => ending.id), ["guardian", "returner"]);
+  assert.equal(getEndingOptions(chapters, initialPlayerState()).length, 0);
 });
 
 test("chapter action state recommends story, training, battle, review, then clear", () => {
@@ -258,6 +353,121 @@ test("first-time study grants learning rewards once and repeat study is only rev
   assert.equal(second.rewards.starGlimmerGain, 0);
   assert.equal(second.rewards.growthXpGain, 0);
   assert.equal(second.player.starGlimmer, first.player.starGlimmer);
+});
+
+test("learning styles can be selected and change study feedback", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  const baselineRun = createRouteRun([question], { length: 1 });
+  const styledRun = createRouteRun([question], { length: 1 });
+  const styledPlayer = setLearningStyle(initialPlayerState(), "law");
+
+  const baseline = studyNode(initialPlayerState(), baselineRun, baselineRun.nodes[0].id, {
+    bankQuestions: [question],
+  });
+  const styled = studyNode(styledPlayer, styledRun, styledRun.nodes[0].id, {
+    bankQuestions: [question],
+  });
+
+  assert.ok(learningStyleDefinitions.some((style) => style.id === "law"));
+  assert.equal(styled.player.learningStyleId, "law");
+  assert.ok(styled.rewards.growthXpGain > baseline.rewards.growthXpGain);
+  assert.match(styled.rewards.styleFeedback, /律令派|教育法规/);
+  assert.throws(() => setLearningStyle(initialPlayerState(), "missing-style"), /未知学习风格/);
+});
+
+test("learning style build exposes base styles, advanced unlock gates, and recommendations", () => {
+  const prepared = prepareQuestions([
+    ...rawQuestions,
+    {
+      ...rawQuestions[0],
+      id: "mixed-1",
+      topic: "综合知识",
+      concept: "综合知识 · 跨主题 · 秘卷总试",
+    },
+  ]);
+  const chapters = createStoryChapters(prepared, { requiredMastery: 16 });
+  const initialAvailability = getAvailableLearningStyles(initialPlayerState(), chapters);
+  const advancedPlayer = {
+    ...initialPlayerState(),
+    streak: 10,
+    purifiedDemonIds: Array.from({ length: 20 }, (_, index) => `purified-${index + 1}`),
+    chapterClears: Object.fromEntries(chapters.map((chapter) => [chapter.id, true])),
+    mindDemons: {
+      [prepared[1].id]: {
+        questionId: prepared[1].id,
+        topic: prepared[1].topic,
+        pressure: 5,
+        errorPattern: "concept-confusion",
+        demonType: "镜像心魔",
+      },
+    },
+  };
+  const advancedAvailability = getAvailableLearningStyles(advancedPlayer, chapters);
+  const recommended = getRecommendedLearningStyle(prepared, advancedPlayer, chapters);
+
+  assert.deepEqual(learningStyleDefinitions.map((style) => style.id), [
+    "balanced",
+    "law",
+    "concept",
+    "assault-flow",
+    "review",
+    "speed",
+    "deep-read",
+    "chaos",
+  ]);
+  assert.deepEqual(initialAvailability.filter((style) => style.unlocked).map((style) => style.id), [
+    "balanced",
+    "law",
+    "concept",
+  ]);
+  assert.equal(initialAvailability.find((style) => style.id === "review").unlocked, false);
+  assert.throws(() => setLearningStyle(initialPlayerState(), "review", { chapters }), /尚未解锁/);
+  assert.deepEqual(advancedAvailability.filter((style) => style.unlocked).map((style) => style.id), [
+    "balanced",
+    "law",
+    "concept",
+    "assault-flow",
+    "review",
+    "speed",
+    "deep-read",
+    "chaos",
+  ]);
+  assert.equal(setLearningStyle(advancedPlayer, "chaos", { chapters }).learningStyleId, "chaos");
+  assert.equal(recommended.id, "review");
+  assert.match(recommended.reason, /心魔|复盘/);
+});
+
+test("learning styles affect battle rewards and dashboard win-rate stats", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  const balancedRun = createRouteRun([question], { length: 1 });
+  const lawRun = createRouteRun([question], { length: 1 });
+  const balancedReady = studyNode(initialPlayerState(), balancedRun, balancedRun.nodes[0].id);
+  const lawReady = studyNode(setLearningStyle(initialPlayerState(), "law"), lawRun, lawRun.nodes[0].id);
+
+  const balanced = applyTrialAnswer(balancedReady.player, balancedReady.run, {
+    nodeId: balancedRun.nodes[0].id,
+    question,
+    selectedAnswer: "B",
+    stanceId: "steady",
+  });
+  const law = applyTrialAnswer(lawReady.player, lawReady.run, {
+    nodeId: lawRun.nodes[0].id,
+    question,
+    selectedAnswer: "B",
+    stanceId: "steady",
+  });
+  const dashboard = createLearningDashboard([question], {
+    ...law.player,
+    styleStats: {
+      law: { attempts: 3, correct: 2 },
+      balanced: { attempts: 1, correct: 1 },
+    },
+  });
+
+  assert.ok(law.spiritPagesGain > balanced.spiritPagesGain);
+  assert.equal(law.player.styleStats.law.attempts, 1);
+  assert.equal(law.player.styleStats.law.correct, 1);
+  assert.equal(dashboard.styleWinRates.find((style) => style.id === "law").winRate, 66.7);
 });
 
 test("correct battle answers grow the player while wrong answers only create study debt", () => {
@@ -377,6 +587,87 @@ test("prepareQuestions turns PDF explanations into required pre-battle lesson ca
   assert.match(question.lesson.keyPoint, /政府保障/);
   assert.match(question.lesson.explanation, /题眼/);
   assert.equal(question.lesson.studyPrompt.length > 0, true);
+});
+
+test("question bank summary separates source slots from playable questions", () => {
+  const summary = summarizeQuestionBank({
+    questions: rawQuestions,
+    ocr: {
+      sourceExamCount: 52,
+      sourceTotalQuestionSlots: 4680,
+      mergedQuestionCount: rawQuestions.length,
+      reviewQuestionCount: 2,
+    },
+  });
+
+  assert.equal(summary.sourceExamCount, 52);
+  assert.equal(summary.sourceTotalQuestionSlots, 4680);
+  assert.equal(summary.playableQuestionCount, rawQuestions.length);
+  assert.equal(summary.reviewQuestionCount, 2);
+  assert.equal(summary.sourceCoveragePercent, 0.1);
+});
+
+test("prepared questions include concept and error-pattern metadata", () => {
+  const [question] = prepareQuestions([{
+    ...rawQuestions[0],
+    stem: "下列说法不正确的是？",
+    explanation: "题眼是免试入学、就近入学、政府保障。",
+  }]);
+
+  assert.match(question.concept, /教育法规/);
+  assert.ok(question.errorPatterns.includes("reading-mistake"));
+  assert.equal(question.chapterMechanic, "law-fog");
+});
+
+test("knowledge graph preview renders concept mastery, demons, and locked dependencies", () => {
+  const graphQuestions = prepareQuestions([
+    {
+      ...rawQuestions[0],
+      id: "law-root",
+      concept: "教育法规 · 义务教育法 · 免试入学",
+    },
+    {
+      ...rawQuestions[0],
+      id: "law-nearby",
+      concept: "教育法规 · 义务教育法 · 就近入学",
+      dependencies: ["教育法规 · 义务教育法 · 免试入学"],
+    },
+    {
+      ...rawQuestions[0],
+      id: "law-gov",
+      concept: "教育法规 · 义务教育法 · 政府保障",
+      dependencies: ["教育法规 · 义务教育法 · 就近入学"],
+    },
+    {
+      ...rawQuestions[0],
+      id: "law-resident",
+      concept: "教育法规 · 义务教育法 · 非户籍入学",
+      dependencies: ["教育法规 · 义务教育法 · 政府保障"],
+    },
+  ]);
+  const [chapter] = createStoryChapters(graphQuestions, { requiredMastery: 16 });
+  const preview = buildKnowledgeGraphPreview(chapter, graphQuestions, {
+    ...initialPlayerState(),
+    correctQuestionIds: ["law-root", "law-nearby"],
+    mindDemons: {
+      "law-gov": {
+        id: "demon-law-gov",
+        questionId: "law-gov",
+        pressure: 3,
+      },
+    },
+  });
+  const tree = preview.lines.join("\n");
+
+  assert.equal(preview.topic, "教育法规");
+  assert.equal(preview.totalConcepts, 4);
+  assert.equal(preview.masteredConcepts, 2);
+  assert.equal(preview.demonConcepts, 1);
+  assert.equal(preview.lockedConcepts, 1);
+  assert.match(tree, /教育法规 · 掌握 2\/4/);
+  assert.match(tree, /免试入学 ✓/);
+  assert.match(tree, /政府保障 ✗（心魔 1）/);
+  assert.match(tree, /非户籍入学 🔒（需先净化 政府保障）/);
 });
 
 test("parseQuestionImport accepts arrays or questions payloads and preserves lesson metadata", () => {
@@ -546,6 +837,123 @@ test("route runs expose five playable nodes across the four required node types"
   ]);
 });
 
+test("route question selection keeps each chapter run to the next five unlocked questions", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const player = {
+    ...initialPlayerState(),
+    studiedLessonIds: [prepared[0].lesson.id],
+    correctQuestionIds: [prepared[0].id],
+  };
+
+  const selected = selectRouteQuestions(prepared, player, { length: 5 });
+
+  assert.equal(selected.length, 5);
+  assert.deepEqual(selected.map((question) => question.id), [
+    "psy-1",
+    "design-1",
+    "ethics-1",
+    "class-1",
+    "child-1",
+  ]);
+});
+
+test("route question selection enforces concept dependencies before downstream nodes unlock", () => {
+  const [base, downstream] = prepareQuestions([
+    {
+      ...rawQuestions[0],
+      id: "law-base",
+      concept: "教育法规 · 义务教育法 · 免试入学",
+      dependencies: [],
+    },
+    {
+      ...rawQuestions[0],
+      id: "law-downstream",
+      concept: "教育法规 · 义务教育法 · 政府保障",
+      dependencies: ["教育法规 · 义务教育法 · 免试入学"],
+    },
+  ]);
+
+  const initialSelection = selectRouteQuestions([base, downstream], initialPlayerState(), { length: 2 });
+  const unlockedSelection = selectRouteQuestions([base, downstream], {
+    ...initialPlayerState(),
+    correctQuestionIds: [base.id],
+  }, { length: 2 });
+
+  assert.deepEqual(initialSelection.map((question) => question.id), ["law-base"]);
+  assert.deepEqual(unlockedSelection.map((question) => question.id), ["law-downstream", "law-base"]);
+});
+
+test("chapter mechanics are attached to route nodes and alter battle feedback", () => {
+  const [lawQuestion] = prepareQuestions([{
+    ...rawQuestions[0],
+    chapterMechanic: "law-fog",
+    difficulty: 1,
+  }]);
+  const [neutralQuestion] = prepareQuestions([{
+    ...rawQuestions[0],
+    id: "law-neutral",
+    chapterMechanic: "chaos-mix",
+    difficulty: 1,
+  }]);
+  const lawRun = createRouteRun([lawQuestion], { length: 1 });
+  const neutralRun = createRouteRun([neutralQuestion], { length: 1 });
+
+  const law = applyTrialAnswer(initialPlayerState(), lawRun, {
+    nodeId: lawRun.nodes[0].id,
+    question: lawQuestion,
+    selectedAnswer: "A",
+    stanceId: "steady",
+  });
+  const neutral = applyTrialAnswer(initialPlayerState(), neutralRun, {
+    nodeId: neutralRun.nodes[0].id,
+    question: neutralQuestion,
+    selectedAnswer: "A",
+    stanceId: "steady",
+  });
+
+  assert.equal(chapterMechanicDefinitions["law-fog"].name, "法条迷雾");
+  assert.equal(lawRun.nodes[0].chapterMechanic, "law-fog");
+  assert.equal(lawRun.nodes[0].mechanicName, "法条迷雾");
+  assert.match(lawRun.nodes[0].mechanicPrompt, /关键词|法条/);
+  assert.match(law.learningCheck, /法条迷雾/);
+  assert.ok(law.heartDelta < neutral.heartDelta);
+});
+
+test("chapter mechanic state materializes the seven designed chapter rules", () => {
+  const [lawQuestion, conceptQuestion, timeQuestion, ethicsQuestion, strategyQuestion, memoryQuestion, chaosQuestion] = prepareQuestions([
+    { ...rawQuestions[0], id: "law-mechanic", chapterMechanic: "law-fog", difficulty: 3 },
+    { ...rawQuestions[2], id: "concept-mechanic", chapterMechanic: "concept-maze", errorPatterns: ["concept-confusion"] },
+    { ...rawQuestions[2], id: "time-mechanic", chapterMechanic: "time-hourglass", difficulty: 2 },
+    { ...rawQuestions[3], id: "ethics-mechanic", chapterMechanic: "ethics-scale" },
+    { ...rawQuestions[4], id: "strategy-mechanic", chapterMechanic: "strategy-chain" },
+    { ...rawQuestions[5], id: "memory-mechanic", chapterMechanic: "precision-memory" },
+    { ...rawQuestions[1], id: "chaos-mechanic", chapterMechanic: "chaos-mix" },
+  ]);
+
+  const lawState = buildChapterMechanicState(lawQuestion, initialPlayerState());
+  const studiedLawState = buildChapterMechanicState(lawQuestion, {
+    ...initialPlayerState(),
+    studiedLessonIds: [lawQuestion.lesson.id],
+  });
+  const conceptState = buildChapterMechanicState(conceptQuestion, initialPlayerState());
+  const timeState = buildChapterMechanicState(timeQuestion, initialPlayerState(), { nodeType: "recover" });
+  const ethicsState = buildChapterMechanicState(ethicsQuestion, { ...initialPlayerState(), ethicsValue: 6 });
+  const strategyState = buildChapterMechanicState(strategyQuestion, initialPlayerState());
+  const memoryState = buildChapterMechanicState(memoryQuestion, initialPlayerState());
+  const chaosState = buildChapterMechanicState(chaosQuestion, initialPlayerState());
+
+  assert.match(lawState.displayStem, /__|＿|□/);
+  assert.equal(studiedLawState.displayStem, lawQuestion.stem);
+  assert.ok(conceptState.optionWarnings.length > 0);
+  assert.equal(timeState.timeLimitSeconds, 45);
+  assert.equal(timeState.recoverAddsSeconds, 15);
+  assert.match(ethicsState.warning, /过高|理想/);
+  assert.deepEqual(strategyState.strategySteps.map((step) => step.id), ["safety", "emotion", "facts", "follow-up"]);
+  assert.equal(memoryState.exactAnswerRequired, true);
+  assert.equal(memoryState.attemptsAllowed, 1);
+  assert.equal(chaosState.borrowedMechanic !== "chaos-mix", true);
+});
+
 test("study is a training path that improves battle feedback without blocking battle", () => {
   const [question] = prepareQuestions(rawQuestions);
   const unstudiedRun = createRouteRun([question], { length: 1 });
@@ -639,6 +1047,65 @@ test("assault mistakes cost extra heart power and create stronger mind demon pre
       steady.player.mindDemons["law-1"].pressure,
   );
   assert.equal(assault.run.assaultMistakes, 1);
+});
+
+test("wrong answers create typed mind demons with actionable diagnosis", () => {
+  const [question] = prepareQuestions([{
+    ...rawQuestions[0],
+    stem: "下列说法不正确的是？",
+    errorPatterns: ["reading-mistake"],
+  }]);
+  const run = createRouteRun([question], { length: 1 });
+  const result = applyTrialAnswer(initialPlayerState(), run, {
+    nodeId: run.nodes[0].id,
+    question,
+    selectedAnswer: "A",
+    stanceId: "steady",
+    bankQuestions: [question],
+  });
+  const demon = result.player.mindDemons[question.id];
+
+  assert.equal(demon.errorPattern, "reading-mistake");
+  assert.equal(demon.demonType, "迷雾心魔");
+  assert.match(demon.enemy, /迷雾心魔/);
+  assert.match(demon.diagnosis, /关键词|漏看/);
+  assert.match(demon.remedy, /审题|高亮/);
+  assert.equal(result.demonProfile.demonType, "迷雾心魔");
+  assert.equal(result.run.events[0].errorPattern, "reading-mistake");
+});
+
+test("error diagnosis exposes probability bars, error portraits, and retest accuracy", () => {
+  const [question] = prepareQuestions([{
+    ...rawQuestions[0],
+    stem: "下列说法不正确的是？",
+    errorPatterns: ["reading-mistake"],
+  }]);
+  const diagnosis = buildErrorDiagnosis(question, "A");
+  const wrongRun = createRouteRun([question], { length: 1 });
+  const wrong = applyTrialAnswer(initialPlayerState(), wrongRun, {
+    nodeId: wrongRun.nodes[0].id,
+    question,
+    selectedAnswer: "A",
+    stanceId: "steady",
+  });
+  const reviewRun = createMindDemonRun([question], wrong.player);
+  const review = applyTrialAnswer(wrong.player, reviewRun, {
+    nodeId: reviewRun.nodes[0].id,
+    question,
+    selectedAnswer: "B",
+    stanceId: "steady",
+  });
+  const dashboard = createLearningDashboard([question], review.player);
+
+  assert.equal(diagnosis.primary.errorPattern, "reading-mistake");
+  assert.equal(diagnosis.primary.probability, 80);
+  assert.match(diagnosis.primary.bar, /█|░/);
+  assert.equal(wrong.errorDiagnosis.primary.errorPattern, "reading-mistake");
+  assert.equal(wrong.player.errorStats["reading-mistake"].wrongAttempts, 1);
+  assert.equal(review.player.retestStats.attempts, 1);
+  assert.equal(review.player.retestStats.correct, 1);
+  assert.equal(dashboard.errorPortrait.find((item) => item.errorPattern === "reading-mistake").percent, 100);
+  assert.equal(dashboard.retestAccuracy.percent, 100);
 });
 
 test("heart power reaching zero marks the run as failed and ready for report", () => {
@@ -750,6 +1217,60 @@ test("run report summarizes stance choices, resources, and next training target"
   assert.ok(report.spiritPagesGain > 0);
   assert.equal(report.nextRecommendation.topic, "班级管理");
   assert.match(report.nextRecommendation.reason, /心魔|错题|薄弱/);
+});
+
+test("learning dashboard summarizes progress, error patterns, and review checklist", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const player = {
+    ...initialPlayerState(),
+    studiedLessonIds: [prepared[0].lesson.id, prepared[1].lesson.id],
+    correctQuestionIds: [prepared[0].id],
+    purifiedDemonIds: [prepared[2].id],
+    mindDemons: {
+      [prepared[1].id]: {
+        questionId: prepared[1].id,
+        topic: prepared[1].topic,
+        pressure: 4,
+        errorPattern: "concept-confusion",
+        demonType: "镜像心魔",
+        diagnosis: "相似概念混淆。",
+        remedy: "做对比表。",
+      },
+    },
+  };
+  const dashboard = createLearningDashboard(prepared, player);
+
+  assert.equal(dashboard.questionProgress.studiedCount, 2);
+  assert.equal(dashboard.questionProgress.correctCount, 1);
+  assert.equal(dashboard.demonStats.activeCount, 1);
+  assert.equal(dashboard.demonStats.purifiedCount, 1);
+  assert.equal(dashboard.errorPatternStats[0].errorPattern, "concept-confusion");
+  assert.match(dashboard.reviewItems[0].text, /教育心理学|镜像心魔/);
+});
+
+test("daily quest state includes weekly quests, fatigue warning, and dashboard trend bars", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const player = {
+    ...initialPlayerState(),
+    consecutiveRouteRuns: 3,
+    correctQuestionIds: [prepared[0].id, prepared[1].id],
+    purifiedDemonIds: [prepared[2].id],
+    answerTimeSamples: [58, 46, 39],
+  };
+  const questState = createDailyQuestState(prepared, player);
+  const dashboard = createLearningDashboard(prepared, player);
+
+  assert.equal(questState.daily.length, 4);
+  assert.deepEqual(questState.weekly.map((quest) => quest.id), [
+    "weekly-graph",
+    "weekly-demon-sweep",
+    "weekly-topic",
+  ]);
+  assert.equal(questState.fatigue.status, "rest-advised");
+  assert.match(questState.fatigue.warning, /休息|连续/);
+  assert.match(dashboard.topicCoverageBars[0].bar, /█|░/);
+  assert.equal(dashboard.averageTimeTrend.averageSeconds, 47.7);
+  assert.match(dashboard.averageTimeTrend.label, /变快|稳定|放慢/);
 });
 
 test("heart methods turn topic mastery into stance bonuses", () => {
