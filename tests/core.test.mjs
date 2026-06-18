@@ -5,6 +5,7 @@ import {
   createMindDemonRun,
   createRouteRun,
   createRunReport,
+  createSaveArchive,
   createStoryChapters,
   getChapterProgress,
   getChapterActionState,
@@ -16,6 +17,7 @@ import {
   isBankMastered,
   isChapterCleared,
   markIntroSeen,
+  parseSaveArchive,
   parseQuestionImport,
   prepareQuestions,
   prunePlayerForQuestions,
@@ -434,6 +436,62 @@ test("parseQuestionImport rejects malformed imported questions before they enter
       }),
     /第 1 题至少需要 2 个选项/,
   );
+});
+
+test("save archives preserve player progress without embedding the built-in question bank", () => {
+  const questions = prepareQuestions(rawQuestions.slice(0, 2));
+  const chapters = createStoryChapters(questions);
+  const player = {
+    ...initialPlayerState(),
+    seenIntro: true,
+    correctQuestionIds: [questions[0].id],
+    studiedLessonIds: [questions[0].lesson.id],
+  };
+
+  const archive = createSaveArchive({
+    questions,
+    player,
+    selectedChapterId: chapters[1].id,
+    scene: "training",
+  });
+  const restored = parseSaveArchive(archive, { questions });
+
+  assert.equal(archive.type, "xiaoming-academy-save");
+  assert.equal("questions" in archive, false);
+  assert.equal("questionSource" in archive, false);
+  assert.equal(restored.player.seenIntro, true);
+  assert.deepEqual(restored.player.correctQuestionIds, [questions[0].id]);
+  assert.equal(restored.selectedChapterId, chapters[1].id);
+  assert.equal(restored.scene, "training");
+});
+
+test("save archive import rejects question-bank payloads because questions are built in", () => {
+  assert.throws(
+    () => parseSaveArchive({ questions: rawQuestions.slice(0, 1), source: "legacy-bank.json" }),
+    /导入存档只接受存档 JSON，不导入题库/,
+  );
+});
+
+test("save archive import ignores stale embedded questions and prunes against the built-in bank", () => {
+  const [question] = prepareQuestions([rawQuestions[0]]);
+  const archive = {
+    type: "xiaoming-academy-save",
+    player: {
+      ...initialPlayerState(),
+      studiedLessonIds: [question.lesson.id, "lesson-old"],
+      answeredQuestionIds: [question.id, "old"],
+    },
+    questions: rawQuestions.slice(1, 2),
+    selectedChapterId: "missing-chapter",
+    scene: "daily",
+  };
+
+  const restored = parseSaveArchive(archive, { questions: [question] });
+
+  assert.deepEqual(restored.player.studiedLessonIds, [question.lesson.id]);
+  assert.deepEqual(restored.player.answeredQuestionIds, [question.id]);
+  assert.equal(restored.selectedChapterId, createStoryChapters([question])[0].id);
+  assert.equal(restored.scene, "daily");
 });
 
 test("prunePlayerForQuestions removes stale progress when a new question bank is imported", () => {

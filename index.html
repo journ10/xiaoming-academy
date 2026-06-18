@@ -3,68 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>小明书院：秘卷巡游</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <title>小明书院：文字巡游</title>
+    <link rel="stylesheet" href="./styles.css?v=game-review-20260618" />
   </head>
   <body>
-    <a class="skip-link" href="#stage">跳到游戏舞台</a>
+    <a class="skip-link" href="#stage">跳到游戏正文</a>
 
     <main class="rpg-shell" data-shell>
       <header class="game-hud">
         <div class="brand-lockup">
-          <span class="brand-icon" aria-hidden="true">
-            <img src="./assets/generated/brand/logo-xiaoming-academy.png" alt="" />
-          </span>
           <div>
             <h1>小明书院</h1>
-            <p>秘卷巡游</p>
+            <p>文字巡游</p>
           </div>
         </div>
 
         <div class="hud-stats" data-hud-stats></div>
 
         <div class="hud-actions">
-          <span class="source-chip" data-source-label>样例题库</span>
-          <span class="source-chip" data-question-count>0 题</span>
-          <button type="button" class="hud-button" data-import-action>导入</button>
-          <button type="button" class="hud-button" data-help-action>序章</button>
+          <button type="button" class="hud-button" data-import-action>导入存档</button>
+          <button type="button" class="hud-button" data-export-action>导出存档</button>
           <button type="button" class="hud-button danger" data-reset-action>重置</button>
-          <input data-file-input type="file" accept="application/json,.json" hidden />
         </div>
       </header>
 
       <section class="game-stage" id="stage" data-stage aria-live="polite"></section>
-
       <aside class="quest-panel" data-quest-panel></aside>
-
-      <section class="dialogue-dock" data-dialogue-dock hidden>
-        <img data-dialogue-avatar alt="" />
-        <div class="dialogue-copy">
-          <p data-dialogue-speaker></p>
-          <h2 data-dialogue-text></h2>
-        </div>
-        <div class="dialogue-actions">
-          <button type="button" class="secondary-action" data-dialogue-skip>略过</button>
-          <button type="button" class="primary-action" data-dialogue-next>继续</button>
-        </div>
-      </section>
-
       <nav class="bottom-nav" data-bottom-nav aria-label="游戏导航"></nav>
-
-      <section class="report-layer" data-report-layer hidden aria-labelledby="report-title">
-        <div class="report-card">
-          <button class="close-button" type="button" data-report-close aria-label="关闭战报">关闭</button>
-          <p>巡游战报</p>
-          <h2 id="report-title" data-report-title>心法成形</h2>
-          <div class="report-stats" data-report-stats></div>
-          <div class="report-events" data-report-events></div>
-          <p class="report-note" data-report-note></p>
-        </div>
-      </section>
-
       <div class="toast" data-toast role="status" aria-live="polite"></div>
     </main>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=observe-explanation-20260618"></script>
   </body>
 </html>

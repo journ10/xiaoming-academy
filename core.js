@@ -372,6 +372,55 @@ export function parseQuestionImport(payload) {
   return prepareQuestions(rawQuestions.map((raw, index) => validateImportedQuestion(raw, index)));
 }
 
+export function createSaveArchive({
+  questions = [],
+  player = initialPlayerState(),
+  selectedChapterId = "",
+  scene = "world",
+} = {}) {
+  const preparedQuestions = questions.length ? prepareQuestions(questions) : [];
+  const chapters = createStoryChapters(preparedQuestions);
+
+  return {
+    type: "xiaoming-academy-save",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    selectedChapterId: chapters.length ? resolveArchiveChapterId(chapters, selectedChapterId) : String(selectedChapterId || ""),
+    scene: String(scene || "world"),
+    player: preparedQuestions.length
+      ? prunePlayerForQuestions({ ...initialPlayerState(), ...(player || {}) }, preparedQuestions)
+      : { ...initialPlayerState(), ...(player || {}) },
+  };
+}
+
+export function parseSaveArchive(payload, options = {}) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("JSON 需要是小明书院存档或题库数据");
+  }
+  if (Array.isArray(payload) || (payload.questions && !payload.player)) {
+    throw new Error("导入存档只接受存档 JSON，不导入题库");
+  }
+  if (payload.type && payload.type !== "xiaoming-academy-save") {
+    throw new Error("存档类型不匹配");
+  }
+
+  const contextQuestions = Array.isArray(options) ? options : options.questions || [];
+  const preparedQuestions = contextQuestions.length ? prepareQuestions(contextQuestions) : [];
+  const chapters = createStoryChapters(preparedQuestions);
+  const mergedPlayer = { ...initialPlayerState(), ...(payload.player || payload) };
+  const player = preparedQuestions.length ? prunePlayerForQuestions(mergedPlayer, preparedQuestions) : mergedPlayer;
+
+  return {
+    type: "xiaoming-academy-save",
+    version: Number(payload.version || 1),
+    selectedChapterId: chapters.length
+      ? resolveArchiveChapterId(chapters, payload.selectedChapterId)
+      : String(payload.selectedChapterId || ""),
+    scene: String((!Array.isArray(payload) && payload.scene) || "world"),
+    player,
+  };
+}
+
 export function prunePlayerForQuestions(player, questions) {
   const questionIds = new Set(questions.map((question) => question.id));
   const lessonIds = new Set(questions.map((question) => question.lesson.id));
@@ -396,6 +445,11 @@ export function prunePlayerForQuestions(player, questions) {
       Object.entries(player.chapterClears || {}).filter(([chapterId]) => chapterIds.has(chapterId)),
     ),
   };
+}
+
+function resolveArchiveChapterId(chapters, selectedChapterId) {
+  const id = String(selectedChapterId || "");
+  return chapters.some((chapter) => chapter.id === id) ? id : chapters[0]?.id || "";
 }
 
 export function createStoryChapters(questions = [], options = {}) {
