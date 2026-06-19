@@ -47,6 +47,7 @@ const questionBankUrls = [
 const playableScenes = new Set(["world", "story", "training", "battle", "review", "roster", "daily", "dashboard", "report"]);
 const navItems = [
   ["world", "地图"],
+  ["story", "剧情"],
   ["training", "练功"],
   ["battle", "战斗"],
   ["review", "心魔"],
@@ -107,7 +108,7 @@ async function initializeGame() {
     const saved = loadSavedState();
     player = saved.player;
     selectedChapterId = saved.selectedChapterId || chapters[0]?.id || "";
-    scene = resolveInitialScene() || saved.scene || (player.seenIntro ? "world" : "story");
+    scene = resolveInitialScene() || saved.scene || "world";
     run = createRunForSelectedChapter();
     storyMode = scene === "story" ? "intro" : "";
     storyLines = scene === "story" ? getIntroDialogue() : [];
@@ -193,54 +194,103 @@ function renderStage() {
 }
 
 function renderWorldStage() {
+  return renderModernWorldStage();
+}
+
+function renderModernWorldStage() {
   const selected = getSelectedChapter();
   const action = selected ? getChapterActionState(selected, questions, player) : null;
   const selectedAvailability = selected ? getChapterAvailability(selected, chapters, player) : null;
-  const chapterCards = chapters.map((chapter) => {
-    const progress = getChapterProgress(chapter, questions, player);
-    const state = getChapterActionState(chapter, questions, player);
-    const availability = getChapterAvailability(chapter, chapters, player);
-    const cardClass = [
-      "text-choice",
-      selectedChapterId === chapter.id ? "is-selected" : "",
-      availability.available ? "" : "is-locked",
-    ].filter(Boolean).join(" ");
-    const button = textButton(
-      `${availability.available ? "🔓" : "🔒"} ${chapter.title} · ${availability.available ? actionLabel(state.recommendedAction) : "未解锁"}`,
-      () => {
-        selectedChapterId = chapter.id;
-        resetRunForChapter();
-        render();
-      },
-      cardClass,
-    );
-    button.append(
-      el("small", "", {}, [availability.available
-        ? `练功 ${progress.studiedCount}/${progress.total} · 答对 ${progress.correctCount}/${progress.total} · 心魔 ${progress.demonCount}`
-        : availability.reason]),
-    );
-    return button;
-  });
+  const selectedProgress = selected ? getChapterProgress(selected, questions, player) : null;
+  const routeNodes = chapters.slice(0, 5).map((chapter, index) =>
+    chapterRouteNode(chapter, index, selectedChapterId === chapter.id),
+  );
+  const nextText = selectedAvailability?.available
+    ? action?.reason || "完成 3 道关键词预检后进入 5 题题阵。"
+    : selectedAvailability?.reason || "先选择可进入章节。";
 
-  dom.stage.replaceChildren(textScreen({
-    kicker: "地图",
-    title: selected?.title || "真题秘卷",
-    intro: selected?.summary || "选择章节，按剧情、练功、战斗、心魔的顺序推进。",
-    body: [
-      panel("章节", el("div", "text-choice-list", {}, chapterCards)),
-      panel("当前目标", [
-        el("p", "", {}, [selectedAvailability?.available ? action?.reason || "选择一章开始。" : selectedAvailability?.reason || "选择一章开始。"]),
-        meter("章节完成度", getWorldProgressPercent(selected ? getChapterProgress(selected, questions, player) : null), 100),
+  dom.stage.replaceChildren(el("article", "text-screen modern-world", {}, [
+    el("header", "stage-head", {}, [
+      el("div", "stage-title", {}, [
+        el("span", "text-kicker", {}, ["当前场景 · 第一章"]),
+        el("h2", "", {}, [chapterShortTitle(selected) || "律令花窗"]),
+        el("p", "stage-sub", {}, [selected?.summary || "遗忘之雾压住了法条关键词。先读短课、抓题眼，再进入题阵。"]),
       ]),
-    ],
-    choices: [
-      ["读剧情", startChapterStory, "text-choice is-primary"],
-      ["练功", startTraining],
-      ["进入战斗", startBattle],
-      ["处理心魔", () => goScene("review")],
-    ],
-    log: logLine,
-  }));
+      el("div", "chapter-pills", {}, [
+        el("span", "pill active", {}, ["推荐路线"]),
+        el("span", "pill", {}, [selected?.topic || "教育法规"]),
+        el("span", "pill", {}, [`${getWorldProgressPercent(selectedProgress)}%`]),
+      ]),
+    ]),
+    el("div", "story-grid", {}, [
+      el("aside", "route", {}, routeNodes),
+      renderWorldTextWindow(selected),
+    ]),
+    el("footer", "stage-actions", {}, [
+      el("div", "command-row", {}, [
+        textButton("进入题阵", startBattle, "cmd primary"),
+        textButton("短课练功", startTraining, "cmd"),
+        textButton("查看剧情", startChapterStory, "cmd"),
+        textButton("观照题眼", startTraining, "cmd"),
+      ]),
+      el("span", "tiny", {}, ["键盘：1-4 选择 · Enter 破阵"]),
+    ]),
+    el("div", "toast inline-toast", {}, ["秘卷已同步 · 12:08"]),
+    el("p", "sr-only", {}, [nextText]),
+  ]));
+}
+
+function chapterRouteNode(chapter, index, selected) {
+  const progress = getChapterProgress(chapter, questions, player);
+  const availability = getChapterAvailability(chapter, chapters, player);
+  const state = getChapterActionState(chapter, questions, player);
+  const button = textButton("", () => {
+    selectedChapterId = chapter.id;
+    resetRunForChapter();
+    render();
+  }, [
+    "node",
+    selected ? "current" : "",
+    availability.available ? "" : "locked",
+  ].filter(Boolean).join(" "));
+  button.replaceChildren(
+    el("span", "sigil", {}, [String(index + 1)]),
+    el("span", "", {}, [
+      el("span", "node-title", {}, [chapterShortTitle(chapter)]),
+      el("span", "node-meta", {}, [availability.available
+        ? `${chapter.topic} · ${progress.total} 题`
+        : availability.reason]),
+    ]),
+    el("span", `tag ${selected ? "jade" : availability.available ? "" : "muted"}`, {}, [
+      selected ? "推荐" : availability.available ? actionLabel(state.recommendedAction) : "锁定",
+    ]),
+  );
+  return button;
+}
+
+function renderWorldTextWindow(selected) {
+  return el("article", "text-window", {}, [
+    el("div", "window-toolbar", {}, [
+      el("div", "toolbar-left", {}, [
+        el("span", "dot", {}, []),
+        el("strong", "", {}, ["短课检验 · 题阵前夜"]),
+      ]),
+      el("span", "tiny", {}, ["第 124 / 649 题"]),
+    ]),
+    el("div", "scene-copy", {}, [
+      el("div", "speaker", {}, ["明澈"]),
+      el("p", "", {}, ["“先钉住关键词，再判断题阵真正问什么。”"]),
+    ]),
+    el("section", "question-card", {}, [
+      el("h3", "", {}, [`题眼预检：${selected?.topic || "教育法规"}里最容易被雾化的关键词是？`]),
+      el("div", "choices", {}, [
+        el("button", "choice selected", { type: "button" }, ["A. 免试与就近入学"]),
+        el("button", "choice", { type: "button" }, ["B. 统一考试与择优录取"]),
+        el("button", "choice", { type: "button" }, ["C. 学校自主设定门槛"]),
+        el("button", "choice", { type: "button" }, ["D. 家长自行承担保障义务"]),
+      ]),
+    ]),
+  ]);
 }
 
 function renderStoryStage() {
@@ -610,21 +660,55 @@ function renderQuestPanel() {
   const method = getHeartMethod(chapter.topic, progress.mastery);
   const clearedCount = chapters.filter((item) => getChapterProgress(item, questions, player).cleared).length;
   const graphPreview = buildKnowledgeGraphPreview(chapter, questions, player, { maxLines: 10 });
+  const dashboard = createLearningDashboard(questions, player);
+  const progressPercent = getWorldProgressPercent(progress);
   dom.questPanel.replaceChildren(
-    el("h2", "", {}, ["当前卷宗"]),
-    questLine("章节", chapter.title),
-    questLine("原卷", `${bankSummary.sourceExamCount || chapters.length} 套卷 · ${bankSummary.sourceTotalQuestionSlots || questions.length} 题位`),
-    questLine("入阵题", `${bankSummary.playableQuestionCount || questions.length} · 收录 ${bankSummary.sourceCoveragePercent || 0}%`),
-    questLine("待校题", String(bankSummary.reviewQuestionCount || 0)),
-    questLine("剧情", player.storyFlags?.[chapter.id] ? "完成" : "未读"),
-    questLine("练功", `${progress.studiedCount}/${progress.total}`),
-    questLine("答对", `${progress.correctCount}/${progress.total}`),
-    questLine("心魔", String(progress.demonCount)),
-    questLine(method.name, `${progress.mastery}/${progress.requiredMastery}`),
-    questLine("总进度", isBankMastered(questions, player) ? "秘卷归元" : `${clearedCount}/${chapters.length}`),
-    questLine("图谱", `${graphPreview.masteredConcepts}/${graphPreview.totalConcepts}`),
-    el("h3", "", {}, ["知识图谱预览"]),
+    el("header", "dossier-head", {}, [
+      el("span", "text-kicker", {}, ["卷宗"]),
+      el("h2", "", {}, ["当前进度"]),
+    ]),
+    el("section", "meter quest-meter", {}, [
+      el("div", "meter-head", {}, [
+        el("span", "", {}, [`${chapterShortTitle(chapter)}完成度`]),
+        el("span", "", {}, [`${progressPercent}%`]),
+      ]),
+      el("div", "track", {}, [el("span", "fill", { style: `width:${progressPercent}%` }, [])]),
+    ]),
+    el("section", "rows", {}, [
+      el("div", "section-title", {}, [
+        el("span", "", {}, ["当前卷宗"]),
+        el("span", "", {}, [chapter.topic]),
+      ]),
+      questLine("练功", `${progress.studiedCount} / ${progress.total}`),
+      questLine("答对", `${progress.correctCount} / ${progress.total}`),
+      questLine("活跃心魔", String(progress.demonCount)),
+      questLine(method.name, `${progress.mastery}%`),
+      questLine("总进度", isBankMastered(questions, player) ? "秘卷归元" : `${clearedCount} / ${chapters.length}`),
+    ]),
+    el("section", "graph", {}, [
+      el("div", "section-title", {}, [
+        el("span", "", {}, ["知识图谱预览"]),
+        el("span", "", {}, [`${graphPreview.masteredConcepts} / ${graphPreview.totalConcepts}`]),
+      ]),
+    ]),
     el("pre", "knowledge-graph", {}, [graphPreview.lines.join("\n")]),
+    el("section", "portrait", {}, [
+      el("div", "section-title", {}, [
+        el("span", "", {}, ["错题画像"]),
+        el("span", "", {}, ["本周"]),
+      ]),
+      ...dashboard.errorPortrait.slice(0, 4).map((item) =>
+        el("div", "barline", {}, [
+          el("span", "", {}, [item.name]),
+          el("div", "track", {}, [el("span", "fill", { style: `width:${item.percent}%` }, [])]),
+          el("strong", "", {}, [`${item.percent}%`]),
+        ]),
+      ),
+    ]),
+    el("section", "next-box", {}, [
+      el("strong", "", {}, ["下一步建议"]),
+      el("p", "", {}, ["完成 3 道关键词预检后进入 5 题题阵。"]),
+    ]),
   );
 }
 
@@ -1204,6 +1288,10 @@ function actionLabel(action) {
   }[action] || "行动";
 }
 
+function chapterShortTitle(chapter) {
+  return String(chapter?.title || "").replace(/^第[一二三四五六七八九十]+章\s*/u, "");
+}
+
 function getIntroDialogue() {
   return [
     { speakerName: "明澈", text: "小明书院是一座显化书院。知识会变成秘境，遗忘会凝成雾。" },
@@ -1299,7 +1387,7 @@ function loadSavedState() {
 
     return {
       ...fallback,
-      scene: normalizeSceneId(fallback.scene) || (fallback.player.seenIntro ? "world" : "story"),
+      scene: normalizeSceneId(fallback.scene) || "world",
     };
   } catch {
     return {
@@ -1307,7 +1395,7 @@ function loadSavedState() {
         player: initialPlayerState(),
         scene: "",
       }, { questions }),
-      scene: "story",
+      scene: "world",
     };
   }
 }
