@@ -18,6 +18,15 @@ test("visual shell CSS matches the mobile-first dark text-game design", () => {
   assert.match(cssSource, /--ui-bg:\s*#111317/u);
   assert.match(cssSource, /--ui-jade:\s*#53c6a2/u);
   assert.match(cssSource, /\.rpg-shell\s*\{[^}]*grid-template-areas:\s*"hud hud"[\s\S]*"stage quest"[\s\S]*"nav quest"/u);
-  assert.match(cssSource, /@media \(max-width:\s*760px\)[\s\S]*grid-template-rows:\s*154px minmax\(0,\s*1fr\) 118px 68px/u);
+  assert.match(cssSource, /@media \(max-width:\s*760px\)[\s\S]*grid-template-rows:\s*154px auto auto 68px/u);
   assert.match(cssSource, /\.text-window \.question-card\s*\{[\s\S]*display:\s*none/u);
+});
+
+test("mobile shell keeps the page scrollable below the design screenshot height", () => {
+  const mobileBlock = cssSource.match(/@media \(max-width:\s*760px\)\s*\{([\s\S]*)\}\s*$/u)?.[1] ?? "";
+
+  assert.match(mobileBlock, /body\s*\{[^}]*min-height:\s*100dvh/u);
+  assert.match(mobileBlock, /\.rpg-shell\s*\{[^}]*min-height:\s*100dvh/u);
+  assert.doesNotMatch(mobileBlock, /\.rpg-shell\s*\{[^}]*height:\s*844px/u);
+  assert.doesNotMatch(mobileBlock, /\.rpg-shell\s*\{[^}]*overflow:\s*hidden/u);
 });
