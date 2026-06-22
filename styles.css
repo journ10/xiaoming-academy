@@ -15,6 +15,9 @@
   --ui-focus: rgba(83, 198, 162, 0.34);
   --ui-shadow: 0 20px 70px rgba(0, 0, 0, 0.32);
   --radius: 8px;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif;
+  --font-serif: "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "SimSun", var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK SC", "Microsoft YaHei UI", monospace;
 }
 
 * {
@@ -25,12 +28,7 @@ html {
   min-width: 320px;
   background: var(--ui-bg);
   color: var(--ui-ink);
-  font-family:
-    Inter,
-    "PingFang SC",
-    "Noto Sans CJK SC",
-    system-ui,
-    sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: 0;
 }
 
@@ -169,14 +167,14 @@ p {
     linear-gradient(135deg, rgba(216, 174, 85, 0.22), transparent),
     #1e222a;
   color: var(--ui-gold);
-  font-family: ui-serif, "Songti SC", serif;
+  font-family: var(--font-serif);
   font-size: 24px;
   font-weight: 800;
 }
 
 .brand-lockup h1 {
   color: var(--ui-ink);
-  font-family: ui-serif, "Songti SC", "Noto Serif CJK SC", serif;
+  font-family: var(--font-serif);
   font-size: 22px;
   line-height: 1.05;
 }
@@ -413,7 +411,7 @@ p {
 
 .battle-question-head h2 {
   color: var(--ui-ink);
-  font-family: ui-serif, "Songti SC", "Noto Serif CJK SC", serif;
+  font-family: var(--font-serif);
   font-size: 28px;
   line-height: 1.16;
 }
@@ -421,7 +419,7 @@ p {
 .battle-stem {
   max-width: 920px;
   color: #efe7dc;
-  font-family: ui-serif, "Songti SC", "Noto Serif CJK SC", serif;
+  font-family: var(--font-serif);
   font-size: 22px;
   line-height: 1.68;
 }
@@ -716,7 +714,7 @@ p {
 .text-screen h2,
 .quest-panel h2 {
   color: var(--ui-ink);
-  font-family: ui-serif, "Songti SC", "Noto Serif CJK SC", serif;
+  font-family: var(--font-serif);
   font-size: 34px;
   line-height: 1.15;
 }
@@ -895,7 +893,7 @@ p {
 .scene-copy p {
   max-width: 760px;
   color: #ebe4d8;
-  font-family: ui-serif, "Songti SC", "Noto Serif CJK SC", serif;
+  font-family: var(--font-serif);
   font-size: 22px;
   line-height: 1.72;
 }
@@ -1191,12 +1189,7 @@ p {
   color: #dce3ea;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Consolas,
-    monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -1242,12 +1235,7 @@ p {
   background: rgba(255, 255, 255, 0.04);
   color: var(--ui-ink);
   padding: 12px;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Consolas,
-    monospace;
+  font-family: var(--font-mono);
   font-size: 0.86rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
