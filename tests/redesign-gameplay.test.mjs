@@ -2,15 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   applyTrialAnswer,
-  artifactDefinitions,
   createDailyChallenges,
   createRouteRun,
-  getArtifactRoster,
+  getHeartPowerUpgradeState,
   initialPlayerState,
+  materialTypes,
   nodeTypes,
   prepareQuestions,
   studyNode,
-  upgradeArtifact,
+  upgradeHeartPower,
 } from "../core.js";
 
 function makeRawQuestions(count = 9) {
@@ -62,7 +62,11 @@ test("redesign route exposes all RPG node types with asset ids", () => {
   assert.ok(run.nodes.every((node) => node.nodeFlavor && node.rewardPreview));
 });
 
-test("correct battle answers grow stance mastery and pay node materials", () => {
+test("material economy keeps only study pages and ink jade", () => {
+  assert.deepEqual(materialTypes.map((material) => material.id), ["shuye", "moyu"]);
+});
+
+test("correct battle answers grow stance mastery and pay simplified node materials", () => {
   const questions = prepareQuestions(makeRawQuestions(8));
   let player = initialPlayerState();
   let run = createRouteRun(questions, { length: 8 });
@@ -84,32 +88,50 @@ test("correct battle answers grow stance mastery and pay node materials", () => 
   assert.ok(result.stanceMasteryGain > 0);
   assert.ok(result.player.stanceMastery.assault.xp >= result.stanceMasteryGain);
   assert.ok(result.player.stanceMastery.assault.level >= 1);
-  assert.ok(result.materialsGain.lingqian >= 1);
-  assert.equal(result.player.materials.lingqian, result.materialsGain.lingqian);
+  assert.ok(result.materialsGain.shuye >= 1);
+  assert.equal(result.materialsGain.moyu, 0);
+  assert.equal(result.player.materials.shuye, studied.player.materials.shuye + result.materialsGain.shuye);
   assert.deepEqual(result.run.events.at(-1).materialsGain, result.materialsGain);
 });
 
-test("artifact upgrades consume materials and update roster state", () => {
+test("heart power upgrades consume study pages and increase the cap", () => {
   const player = {
     ...initialPlayerState(),
-    materials: {
-      shuye: 20,
-      xingsha: 10,
-      moyu: 5,
-      lingqian: 3,
-    },
+    heartPower: 5,
+    maxHeartPower: 6,
+    materials: { shuye: 20, moyu: 0 },
   };
 
-  const before = getArtifactRoster(player).find((artifact) => artifact.id === "biling");
-  const upgraded = upgradeArtifact(player, "biling");
-  const after = getArtifactRoster(upgraded.player).find((artifact) => artifact.id === "biling");
+  const before = getHeartPowerUpgradeState(player);
+  const upgraded = upgradeHeartPower(player);
+  const after = getHeartPowerUpgradeState(upgraded.player);
 
-  assert.equal(artifactDefinitions.length, 4);
-  assert.equal(before.level, 1);
   assert.equal(before.canUpgrade, true);
-  assert.equal(after.level, 2);
+  assert.equal(upgraded.player.maxHeartPower, 7);
+  assert.equal(upgraded.player.heartPower, 6);
   assert.equal(upgraded.player.materials.shuye, player.materials.shuye - upgraded.cost.shuye);
-  assert.equal(upgraded.player.artifacts.biling.level, 2);
+  assert.equal(upgraded.player.materials.moyu, 0);
+  assert.equal(after.nextMaxHeartPower, 8);
+});
+
+test("demon nodes are the only battle source of ink jade", () => {
+  const questions = prepareQuestions(makeRawQuestions(9));
+  let player = initialPlayerState();
+  let run = createRouteRun(questions, { length: 9 });
+  const demonNode = run.nodes.find((node) => node.type === "demon");
+  const question = questions.find((item) => item.id === demonNode.questionId);
+
+  const result = applyTrialAnswer(player, run, {
+    nodeId: demonNode.id,
+    question,
+    selectedAnswer: question.answer,
+    stanceId: "steady",
+  });
+
+  assert.equal(result.isCorrect, true);
+  assert.equal(result.materialsGain.shuye, 0);
+  assert.ok(result.materialsGain.moyu >= 1);
+  assert.equal(result.player.materials.moyu, result.materialsGain.moyu);
 });
 
 test("daily challenges create RPG goals with material rewards", () => {

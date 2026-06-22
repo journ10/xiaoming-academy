@@ -102,15 +102,32 @@ p {
   display: grid;
   grid-template-areas:
     "hud hud"
-    "stage quest"
-    "nav quest";
+    "stage quest";
   grid-template-columns: minmax(0, 1fr) 356px;
-  grid-template-rows: 78px minmax(0, 1fr) 76px;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 16px;
   min-height: 100dvh;
   width: min(1440px, 100%);
   margin: 0 auto;
   padding: 28px;
+}
+
+.rpg-shell[data-scene="battle"] {
+  grid-template-areas:
+    "hud hud"
+    "stage stage";
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+}
+
+.rpg-shell[data-scene="battle"] .quest-panel {
+  display: none;
+}
+
+.rpg-shell[data-scene="battle"] .battle-desk {
+  height: 100%;
+  min-height: 0;
 }
 
 .game-hud,
@@ -127,7 +144,7 @@ p {
 .game-hud {
   grid-area: hud;
   display: grid;
-  grid-template-columns: 252px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(220px, 252px) minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
   padding: 12px 14px;
@@ -137,6 +154,7 @@ p {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .brand-lockup::before {
@@ -173,11 +191,13 @@ p {
 
 .hud-stats {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 
 .hud-stat {
+  min-width: 0;
   min-height: 50px;
   padding: 8px 10px;
   border: 1px solid var(--ui-line);
@@ -187,20 +207,27 @@ p {
 
 .hud-stat span {
   display: block;
+  overflow: hidden;
   color: var(--ui-muted);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hud-stat strong {
   display: block;
+  overflow: hidden;
   margin-top: 3px;
   color: var(--ui-ink);
   font-size: 16px;
   line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hud-actions {
   display: flex;
+  flex-shrink: 0;
   gap: 8px;
 }
 
@@ -209,6 +236,7 @@ p {
   min-height: 44px;
   padding: 0 14px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .hud-button.danger,
@@ -238,7 +266,7 @@ p {
 
 .bottom-nav {
   grid-area: nav;
-  display: grid;
+  display: none;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 8px;
   padding: 10px;
@@ -289,12 +317,363 @@ p {
     #151820;
 }
 
+.battle-desk {
+  display: grid;
+  grid-template-rows: auto max-content auto;
+  align-content: start;
+  gap: 14px;
+  min-height: 100%;
+  padding: 18px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background:
+    linear-gradient(90deg, rgba(17, 19, 23, 0.94), rgba(17, 19, 23, 0.72)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 34px),
+    #151820;
+}
+
+.battle-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.battle-status-chip {
+  display: grid;
+  min-width: 112px;
+  min-height: 48px;
+  gap: 3px;
+  justify-content: start;
+  padding: 8px 11px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.battle-status-chip span {
+  overflow: hidden;
+  color: var(--ui-muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-status-chip strong {
+  overflow: hidden;
+  color: var(--ui-ink);
+  font-size: 14px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-status-chip.is-ready {
+  border-color: rgba(83, 198, 162, 0.5);
+  background: rgba(83, 198, 162, 0.1);
+}
+
+.battle-status-chip.is-muted {
+  border-color: rgba(216, 174, 85, 0.36);
+  background: rgba(216, 174, 85, 0.08);
+}
+
+.battle-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 16px;
+  min-height: max-content;
+  align-self: start;
+  overflow: visible;
+  align-items: start;
+}
+
+.battle-question-card {
+  display: grid;
+  gap: 18px;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 20px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(246, 234, 213, 0.05), transparent 42%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.battle-question-head {
+  display: grid;
+  gap: 7px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ui-line);
+}
+
+.battle-question-head h2 {
+  color: var(--ui-ink);
+  font-family: ui-serif, "Songti SC", "Noto Serif CJK SC", serif;
+  font-size: 28px;
+  line-height: 1.16;
+}
+
+.battle-stem {
+  max-width: 920px;
+  color: #efe7dc;
+  font-family: ui-serif, "Songti SC", "Noto Serif CJK SC", serif;
+  font-size: 22px;
+  line-height: 1.68;
+}
+
+.battle-options {
+  display: grid;
+  gap: 10px;
+}
+
+.battle-section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #f4e1b2;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.battle-section-title span:last-child {
+  color: var(--ui-muted);
+}
+
+.battle-options .battle-option {
+  min-height: 56px;
+  padding: 13px 15px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.battle-support-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  padding-right: 2px;
+}
+
+.battle-support-panel .text-panel {
+  padding: 14px;
+}
+
+.battle-support-panel .text-panel p {
+  color: #c7cfd7;
+  line-height: 1.6;
+}
+
+.battle-action-bar {
+  position: static;
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) auto;
+  gap: 14px;
+  align-items: stretch;
+  padding: 12px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--radius);
+  background: rgba(15, 18, 23, 0.96);
+  box-shadow: 0 -18px 46px rgba(0, 0, 0, 0.24);
+}
+
+.battle-selection-state {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.battle-selection-state strong {
+  overflow: hidden;
+  color: var(--ui-ink);
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-selection-state small {
+  overflow: hidden;
+  color: var(--ui-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.battle-action {
+  display: grid;
+  min-width: 128px;
+  min-height: 50px;
+  gap: 3px;
+  align-content: center;
+  justify-content: center;
+  padding: 9px 14px;
+  text-align: center;
+  font-weight: 850;
+}
+
+.battle-action small {
+  color: var(--ui-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.battle-action.is-primary {
+  border-color: rgba(83, 198, 162, 0.72);
+  background: linear-gradient(180deg, rgba(83, 198, 162, 0.28), rgba(83, 198, 162, 0.13));
+  color: #dffbf3;
+}
+
+.battle-action.is-disabled,
+.battle-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 860px) {
+  .rpg-shell[data-scene="battle"] {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .rpg-shell[data-scene="battle"] .game-stage {
+    overflow: visible;
+  }
+
+  .rpg-shell[data-scene="battle"] .battle-desk {
+    height: auto;
+  }
+
+  .battle-desk {
+    grid-template-rows: auto max-content auto;
+    align-content: start;
+    gap: 12px;
+    padding: 14px;
+    overflow: visible;
+  }
+
+  .battle-main {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .battle-question-card,
+  .battle-support-panel {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .battle-action-bar {
+    position: static;
+    grid-template-columns: 1fr;
+  }
+
+  .battle-action-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .battle-action {
+    width: 100%;
+  }
+}
+
 .modern-world {
   position: relative;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 0;
   padding: 0;
   overflow: hidden;
+}
+
+.start-desk {
+  align-content: center;
+  gap: 22px;
+}
+
+.start-hero {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+}
+
+.start-hero h2 {
+  font-size: 42px;
+}
+
+.start-focus {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
+  gap: 14px;
+}
+
+.objective-panel,
+.mode-card,
+.build-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.045);
+  padding: 16px;
+}
+
+.primary-objective,
+.mode-card.is-recommended,
+.build-card.is-selected {
+  border-color: rgba(83, 198, 162, 0.66);
+  background: rgba(83, 198, 162, 0.1);
+}
+
+.objective-panel h3,
+.mode-card h3,
+.build-card h3 {
+  color: var(--ui-ink);
+  font-size: 20px;
+}
+
+.objective-panel p,
+.mode-card p,
+.build-card p {
+  color: #bdc5ce;
+  line-height: 1.55;
+}
+
+.start-actions {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.primary-action {
+  display: grid;
+  place-items: center;
+  min-height: 58px;
+  padding: 0 18px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.mode-grid,
+.build-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .modern-world::before {
@@ -613,11 +992,16 @@ p {
 
 .text-body {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   align-content: start;
   gap: 14px;
   min-height: 0;
   overflow: auto;
   padding-right: 4px;
+}
+
+.text-body > .text-panel:first-child:nth-last-child(n + 2) {
+  grid-column: 1 / -1;
 }
 
 .text-screen > header:not(.stage-head) {
@@ -648,6 +1032,10 @@ p {
 .text-choice-list {
   display: grid;
   gap: 10px;
+}
+
+.text-panel > .text-choice-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .text-grid {
@@ -681,6 +1069,42 @@ p {
   border-color: var(--ui-line);
   background: rgba(255, 255, 255, 0.03);
   color: var(--ui-muted);
+}
+
+.text-choice.is-disabled,
+.text-choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.text-action-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid var(--ui-line);
+  padding-top: 14px;
+}
+
+.text-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.text-action-buttons .text-choice {
+  width: auto;
+  min-width: 132px;
+  min-height: 46px;
+  align-content: center;
+  justify-content: center;
+  padding: 9px 14px;
+  text-align: center;
+}
+
+.text-action-buttons .text-choice small {
+  max-width: 220px;
 }
 
 .battle-option.is-correct {
@@ -852,6 +1276,17 @@ p {
   white-space: nowrap;
 }
 
+@media (max-width: 1180px) {
+  .game-hud {
+    grid-template-columns: minmax(190px, 220px) minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .hud-button {
+    padding: 0 10px;
+  }
+}
+
 @media (max-width: 760px) {
   body {
     min-height: 100dvh;
@@ -861,10 +1296,9 @@ p {
     grid-template-areas:
       "hud"
       "stage"
-      "quest"
-      "nav";
+      "quest";
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 154px auto auto 68px;
+    grid-template-rows: 136px auto auto;
     width: 100%;
     max-width: 390px;
     min-height: 100dvh;
@@ -907,11 +1341,6 @@ p {
     padding: 7px 8px;
   }
 
-  .hud-stat:nth-child(3),
-  .hud-stat:nth-child(4) {
-    display: none;
-  }
-
   .hud-stat strong {
     font-size: 15px;
   }
@@ -944,6 +1373,26 @@ p {
   .quest-panel h2 {
     margin-top: 4px;
     font-size: 24px;
+  }
+
+  .text-body,
+  .text-panel > .text-choice-list {
+    grid-template-columns: 1fr;
+  }
+
+  .text-action-bar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .text-action-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .text-action-buttons .text-choice {
+    width: 100%;
   }
 
   .stage-sub {
@@ -1019,6 +1468,27 @@ p {
 
   .text-window .question-card {
     display: none;
+  }
+
+  .start-desk {
+    align-content: start;
+    gap: 14px;
+  }
+
+  .start-hero h2 {
+    font-size: 28px;
+  }
+
+  .start-focus,
+  .mode-grid,
+  .build-grid,
+  .start-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-action {
+    min-height: 52px;
+    font-size: 16px;
   }
 
   .stage-actions {
