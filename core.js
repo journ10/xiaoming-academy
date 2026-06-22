@@ -52,15 +52,15 @@ export const learningStyleDefinitions = [
     id: "law",
     name: "律令派",
     shortName: "律",
-    description: "教育法规练功收益提高，跨主题练功收益降低。",
-    focusTopic: "教育法规",
+    description: "教育法规短课收益提高，跨主题短课收益降低。",
+    focusTopic: "教育法律法规与政策制度",
     unlock: "base",
   },
   {
     id: "concept",
     name: "观心派",
     shortName: "观",
-    description: "概念混淆和多选题练功收益提高，适合精确区分概念。",
+    description: "概念混淆和多选题短课收益提高，适合精确区分概念。",
     focusErrorPattern: "concept-confusion",
     unlock: "base",
   },
@@ -75,7 +75,7 @@ export const learningStyleDefinitions = [
     id: "review",
     name: "复盘派",
     shortName: "复",
-    description: "心魔与复看练功收益提高，新题练功收益降低。",
+    description: "心魔与复看短课收益提高，新题短课收益降低。",
     unlock: "purify-20",
   },
   {
@@ -89,59 +89,75 @@ export const learningStyleDefinitions = [
     id: "deep-read",
     name: "深读派",
     shortName: "深",
-    description: "练功额外沉淀知识点卡片，适合慢速精读。",
+    description: "短课额外沉淀知识点卡片，适合慢速精读。",
     unlock: "chapter-4",
   },
   {
     id: "chaos",
     name: "混沌派",
     shortName: "混",
-    description: "每题借用一种已学流派效果，适合最终综合迁移。",
-    unlock: "chapter-7",
+    description: "每题借用一种已学流派效果，适合综合模拟迁移。",
+    unlock: "all-domains",
+  },
+];
+
+export const rogueliteRunModes = [
+  {
+    id: "explore",
+    name: "探索局",
+    primaryAction: "点亮新概念",
+    title: "探索新题",
+    summary: "推进推荐知识域，点亮新的题眼和概念。",
+  },
+  {
+    id: "purify",
+    name: "净化局",
+    primaryAction: "净化错题心魔",
+    title: "净化心魔",
+    summary: "优先处理已生成的错题心魔，降低重复错误。",
+  },
+  {
+    id: "sprint",
+    name: "冲刺局",
+    primaryAction: "混合检验",
+    title: "综合冲刺",
+    summary: "跨知识域抽题，检验考试迁移能力。",
+  },
+];
+
+export const rogueliteBuildDefinitions = [
+  {
+    id: "steady",
+    name: "稳修",
+    risk: "低",
+    reward: "稳",
+    summary: "心力容错更高，适合先把一局稳定打完。",
+    recommendationReason: "当前更适合稳扎稳打，先建立一局完整节奏。",
+  },
+  {
+    id: "assault",
+    name: "突击",
+    risk: "高",
+    reward: "高",
+    summary: "连对收益更高，失误代价更重，适合熟悉题池后冲刺。",
+    recommendationReason: "你已经有一定答题覆盖，可以用高风险换更快推进。",
+  },
+  {
+    id: "review",
+    name: "复盘",
+    risk: "中",
+    reward: "错题高",
+    summary: "心魔净化收益更高，新题推进放慢，适合查漏补缺。",
+    recommendationReason: "当前有活跃心魔，优先复盘比继续开新题更有效。",
   },
 ];
 
 export const materialTypes = [
   { id: "shuye", name: "书页", assetId: "item.shuye" },
-  { id: "xingsha", name: "星砂", assetId: "item.xingsha" },
   { id: "moyu", name: "墨玉", assetId: "item.moyu" },
-  { id: "lingqian", name: "灵签", assetId: "item.lingqian" },
 ];
 
-export const artifactDefinitions = [
-  {
-    id: "biling",
-    name: "碧灵笔",
-    assetId: "artifact.biling",
-    description: "强化练功收益，让题眼更容易转化为心法经验。",
-    maxLevel: 5,
-    baseCost: { shuye: 8, xingsha: 2, moyu: 0, lingqian: 0 },
-  },
-  {
-    id: "yanling",
-    name: "言灵铃",
-    assetId: "artifact.yanling",
-    description: "强化答对反馈，提升连破时的星辉与羁绊感。",
-    maxLevel: 5,
-    baseCost: { shuye: 10, xingsha: 3, moyu: 0, lingqian: 1 },
-  },
-  {
-    id: "zhiling",
-    name: "知灵佩",
-    assetId: "artifact.zhiling",
-    description: "强化观照招式，帮助玩家从讲解中抓住题眼。",
-    maxLevel: 5,
-    baseCost: { shuye: 6, xingsha: 4, moyu: 1, lingqian: 0 },
-  },
-  {
-    id: "moling",
-    name: "墨灵镜",
-    assetId: "artifact.moling",
-    description: "强化心魔回廊，降低错题反噬并提高净化收益。",
-    maxLevel: 5,
-    baseCost: { shuye: 12, xingsha: 2, moyu: 2, lingqian: 1 },
-  },
-];
+const heartPowerUpgradeLimit = 12;
 
 export const errorPatternDefinitions = {
   "concept-confusion": {
@@ -149,7 +165,7 @@ export const errorPatternDefinitions = {
     name: "概念混淆",
     demonType: "镜像心魔",
     diagnosis: "相似概念边界未分清，容易把选项互相替换。",
-    remedy: "回练功室做概念对比，再用观照招式检查题眼差异。",
+    remedy: "看题眼短课做概念对比，再用观照破招检查题眼差异。",
   },
   "reading-mistake": {
     id: "reading-mistake",
@@ -163,7 +179,7 @@ export const errorPatternDefinitions = {
     name: "记忆盲区",
     demonType: "空洞心魔",
     diagnosis: "基础概念或法条记忆没有建立，当前更像是在蒙猜。",
-    remedy: "强制回到练功短课，先记住题眼和最小知识点。",
+    remedy: "先看题眼短课，记住题眼和最小知识点。",
   },
   "application-error": {
     id: "application-error",
@@ -249,7 +265,7 @@ export const nodeTypes = {
     pressureMultiplier: 1.35,
     damageMultiplier: 1.18,
     heartRecovery: 0,
-    materialRewards: { shuye: 2, xingsha: 1 },
+    materialRewards: { shuye: 2 },
   },
   recover: {
     id: "recover",
@@ -273,7 +289,7 @@ export const nodeTypes = {
     pressureMultiplier: 1,
     damageMultiplier: 1,
     heartRecovery: 0,
-    materialRewards: { shuye: 2, xingsha: 2 },
+    materialRewards: { shuye: 3 },
   },
   demon: {
     id: "demon",
@@ -297,7 +313,7 @@ export const nodeTypes = {
     pressureMultiplier: 0.92,
     damageMultiplier: 1,
     heartRecovery: 0,
-    materialRewards: { shuye: 1, moyu: 1 },
+    materialRewards: { shuye: 2 },
   },
   resonance: {
     id: "resonance",
@@ -309,20 +325,20 @@ export const nodeTypes = {
     pressureMultiplier: 0.95,
     damageMultiplier: 1.08,
     heartRecovery: 0,
-    materialRewards: { xingsha: 2 },
+    materialRewards: { shuye: 2 },
     resonanceMultiplier: 1.2,
   },
   trial: {
     id: "trial",
     name: "试炼",
-    description: "高压高奖，用来验证章节熟练度。",
+    description: "高压高奖，用来验证题域熟练度。",
     assetId: "node.trial",
-    nodeFlavor: "试炼印开启，适合在练功后冲击章节星印。",
+    nodeFlavor: "试炼印开启，适合在短课后冲击题阵星标。",
     rewardMultiplier: 1.85,
     pressureMultiplier: 1.55,
     damageMultiplier: 1.28,
     heartRecovery: 0,
-    materialRewards: { shuye: 3, xingsha: 1, lingqian: 1 },
+    materialRewards: { shuye: 4 },
   },
 };
 
@@ -337,7 +353,7 @@ export const storyCharacters = [
   {
     id: "azhi",
     name: "阿芷",
-    role: "练功同伴",
+    role: "短课同伴",
     specialty: "题眼摘记与讲解陪练",
     art: "art-character-azhi",
   },
@@ -352,7 +368,7 @@ export const storyCharacters = [
     id: "xiaomo",
     name: "小墨",
     role: "秘卷灵",
-    specialty: "心魔回廊与章节封印",
+    specialty: "心魔回廊与学习域进度",
     art: "art-character-xiaomo",
   },
 ];
@@ -367,7 +383,91 @@ const defaultBonds = {
 const defaultMaterials = Object.fromEntries(materialTypes.map((material) => [material.id, 0]));
 const defaultStanceMastery = Object.fromEntries(stances.map((stance) => [stance.id, { xp: 0, level: 1 }]));
 
-const storyChapterTemplates = [
+export const learningDomainDefinitions = [
+  {
+    id: "law_policy",
+    name: "教育法律法规与政策制度",
+    shortName: "法规政策",
+    legacyTopics: ["教育法规"],
+    chapterId: "chapter-law-policy",
+    title: "第一章 法规政策营",
+    characterId: "mingche",
+    summary: "精确掌握教育法律、政策制度与权利义务题眼。",
+  },
+  {
+    id: "pedagogy_curriculum_instruction",
+    name: "教育学原理、课程与教学",
+    shortName: "课程教学",
+    legacyTopics: ["教学设计"],
+    chapterId: "chapter-pedagogy",
+    title: "第二章 课程教学工坊",
+    characterId: "qinglan",
+    summary: "把教育目的、课程、教学原则、方法与评价连成可迁移结构。",
+  },
+  {
+    id: "learning_psychology",
+    name: "学习心理与认知机制",
+    shortName: "学习心理",
+    legacyTopics: ["教育心理学"],
+    chapterId: "chapter-learning-psychology",
+    title: "第三章 学习心理实验室",
+    characterId: "azhi",
+    summary: "辨析学习、动机、迁移、记忆与认知机制，减少概念混淆。",
+  },
+  {
+    id: "student_development",
+    name: "学生身心发展与个体差异",
+    shortName: "学生发展",
+    legacyTopics: ["儿童发展"],
+    chapterId: "chapter-student-development",
+    title: "第四章 学生发展观察站",
+    characterId: "xiaomo",
+    summary: "理解身心发展规律、年龄特征与个体差异，稳定处理发展类题。",
+  },
+  {
+    id: "moral_classroom_management",
+    name: "德育、班级管理与家校协同",
+    shortName: "德育班管",
+    legacyTopics: ["班级管理"],
+    chapterId: "chapter-classroom-moral",
+    title: "第五章 德育班管现场",
+    characterId: "qinglan",
+    summary: "训练德育、班级管理、师生沟通与家校协同中的情境判断顺序。",
+  },
+  {
+    id: "teacher_ethics_professionalism",
+    name: "教师职业素养与专业规范",
+    shortName: "教师素养",
+    legacyTopics: ["教师职业道德"],
+    chapterId: "chapter-teacher-professionalism",
+    title: "第六章 教师素养评议厅",
+    characterId: "mingche",
+    summary: "把师德规范、专业理念与教师行为边界练成清晰判断。",
+  },
+];
+
+export const manualClassificationDomain = {
+  id: "needs_manual_classification",
+  name: "待人工归类",
+};
+
+const learningDomainById = new Map(learningDomainDefinitions.map((domain) => [domain.id, domain]));
+const learningDomainByName = new Map(learningDomainDefinitions.map((domain) => [domain.name, domain]));
+const legacyTopicToLearningDomain = new Map(
+  learningDomainDefinitions.flatMap((domain) =>
+    (domain.legacyTopics || []).map((topic) => [topic, domain]),
+  ),
+);
+
+const storyChapterTemplates = learningDomainDefinitions.map((domain) => ({
+  id: domain.chapterId,
+  topic: domain.name,
+  title: domain.title,
+  characterId: domain.characterId,
+  summary: domain.summary,
+}));
+
+const legacyStoryChapterTemplates = [
   {
     id: "chapter-law",
     topic: "教育法规",
@@ -410,16 +510,33 @@ const storyChapterTemplates = [
     characterId: "xiaomo",
     summary: "理解儿童发展特点，点亮秘卷最后一枚星印。",
   },
-  {
-    id: "chapter-final",
-    topic: "综合知识",
-    title: "第七章 万象书阁",
-    characterId: "xiaomo",
-    summary: "把六章题眼混合迁移，面对创始人留下的最终试炼。",
-  },
 ];
 
 const chapterNarrativeBeats = {
+  "chapter-law-policy": [
+    ["mingche", "这一章只保留和考试判断有关的法条、政策与制度线索。先确认主体、权利义务和关键词。"],
+    ["azhi", "遇到相似表述时，不急着选；先问它是在考法律条文、政策要求，还是管理常识。"],
+  ],
+  "chapter-pedagogy": [
+    ["qinglan", "课程教学题不靠背模板通关。目标、内容、过程、方法、评价必须能连起来。"],
+    ["mingche", "这一章会把教育学原理和教学设计放在同一条训练线上，避免只按旧标签硬分。"],
+  ],
+  "chapter-learning-psychology": [
+    ["azhi", "学习心理题最容易把相似概念混在一起。先抓定义边界，再看材料里的行为证据。"],
+    ["qinglan", "如果一道题答错，先回到概念差异，不要只记答案字母。"],
+  ],
+  "chapter-student-development": [
+    ["xiaomo", "学生发展题考的是年龄特征、发展规律和个体差异。判断要贴着儿童真实状态走。"],
+    ["azhi", "这一章不和学习心理混在一起；它更关注学生是谁、处在什么发展阶段。"],
+  ],
+  "chapter-classroom-moral": [
+    ["qinglan", "德育和班级管理题先看现场顺序：安全、情绪、事实、沟通、跟进。"],
+    ["mingche", "家校协同和班主任工作也放在这里，因为它们考的是教育现场的处理链条。"],
+  ],
+  "chapter-teacher-professionalism": [
+    ["mingche", "教师职业素养不是几句师德口号，而是具体场景里的专业边界。"],
+    ["xiaomo", "遇到价值判断题，先看是否尊重学生、依法执教、为人师表，再判断选项强弱。"],
+  ],
   "chapter-law": [
     ["mingche", "律令花窗是书院最外层的防护。若这里失光，后面的秘境都会被遗忘之雾慢慢抹去。"],
     ["azhi", "我在窗棂边看见一缕黑墨。它不像雾，倒像有人故意留下的笔迹。"],
@@ -427,7 +544,7 @@ const chapterNarrativeBeats = {
   ],
   "chapter-psychology": [
     ["azhi", "观心花园会照出你答题时的犹豫。不要害怕，犹豫通常说明题眼还没被你抓住。"],
-    ["qinglan", "这里的心魔擅长把选项搅乱。先练功，再进阵，我不想看你被镜子骗第二次。"],
+    ["qinglan", "这里的心魔擅长把选项搅乱。先看短课，再进阵，我不想看你被镜子骗第二次。"],
     ["xiaomo", "黑墨在镜面里说话了。它写着：面对错题，不要逃避。"],
   ],
   "chapter-design": [
@@ -459,13 +576,18 @@ const chapterNarrativeBeats = {
 
 const blackInkSayings = [
   { id: "intro", chapterId: "intro", text: "学习不是填满水桶，而是点燃火焰。" },
+  { id: "chapter-law-policy", chapterId: "chapter-law-policy", text: "法规题先找主体，再找权利义务和关键词。" },
+  { id: "chapter-pedagogy", chapterId: "chapter-pedagogy", text: "教学题不是背模板，而是连起目标、过程和评价。" },
+  { id: "chapter-learning-psychology", chapterId: "chapter-learning-psychology", text: "概念辨析先看边界，再看材料证据。" },
+  { id: "chapter-student-development", chapterId: "chapter-student-development", text: "理解学生发展，是判断教育行为是否合适的前提。" },
+  { id: "chapter-classroom-moral", chapterId: "chapter-classroom-moral", text: "班级现场先稳秩序和情绪，再处理事实与跟进。" },
+  { id: "chapter-teacher-professionalism", chapterId: "chapter-teacher-professionalism", text: "教师专业判断，要同时守住伦理、法律和教育目的。" },
   { id: "chapter-law", chapterId: "chapter-law", text: "法律的生命不在于逻辑，而在于精确。" },
   { id: "chapter-psychology", chapterId: "chapter-psychology", text: "理解不是记住定义，而是看到差异。" },
   { id: "chapter-design", chapterId: "chapter-design", text: "教学不是展示所有知识，而是选择最重要的。" },
   { id: "chapter-ethics", chapterId: "chapter-ethics", text: "师德不是做圣人，而是做清醒的人。" },
   { id: "chapter-classroom", chapterId: "chapter-classroom", text: "管理的艺术不是控制，而是引导。" },
   { id: "chapter-child", chapterId: "chapter-child", text: "理解儿童，不是降低要求，而是知道怎么把要求递到他们够得到的地方。" },
-  { id: "chapter-final", chapterId: "chapter-final", text: "通关不是终点，而是你开始帮助后来者学习。" },
 ];
 
 const bondStoryDefinitions = [
@@ -520,7 +642,6 @@ export function initialPlayerState() {
     learningStyleId: "balanced",
     spiritPages: 0,
     materials: { ...defaultMaterials },
-    artifacts: createInitialArtifacts(),
     stanceMastery: normalizeStanceMastery(),
     streak: 0,
     seenIntro: false,
@@ -548,14 +669,84 @@ export function initialPlayerState() {
   };
 }
 
+export function applyQuestionClassifications(rawQuestions = [], classificationAudit = {}) {
+  const questions = Array.isArray(rawQuestions) ? rawQuestions : rawQuestions?.questions || [];
+  const auditItems = Array.isArray(classificationAudit)
+    ? classificationAudit
+    : classificationAudit?.questions || [];
+  const auditByKey = new Map();
+  const auditByIndex = new Map();
+
+  auditItems.forEach((item) => {
+    if (item?.classificationKey) auditByKey.set(String(item.classificationKey), item);
+    if (Number.isInteger(item?.bankIndex)) auditByIndex.set(Number(item.bankIndex), item);
+  });
+
+  return questions.map((raw, index) => {
+    const sourceId = String(raw?.sourceId || raw?.id || `question-${index + 1}`);
+    const classificationKey = String(raw?.classificationKey || `${sourceId}#${index}`);
+    const audit = auditByKey.get(classificationKey) || auditByIndex.get(index) || null;
+    const primaryDomain = normalizePrimaryDomain(audit?.classification?.primaryDomain, raw?.topic);
+    const qualityStatus = normalizeQualityStatus(audit?.quality?.status || raw?.qualityStatus || raw?.quality?.status);
+    const gameplayStatus = deriveGameplayStatus(primaryDomain.name, qualityStatus);
+    const bankIndex = Number.isInteger(audit?.bankIndex) ? Number(audit.bankIndex) : index;
+    const id = createStableQuestionId(sourceId, bankIndex);
+    const classification = audit?.classification
+      ? {
+          ...audit.classification,
+          primaryDomain,
+        }
+      : {
+          primaryDomain,
+          secondaryDomains: [],
+          knowledgePath: `${primaryDomain.name} · 基础概念`,
+          subdomain: "基础概念",
+          examAbilities: [],
+          confidence: "fallback",
+          evidence: [],
+        };
+
+    return {
+      ...raw,
+      id,
+      sourceId,
+      bankIndex,
+      classificationKey,
+      topic: primaryDomain.name,
+      classification,
+      qualityStatus,
+      qualityReasons: audit?.quality?.reasons || raw?.qualityReasons || [],
+      gameplayStatus,
+      sourceLocation: {
+        ...(audit?.source || {}),
+        questionSourcePage: audit?.source?.questionSourcePage ?? raw?.ocr?.sourcePage,
+        answerSourcePage: audit?.source?.answerSourcePage ?? raw?.ocr?.answerSourcePage,
+        sourceRef: audit?.source?.sourceRef || raw?.sourceRef || "",
+        examTitle: audit?.source?.examTitle || raw?.ocr?.examTitle || "",
+      },
+    };
+  });
+}
+
 export function prepareQuestions(rawQuestions = []) {
+  const rawIds = rawQuestions.map((raw, index) => String(raw?.id || `question-${index + 1}`));
+  const rawIdCounts = rawIds.reduce((counts, id) => counts.set(id, (counts.get(id) || 0) + 1), new Map());
+
   return rawQuestions.map((raw, index) => {
     const topic = String(raw.topic || "综合知识");
     const profile = getTopicProfile(topic);
     const options = normalizeOptions(raw.options);
-    const id = String(raw.id || `question-${index + 1}`);
+    const rawId = String(raw.id || `question-${index + 1}`);
+    const sourceId = String(raw.sourceId || rawId);
+    const alreadyStable = Boolean(raw.sourceId && rawId !== raw.sourceId);
+    const bankIndex = Number.isInteger(raw.bankIndex) ? Number(raw.bankIndex) : index;
+    const id = alreadyStable || rawIdCounts.get(rawId) <= 1
+      ? rawId
+      : createStableQuestionId(sourceId, bankIndex);
     const difficulty = clamp(Number(raw.difficulty || inferDifficulty(raw)), 1, 5);
     const explanation = String(raw.explanation || raw.analysis || "讲解还在整理中。");
+    const qualityStatus = normalizeQualityStatus(raw.qualityStatus || raw.quality?.status);
+    const gameplayStatus = String(raw.gameplayStatus || deriveGameplayStatus(topic, qualityStatus));
     const lesson = normalizeLesson(raw.lesson, {
       id,
       topic,
@@ -580,6 +771,8 @@ export function prepareQuestions(rawQuestions = []) {
     return {
       ...raw,
       id,
+      sourceId,
+      bankIndex,
       year: String(raw.year || "未标注"),
       type: String(raw.type || "练习题"),
       topic,
@@ -595,29 +788,56 @@ export function prepareQuestions(rawQuestions = []) {
       dependencies,
       errorPatterns,
       chapterMechanic,
+      qualityStatus,
+      gameplayStatus,
+      qualityReasons: Array.isArray(raw.qualityReasons) ? raw.qualityReasons : raw.quality?.reasons || [],
       lesson,
     };
   });
 }
 
-export function parseQuestionImport(payload) {
+export function parseQuestionImport(payload, options = {}) {
   const rawQuestions = Array.isArray(payload) ? payload : payload?.questions;
   if (!Array.isArray(rawQuestions) || !rawQuestions.length) {
     throw new Error("秘卷格式不对：需要一组题目。");
   }
 
-  return prepareQuestions(rawQuestions.map((raw, index) => validateImportedQuestion(raw, index)));
+  const classificationAudit = options.classificationAudit || payload?.classificationAudit || null;
+  const classifiedQuestions = classificationAudit
+    ? applyQuestionClassifications(rawQuestions, classificationAudit)
+    : rawQuestions;
+
+  return prepareQuestions(classifiedQuestions.map((raw, index) => validateImportedQuestion(raw, index)));
 }
 
-export function summarizeQuestionBank(payload) {
+export function summarizeQuestionBank(payload, options = {}) {
   const rawQuestions = Array.isArray(payload) ? payload : payload?.questions || [];
   const ocr = Array.isArray(payload) ? {} : payload?.ocr || {};
+  const classificationAudit = options.classificationAudit || payload?.classificationAudit || null;
+  const auditItems = classificationAudit?.questions || [];
   const playableQuestionCount = Number(ocr.mergedQuestionCount || rawQuestions.length || 0);
   const sourceTotalQuestionSlots = Number(ocr.sourceTotalQuestionSlots || playableQuestionCount || 0);
   const reviewQuestionCount = Number(
-    ocr.reviewQuestionCount
+    classificationAudit?.summary?.needsReviewCount
+      ?? ocr.reviewQuestionCount
       ?? rawQuestions.filter((question) => question.ocr?.requiresReview).length,
   );
+  const manualClassificationCount = Number(
+    classificationAudit?.summary?.byPrimaryDomain?.[manualClassificationDomain.name]
+      ?? auditItems.filter((item) => item.classification?.primaryDomain?.id === manualClassificationDomain.id).length,
+  );
+  const mainlineQuestionCount = auditItems.length
+    ? auditItems.filter((item) =>
+        item.classification?.primaryDomain?.id !== manualClassificationDomain.id
+          && normalizeQualityStatus(item.quality?.status) === "clean",
+      ).length
+    : playableQuestionCount;
+  const practiceOnlyQuestionCount = auditItems.length
+    ? auditItems.filter((item) =>
+        item.classification?.primaryDomain?.id !== manualClassificationDomain.id
+          && normalizeQualityStatus(item.quality?.status) === "usable_with_caution",
+      ).length
+    : 0;
   const sourceCoveragePercent = sourceTotalQuestionSlots
     ? Math.round((playableQuestionCount / sourceTotalQuestionSlots) * 1000) / 10
     : 0;
@@ -627,6 +847,9 @@ export function summarizeQuestionBank(payload) {
     sourceTotalQuestionSlots,
     playableQuestionCount,
     reviewQuestionCount,
+    manualClassificationCount,
+    mainlineQuestionCount,
+    practiceOnlyQuestionCount,
     sourceCoveragePercent,
   };
 }
@@ -743,10 +966,10 @@ function getLearningStyleAvailability(style, player = initialPlayerState(), chap
       ? { unlocked: true, reason: "第四章已通关" }
       : { unlocked: false, reason: "需要第四章通关" };
   }
-  if (style.unlock === "chapter-7") {
-    return clearedChapters.some((chapter) => Number(chapter.order || 0) >= 7 || chapter.topic === "综合知识")
-      ? { unlocked: true, reason: "第七章已通关" }
-      : { unlocked: false, reason: "需要第七章通关" };
+  if (style.unlock === "all-domains") {
+    return chapters.length > 0 && clearedChapters.length >= chapters.length
+      ? { unlocked: true, reason: "六个知识域已全部通关" }
+      : { unlocked: false, reason: "需要六个知识域全部通关" };
   }
   return { unlocked: false, reason: "条件还不够" };
 }
@@ -759,7 +982,7 @@ function withRecommendationReason(style, reason) {
 }
 
 export function createStoryChapters(questions = [], options = {}) {
-  const prepared = prepareQuestions(questions);
+  const prepared = prepareQuestions(questions).filter((question) => isQuestionAllowedForMode(question, "mainline"));
   const byTopic = new Map();
 
   prepared.forEach((question) => {
@@ -767,15 +990,16 @@ export function createStoryChapters(questions = [], options = {}) {
     byTopic.get(question.topic).push(question);
   });
 
+  const templates = [...storyChapterTemplates, ...legacyStoryChapterTemplates];
   const orderedTopics = [
-    ...storyChapterTemplates.map((template) => template.topic).filter((topic) => byTopic.has(topic)),
+    ...templates.map((template) => template.topic).filter((topic) => byTopic.has(topic)),
     ...[...byTopic.keys()].filter(
-      (topic) => !storyChapterTemplates.some((template) => template.topic === topic),
+      (topic) => !templates.some((template) => template.topic === topic),
     ),
   ];
 
   return orderedTopics.map((topic, index) => {
-    const template = storyChapterTemplates.find((item) => item.topic === topic);
+    const template = templates.find((item) => item.topic === topic);
     const chapterQuestions = byTopic.get(topic) || [];
     const order = index + 1;
     const requiredMastery = clamp(
@@ -789,7 +1013,7 @@ export function createStoryChapters(questions = [], options = {}) {
       order,
       topic,
       title: template?.title || `第${order}章 ${topic}`,
-      summary: template?.summary || `整理${topic}题眼，完成本章学习与战斗检验。`,
+      summary: template?.summary || `整理${topic}题眼，完成本章学习与题阵检验。`,
       characterId: template?.characterId || storyCharacters[index % storyCharacters.length].id,
       questionIds: chapterQuestions.map((question) => question.id),
       lessonIds: chapterQuestions.map((question) => question.lesson.id),
@@ -870,17 +1094,14 @@ export function getChapterAvailability(chapter, chapters = [], player = initialP
     };
   }
 
-  const isFinalChapter = order >= 7 || chapter.topic === "综合知识";
-  const requiredChapters = isFinalChapter
-    ? orderedChapters.filter((item) => item.id !== chapter.id && Number(item.order || 0) <= 6)
-    : [getPreviousChapter(chapter, orderedChapters)].filter(Boolean);
+  const requiredChapters = [getPreviousChapter(chapter, orderedChapters)].filter(Boolean);
   const missingChapters = requiredChapters.filter((item) => !chapterClears[item.id]);
 
   if (!missingChapters.length) {
     return {
       available: true,
       status: "available",
-      reason: isFinalChapter ? "前六章已点亮，万象书阁开放。" : "前置章节已点亮。",
+      reason: "前置章节已点亮。",
       requiredChapterIds: requiredChapters.map((item) => item.id),
       missingChapterIds: [],
     };
@@ -889,9 +1110,7 @@ export function getChapterAvailability(chapter, chapters = [], player = initialP
   return {
     available: false,
     status: "locked",
-    reason: isFinalChapter
-      ? `第七章需先点亮前六章：${missingChapters.map((item) => item.title).join("、")}`
-      : `需先点亮${missingChapters[0].title}。`,
+    reason: `需先点亮${missingChapters[0].title}。`,
     requiredChapterIds: requiredChapters.map((item) => item.id),
     missingChapterIds: missingChapters.map((item) => item.id),
   };
@@ -904,7 +1123,7 @@ export function getChapterActionState(chapter, questions = [], player = initialP
 
   if (progress.cleared) {
     recommendedAction = "cleared";
-    reason = "章节封印已点亮，可以继续下一章。";
+    reason = "学习域已点亮，可以继续下一组题阵。";
   } else if (!player.storyFlags?.[chapter.id]) {
     recommendedAction = "story";
     reason = "先触发本章剧情，明确这章要修复的秘卷裂隙。";
@@ -913,10 +1132,10 @@ export function getChapterActionState(chapter, questions = [], player = initialP
     reason = "本章有活跃心魔，先复训净化再推进封印。";
   } else if (progress.studiedCount < progress.total) {
     recommendedAction = "training";
-    reason = "先练功读题眼，让战斗变成检验而不是硬猜。";
+    reason = "先看题眼短课，让题阵变成检验而不是硬猜。";
   } else if (progress.correctCount < progress.total || progress.mastery < progress.requiredMastery) {
     recommendedAction = "battle";
-    reason = "已完成练功，进入题阵检验掌握度。";
+    reason = "已完成短课，进入题阵检验掌握度。";
   }
 
   return {
@@ -995,8 +1214,8 @@ export function getDialogueForChapter(chapter, player = initialPlayerState()) {
     ...common,
     ...getChapterNarrativeLines(chapter),
     dialogueLine(lead.id, state === "opening"
-      ? `${chapter.summary} 先练功，再破阵；答错不会失去希望，但会留下需要净化的心魔。`
-      : `本章还没完全点亮。看行动提示，缺练功就练功，缺检验就战斗，有心魔就回廊净化。`),
+      ? `${chapter.summary} 先看短课，再破阵；答错不会失去希望，但会留下需要净化的心魔。`
+      : `本章还没完全点亮。看行动提示，缺短课就补短课，缺检验就进题阵，有心魔就回廊净化。`),
   ];
 }
 
@@ -1025,10 +1244,7 @@ export function getBondStories(player = initialPlayerState()) {
 }
 
 export function getEndingOptions(chapters = [], player = initialPlayerState()) {
-  const finalChapter = [...chapters]
-    .sort((a, b) => (b.order || 0) - (a.order || 0))
-    .find((chapter) => chapter.topic === "综合知识" || Number(chapter.order || 0) >= 7);
-  if (!finalChapter || !player.chapterClears?.[finalChapter.id]) return [];
+  if (!chapters.length || !chapters.every((chapter) => player.chapterClears?.[chapter.id])) return [];
   return endingDefinitions.map((ending) => ({ ...ending, unlocked: true }));
 }
 
@@ -1056,6 +1272,15 @@ export function markChapterStorySeen(player, chapterId) {
 
 export function getLearningStyle(styleId = "balanced") {
   return learningStyleDefinitions.find((style) => style.id === styleId) || learningStyleDefinitions[0];
+}
+
+function getLearningStyleForRun(player = initialPlayerState(), run = {}) {
+  const buildToStyle = {
+    steady: "balanced",
+    assault: "assault-flow",
+    review: "review",
+  };
+  return getLearningStyle(buildToStyle[run?.buildId] || player.learningStyleId || "balanced");
 }
 
 export function getAvailableLearningStyles(player = initialPlayerState(), chapters = []) {
@@ -1089,7 +1314,7 @@ export function getRecommendedLearningStyle(questions = [], player = initialPlay
   if (hasConceptDebt && available.some((style) => style.id === "concept")) {
     return withRecommendationReason(available.find((style) => style.id === "concept"), "概念混淆偏多，观心派适合做概念区分。");
   }
-  if (dominantTopic === "教育法规" && available.some((style) => style.id === "law")) {
+  if (dominantTopic === "教育法律法规与政策制度" && available.some((style) => style.id === "law")) {
     return withRecommendationReason(available.find((style) => style.id === "law"), "当前题组以法规为主，律令派收益更高。");
   }
   return withRecommendationReason(available[0] || learningStyleDefinitions[0], "当前状态适合稳扎稳打。");
@@ -1232,7 +1457,7 @@ export function buildErrorDiagnosis(question, selectedAnswer = "") {
     primary: rows[0],
     probabilities: rows,
     suggestions: [
-      `去练功室复看：${prepared.lesson.keyPoint}`,
+      `看题眼短课复看：${prepared.lesson.keyPoint}`,
       rows[0]?.remedy || "先回看讲解，再进入心魔回廊。",
     ],
   };
@@ -1240,7 +1465,7 @@ export function buildErrorDiagnosis(question, selectedAnswer = "") {
 
 export function setLearningStyle(player = initialPlayerState(), styleId = "balanced", options = {}) {
   const style = learningStyleDefinitions.find((item) => item.id === styleId);
-  if (!style) throw new Error("找不到这种学习风格。");
+  if (!style) throw new Error("找不到这种流派。");
   const availability = getLearningStyleAvailability(style, player, options.chapters || []);
   if (!availability.unlocked) throw new Error(`${style.name}还未解锁：${availability.reason}`);
   return {
@@ -1296,7 +1521,8 @@ export function createMindDemonRun(questions, player, options = {}) {
 }
 
 export function selectRouteQuestions(questions = [], player = initialPlayerState(), options = {}) {
-  const prepared = prepareQuestions(questions);
+  const mode = String(options.mode || "mainline");
+  const prepared = prepareQuestions(questions).filter((question) => isQuestionAllowedForMode(question, mode));
   const length = Math.max(1, Number(options.length || 5));
   const rankedQuestions = prepared
     .map((question, index) => ({
@@ -1311,13 +1537,298 @@ export function selectRouteQuestions(questions = [], player = initialPlayerState
   return rankedQuestions.slice(0, length).map((item) => item.question);
 }
 
+export function selectMixedSimulationQuestions(questions = [], player = initialPlayerState(), options = {}) {
+  const length = Math.max(1, Number(options.length || 10));
+  const prepared = prepareQuestions(questions).filter((question) => isQuestionAllowedForMode(question, "simulation"));
+  const ranked = selectRouteQuestions(prepared, player, { ...options, length: prepared.length, mode: "simulation" });
+  const byTopic = new Map();
+
+  ranked.forEach((question) => {
+    if (!byTopic.has(question.topic)) byTopic.set(question.topic, []);
+    byTopic.get(question.topic).push(question);
+  });
+
+  const selected = [];
+  const topicOrder = learningDomainDefinitions.map((domain) => domain.name);
+  while (selected.length < length) {
+    const before = selected.length;
+    topicOrder.forEach((topic) => {
+      if (selected.length >= length) return;
+      const next = byTopic.get(topic)?.shift();
+      if (next) selected.push(next);
+    });
+    if (selected.length === before) break;
+  }
+
+  return selected;
+}
+
+export function createMixedSimulationRun(questions = [], player = initialPlayerState(), options = {}) {
+  const selected = selectMixedSimulationQuestions(questions, player, options);
+  const nodes = selected.map((question, index) => createNode(question, index, routePattern[index % routePattern.length]));
+
+  return createRun({
+    mode: "simulation",
+    title: options.title || "综合模拟",
+    nodes,
+  });
+}
+
+export function createRunRecommendation(questions = [], player = initialPlayerState()) {
+  const activeDemons = Object.values(player.mindDemons || {});
+  if (activeDemons.length) {
+    const strongest = activeDemons
+      .slice()
+      .sort((a, b) => Number(b.pressure || 0) - Number(a.pressure || 0))[0];
+    return {
+      modeId: "purify",
+      buildId: "review",
+      primaryAction: "开始一局",
+      title: "今日推荐：净化心魔",
+      reason: `${strongest?.topic || "错题"}还有活跃心魔，先净化错题比继续探索更稳。`,
+      targetText: `净化 ${Math.min(2, activeDemons.length)} 个错题心魔`,
+    };
+  }
+
+  const prepared = prepareQuestions(questions).filter((question) => isQuestionAllowedForMode(question, "mainline"));
+  const answered = new Set(player.answeredQuestionIds || []);
+  const untouched = prepared.filter((question) => !answered.has(question.id));
+  if (untouched.length) {
+    return {
+      modeId: "explore",
+      buildId: "steady",
+      primaryAction: "开始一局",
+      title: "今日推荐：探索新题",
+      reason: "还有新题眼没有点亮，先打一局探索局建立知识覆盖。",
+      targetText: "点亮 1 个新概念",
+    };
+  }
+
+  return {
+    modeId: "sprint",
+    buildId: "steady",
+    primaryAction: "开始一局",
+    title: "今日推荐：综合冲刺",
+    reason: "当前新题推进趋稳，适合用混合题阵检验迁移能力。",
+    targetText: "完成 5 题跨域检验",
+  };
+}
+
+export function createRogueliteRun(questions = [], player = initialPlayerState(), options = {}) {
+  const recommendation = createRunRecommendation(questions, player);
+  const mode = getRogueliteMode(options.modeId || recommendation.modeId);
+  const build = getRogueliteBuild(options.buildId || recommendation.buildId);
+  const length = Math.max(1, Number(options.length || 5));
+  const selected = selectRogueliteQuestions(questions, player, {
+    modeId: mode.id,
+    length,
+  });
+  const nodes = selected.map((question, index) => {
+    const activeDemon = Boolean(player.mindDemons?.[question.id] || (player.wrongQuestionIds || []).includes(question.id));
+    const nodeType = mode.id === "purify" && activeDemon ? "demon" : routePattern[index % routePattern.length];
+    return {
+      ...createNode(question, index, nodeType),
+      encounterIndex: index + 1,
+      encounterTotal: selected.length,
+      runModeId: mode.id,
+      runBuildId: build.id,
+      objectiveHint: mode.primaryAction,
+    };
+  });
+  const objective = createRogueliteObjective(mode.id, selected, player);
+
+  return {
+    ...createRun({
+      mode: "roguelite",
+      title: `${mode.name} · ${build.name}`,
+      nodes,
+    }),
+    modeId: mode.id,
+    modeName: mode.name,
+    buildId: build.id,
+    buildName: build.name,
+    build,
+    objective,
+    brief: createRogueliteBrief(mode, build, objective),
+    nextPrompt: objective.prompt,
+  };
+}
+
+export function createRogueliteRunReport(run, player = initialPlayerState(), questions = []) {
+  const base = createRunReport(run, player);
+  const wrongEvents = (run.events || []).filter((event) => !event.isCorrect);
+  const primaryWrong = wrongEvents[0] || null;
+  const purifiedCount = run.purifiedDemonIds?.length || 0;
+  const newDemonCount = wrongEvents.length;
+  const resultLabel = run.failed
+    ? "题阵中断"
+    : run.completed || run.state === "report_ready"
+      ? base.correctRate >= 60 ? "本局完成" : "完成但需复盘"
+      : "进行中";
+
+  return {
+    ...base,
+    modeId: run.modeId || "explore",
+    modeName: run.modeName || getRogueliteMode(run.modeId).name,
+    buildId: run.buildId || "steady",
+    buildName: run.buildName || getRogueliteBuild(run.buildId).name,
+    resultLabel,
+    objective: run.objective || createRogueliteObjective(run.modeId || "explore", [], player),
+    newDemonCount,
+    purifiedDemonCount: purifiedCount,
+    primaryMistake: primaryWrong
+      ? `${primaryWrong.topic || "本局"} · ${primaryWrong.demonType || primaryWrong.errorPattern || "错因待复盘"}`
+      : "本局没有新增明显错因",
+    nextActions: createRogueliteNextActions(run, player, questions, { wrongEvents, purifiedCount }),
+  };
+}
+
+function getRogueliteMode(modeId = "explore") {
+  return rogueliteRunModes.find((mode) => mode.id === modeId) || rogueliteRunModes[0];
+}
+
+function getRogueliteBuild(buildId = "steady") {
+  return rogueliteBuildDefinitions.find((build) => build.id === buildId) || rogueliteBuildDefinitions[0];
+}
+
+function selectRogueliteQuestions(questions = [], player = initialPlayerState(), options = {}) {
+  const modeId = String(options.modeId || "explore");
+  const length = Math.max(1, Number(options.length || 5));
+  if (modeId === "purify") {
+    const prepared = prepareQuestions(questions).filter((question) => isQuestionAllowedForMode(question, "practice"));
+    const wrongIds = new Set(player.wrongQuestionIds || []);
+    Object.values(player.mindDemons || {}).forEach((demon) => {
+      if (demon.questionId || demon.id) wrongIds.add(demon.questionId || demon.id);
+    });
+    const demonQuestions = prepared
+      .filter((question) => wrongIds.has(question.id))
+      .sort((a, b) => getDemonPressure(player, b.id) - getDemonPressure(player, a.id));
+    const fallback = selectRouteQuestions(prepared, player, { length, mode: "practice" })
+      .filter((question) => !wrongIds.has(question.id));
+    return uniqueQuestions([...demonQuestions, ...fallback]).slice(0, length);
+  }
+
+  if (modeId === "sprint") {
+    const selected = selectMixedSimulationQuestions(questions, player, { length });
+    if (new Set(selected.map((question) => question.topic)).size > 1 || selected.length >= length) {
+      return selected;
+    }
+    const prepared = prepareQuestions(questions).filter((question) =>
+      isQuestionAllowedForMode(question, "simulation") || isQuestionAllowedForMode(question, "mainline"),
+    );
+    return mixQuestionsByTopic(prepared, length);
+  }
+
+  return selectRouteQuestions(questions, player, { length, mode: "mainline" });
+}
+
+function createRogueliteObjective(modeId, questions = [], player = initialPlayerState()) {
+  const activeDemonCount = Object.keys(player.mindDemons || {}).length;
+  if (modeId === "purify") {
+    return {
+      type: "purify",
+      label: "净化心魔",
+      targetDemonCount: Math.max(1, Math.min(2, activeDemonCount || questions.length || 1)),
+      targetCorrectCount: Math.max(1, Math.min(3, questions.length || 1)),
+      prompt: "优先处理错题心魔，答对可降低压力。",
+    };
+  }
+
+  if (modeId === "sprint") {
+    return {
+      type: "sprint",
+      label: "综合冲刺",
+      targetCorrectCount: Math.max(1, Math.min(4, questions.length || 5)),
+      targetTopicCount: Math.max(1, new Set(questions.map((question) => question.topic)).size),
+      prompt: "跨域混合检验，目标是在切换知识域时保持稳定。",
+    };
+  }
+
+  return {
+    type: "explore",
+    label: "探索新题",
+    targetNewConcepts: 1,
+    targetCorrectCount: Math.max(1, Math.min(3, questions.length || 1)),
+    prompt: "先点亮新题眼，再根据错因决定下一局。",
+  };
+}
+
+function createRogueliteBrief(mode, build, objective) {
+  if (mode.id === "purify") {
+    return `净化局启动：${objective.prompt}推荐使用${build.name}，把错题心魔转成复盘收益。`;
+  }
+  if (mode.id === "sprint") {
+    return `综合冲刺启动：混合题阵会跨域切换，${build.name}会改变本局风险收益。`;
+  }
+  return `探索局启动：先点亮新题眼，${build.name}会帮助你稳定完成第一轮题阵。`;
+}
+
+function createRogueliteNextActions(run, player, questions, context = {}) {
+  const wrongEvents = context.wrongEvents || [];
+  const actions = [];
+  if (wrongEvents.length || Object.keys(player.mindDemons || {}).length) {
+    actions.push({
+      label: "继续净化",
+      modeId: "purify",
+      buildId: "review",
+      reason: "本局出现错因，下一局优先处理心魔。",
+    });
+  }
+  actions.push({
+    label: "探索新题",
+    modeId: "explore",
+    buildId: "steady",
+    reason: "用稳定流派继续点亮新概念。",
+  });
+  actions.push({
+    label: "综合冲刺",
+    modeId: "sprint",
+    buildId: "steady",
+    reason: "用混合题阵检查跨知识域迁移。",
+  });
+  return actions.slice(0, 3);
+}
+
+function getDemonPressure(player, questionId) {
+  const demon = player.mindDemons?.[questionId];
+  return Number(demon?.pressure || 0);
+}
+
+function uniqueQuestions(questions = []) {
+  const seen = new Set();
+  return questions.filter((question) => {
+    if (!question || seen.has(question.id)) return false;
+    seen.add(question.id);
+    return true;
+  });
+}
+
+function mixQuestionsByTopic(questions = [], length = 5) {
+  const byTopic = new Map();
+  uniqueQuestions(questions).forEach((question) => {
+    if (!byTopic.has(question.topic)) byTopic.set(question.topic, []);
+    byTopic.get(question.topic).push(question);
+  });
+  const selected = [];
+  while (selected.length < length) {
+    const before = selected.length;
+    for (const bucket of byTopic.values()) {
+      if (selected.length >= length) break;
+      const next = bucket.shift();
+      if (next) selected.push(next);
+    }
+    if (selected.length === before) break;
+  }
+  return selected;
+}
+
 export function studyNode(player, run, nodeId, options = {}) {
   const node = getRunNode(run, nodeId);
   const wasStudied = (player.studiedLessonIds || []).includes(node.lessonId);
   const studiedQuestion = getQuestionForNode(node, options.bankQuestions || []);
   const rewards = calculateStudyRewards(wasStudied, {
     question: studiedQuestion,
-    style: getLearningStyle(player.learningStyleId),
+    style: getLearningStyleForRun(player, run),
     hasActiveDemon: Boolean(player.mindDemons?.[node.questionId]),
   });
   const studiedLessonIds = unique([...(player.studiedLessonIds || []), node.lessonId]);
@@ -1358,7 +1869,7 @@ export function applyTrialAnswer(player, run, action) {
   const isCorrect = normalizedSelected === question.answer;
   const hadActiveDemon = Boolean(player.mindDemons?.[question.id]);
   const errorDiagnosis = isCorrect ? null : buildErrorDiagnosis(question, normalizedSelected);
-  const style = getLearningStyle(player.learningStyleId);
+  const style = getLearningStyleForRun(player, run);
   const styleEffect = getLearningStyleBattleEffect(style, {
     question,
     player,
@@ -1409,7 +1920,7 @@ export function applyTrialAnswer(player, run, action) {
       ? Math.min(1, Number(player.dailyQuestProgress?.demonPurifications || 0) + 1)
       : Number(player.dailyQuestProgress?.demonPurifications || 0),
   };
-  const starGlimmerGain = Math.max(0, Math.round(calculateBattleStarGlimmer({ question, isCorrect, studiedBeforeBattle }) * styleEffect.rewardMultiplier));
+  const starGlimmerGain = 0;
   const growthXpGain = Math.max(0, Math.round(calculateBattleGrowthXp({ question, isCorrect, studiedBeforeBattle }) * styleEffect.rewardMultiplier));
   const bondGains = calculateBattleBondGains({
     isCorrect,
@@ -1437,7 +1948,6 @@ export function applyTrialAnswer(player, run, action) {
     maxHeartPower: player.maxHeartPower || 6,
     spiritPages: (player.spiritPages || 0) + spiritPagesGain,
     materials: addMaterials(player.materials, materialsGain),
-    artifacts: normalizeArtifacts(player.artifacts),
     stanceMastery: applyStanceMastery(player.stanceMastery, stance.id, stanceMasteryGain),
     streak: isCorrect ? (player.streak || 0) + 1 : 0,
     bonds: applyBondGains(player.bonds, bondGains),
@@ -1552,59 +2062,44 @@ export function getHeartMethod(topic, mastery = 0) {
   };
 }
 
-export function getArtifactRoster(player = initialPlayerState()) {
+export function getHeartPowerUpgradeState(player = initialPlayerState()) {
+  const currentMaxHeartPower = clamp(Number(player.maxHeartPower || 6), 1, heartPowerUpgradeLimit);
+  const nextMaxHeartPower = Math.min(heartPowerUpgradeLimit, currentMaxHeartPower + 1);
+  const cost = getHeartPowerUpgradeCost(currentMaxHeartPower);
   const materials = normalizeMaterials(player.materials);
-  const artifacts = normalizeArtifacts(player.artifacts);
+  const maxed = currentMaxHeartPower >= heartPowerUpgradeLimit;
 
-  return artifactDefinitions.map((definition) => {
-    const state = artifacts[definition.id] || { level: 1, unlocked: true };
-    const cost = getArtifactUpgradeCost(definition, state.level);
-
-    return {
-      ...definition,
-      level: state.level,
-      unlocked: state.unlocked,
-      cost,
-      canUpgrade: state.unlocked && state.level < definition.maxLevel && hasMaterials(materials, cost),
-    };
-  });
+  return {
+    currentMaxHeartPower,
+    nextMaxHeartPower,
+    cost,
+    canUpgrade: !maxed && hasMaterials(materials, cost),
+    maxed,
+  };
 }
 
-export function upgradeArtifact(player = initialPlayerState(), artifactId) {
-  const definition = artifactDefinitions.find((artifact) => artifact.id === artifactId);
-  if (!definition) throw new Error("找不到这件法器。");
-
-  const artifacts = normalizeArtifacts(player.artifacts);
-  const current = artifacts[artifactId] || { level: 1, unlocked: true };
-  const cost = getArtifactUpgradeCost(definition, current.level);
-  const materials = normalizeMaterials(player.materials);
-
-  if (current.level >= definition.maxLevel) {
-    throw new Error(`${definition.name} 已达满级`);
+export function upgradeHeartPower(player = initialPlayerState()) {
+  const state = getHeartPowerUpgradeState(player);
+  if (state.maxed) {
+    throw new Error("心力上限已满");
   }
-  if (!hasMaterials(materials, cost)) {
-    throw new Error(`${definition.name} 升级材料还不够`);
+  if (!state.canUpgrade) {
+    throw new Error("书页还不够升级心力");
   }
 
-  const nextArtifacts = {
-    ...artifacts,
-    [artifactId]: {
-      ...current,
-      level: current.level + 1,
-      unlocked: true,
-    },
-  };
+  const currentHeartPower = clamp(Number(player.heartPower || 0), 0, state.currentMaxHeartPower);
   const nextPlayer = {
     ...player,
-    materials: subtractMaterials(materials, cost),
-    artifacts: nextArtifacts,
+    heartPower: Math.min(state.nextMaxHeartPower, currentHeartPower + 1),
+    maxHeartPower: state.nextMaxHeartPower,
+    materials: subtractMaterials(player.materials, state.cost),
   };
 
   return {
     player: nextPlayer,
-    artifact: getArtifactRoster(nextPlayer).find((artifact) => artifact.id === artifactId),
-    cost,
+    cost: state.cost,
     upgraded: true,
+    nextMaxHeartPower: state.nextMaxHeartPower,
   };
 }
 
@@ -1620,23 +2115,19 @@ export function createDailyChallenges(questions = [], player = initialPlayerStat
   const resonanceCount = Object.values(player.mastery || {}).filter((value) => Number(value || 0) >= 50).length;
 
   return [
-    dailyChallenge("daily-study", "晨课三问", "完成练功短课，把讲解转成题眼记忆。", studiedCount, Math.min(3, prepared.length || 3), {
+    dailyChallenge("daily-study", "晨课三问", "完成题眼短课，把讲解转成题眼记忆。", studiedCount, Math.min(3, prepared.length || 3), {
       shuye: 3,
-      xingsha: 1,
     }),
-    dailyChallenge("daily-battle", "连破题阵", "在任意题阵中答对题目，用战斗检验练功结果。", correctCount, Math.min(5, prepared.length || 5), {
+    dailyChallenge("daily-battle", "连破题阵", "在任意题阵中答对题目，用题阵检验短课结果。", correctCount, Math.min(5, prepared.length || 5), {
       shuye: 4,
-      xingsha: 2,
     }),
     dailyChallenge("daily-demon", "净墨回廊", demonCount
       ? "处理错题心魔，降低秘卷黑墨压迫。"
-      : "战斗中出现错题心魔后，再回净墨回廊处理。", demonPurifications, 1, {
+      : "题阵中出现错题心魔后，再回净墨回廊处理。", demonPurifications, 1, {
       moyu: 2,
-      shuye: 1,
     }),
     dailyChallenge("daily-resonance", "心法共鸣", "把至少一个主题心法练到半熟以上。", resonanceCount, Math.min(2, topicCount), {
-      xingsha: 2,
-      lingqian: 1,
+      shuye: 2,
     }),
   ];
 }
@@ -1657,15 +2148,12 @@ export function createDailyQuestState(questions = [], player = initialPlayerStat
     daily: createDailyChallenges(prepared, player),
     weekly: [
       weeklyQuest("weekly-graph", "知识巡检", "点亮知识图谱10个新节点。", correctCount, 10, {
-        starGlimmer: 30,
         title: "图谱巡检者",
       }),
       weeklyQuest("weekly-demon-sweep", "错题大扫除", "净化5个心魔。", purifiedCount, 5, {
-        starGlimmer: 24,
         title: "净墨行者",
       }),
       weeklyQuest("weekly-topic", "主题挑战", "任一主题答对20题。", bestTopicCorrect, 20, {
-        starGlimmer: 28,
         title: "主题破阵者",
       }),
     ],
@@ -1803,6 +2291,25 @@ export function getLessonForQuestion(question) {
   return prepareQuestions([question])[0].lesson;
 }
 
+export function buildObservationHint(question = {}) {
+  const prepared = question.lesson ? question : prepareQuestions([question])[0];
+  const options = normalizeOptions(prepared.options);
+  const normalizedAnswer = normalizeAnswer(prepared.answer, options);
+  const answerOptions = options.filter((option) => normalizedAnswer.includes(option.key));
+  const answerLine = answerOptions.length
+    ? answerOptions.map((option) => `${option.key}. ${option.text || option.key}`).join("；")
+    : String(prepared.answer || "答案待整理");
+  const explanation = compactText(prepared.lesson?.explanation || prepared.explanation || prepared.analysis || "讲解还在整理中。");
+  const keyPoint = compactText(prepared.lesson?.keyPoint || extractKeyPoint(explanation));
+
+  return {
+    stemCue: `题干线索：${compactStemCue(prepared.stem)}`,
+    answerLine,
+    explanation,
+    keyPoint,
+  };
+}
+
 function normalizeLesson(rawLesson, source) {
   const keyPoint = String(rawLesson?.keyPoint || extractKeyPoint(source.explanation));
 
@@ -1812,7 +2319,7 @@ function normalizeLesson(rawLesson, source) {
     sourceRef: String(rawLesson?.sourceRef || source.sourceRef || "书院讲解"),
     keyPoint,
     explanation: String(rawLesson?.explanation || source.explanation),
-    studyPrompt: String(rawLesson?.studyPrompt || `练功目标：先记住“${keyPoint}”，再用战斗检验。`),
+    studyPrompt: String(rawLesson?.studyPrompt || `短课目标：先记住“${keyPoint}”，再用题阵检验。`),
   };
 }
 
@@ -2093,10 +2600,8 @@ function calculateMaterialsGain({ question, nodeConfig, isCorrect, studiedBefore
   const resonanceBonus = nodeConfig.resonanceMultiplier && studiedBeforeBattle ? 1 : 0;
 
   return {
-    shuye: base.shuye + studyBonus,
-    xingsha: base.xingsha + resonanceBonus,
+    shuye: base.shuye + studyBonus + resonanceBonus,
     moyu: base.moyu,
-    lingqian: base.lingqian,
   };
 }
 
@@ -2129,7 +2634,6 @@ function calculateStudyRewards(wasStudied, context = {}) {
     };
   }
 
-  const baseStarGlimmerGain = wasStudied ? 1 : 3;
   const baseGrowthXpGain = wasStudied ? 3 : 8;
   const baseMaterialsGain = wasStudied ? { ...defaultMaterials } : { ...defaultMaterials, shuye: 1 };
   const baseBondGains = wasStudied
@@ -2137,7 +2641,7 @@ function calculateStudyRewards(wasStudied, context = {}) {
     : { ...defaultBonds, mingche: 1, azhi: 3 };
 
   return {
-    starGlimmerGain: Math.max(0, baseStarGlimmerGain + effect.starGlimmerBonus),
+    starGlimmerGain: 0,
     growthXpGain: Math.max(0, Math.round(baseGrowthXpGain * effect.growthXpMultiplier)),
     materialsGain: baseMaterialsGain,
     bondGains: baseBondGains,
@@ -2151,13 +2655,13 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
   const errorPatterns = Array.isArray(question?.errorPatterns) ? question.errorPatterns : [];
 
   if (style.id === "law") {
-    const focused = topic === style.focusTopic;
+    const focused = topicMatchesFocus(topic, style.focusTopic);
     return {
       growthXpMultiplier: focused ? 1.5 : 0.7,
       starGlimmerBonus: focused ? 1 : 0,
       feedback: focused
         ? "律令派：教育法规题眼收益提高。"
-        : "律令派：跨主题练功收益降低。",
+        : "律令派：跨主题短课收益降低。",
     };
   }
 
@@ -2178,8 +2682,8 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
       growthXpMultiplier: focused ? 1.5 : 0.8,
       starGlimmerBonus: focused ? 2 : 0,
       feedback: focused
-        ? "复盘派：错题与复看练功收益提高。"
-        : "复盘派：新题练功收益降低。",
+        ? "复盘派：错题与复看短课收益提高。"
+        : "复盘派：新题短课收益降低。",
     };
   }
 
@@ -2195,7 +2699,7 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
     return {
       growthXpMultiplier: 1.05,
       starGlimmerBonus: 1,
-      feedback: "速攻派：练功压缩为限时抓题眼。",
+      feedback: "速攻派：短课压缩为限时抓题眼。",
     };
   }
 
@@ -2211,7 +2715,7 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
     const borrowed = pickChaosBorrowedStyle(question);
     return {
       ...getLearningStyleStudyEffect(borrowed, question, context),
-      feedback: `混沌派：本题借用${borrowed.name}练功效果。`,
+      feedback: `混沌派：本题借用${borrowed.name}短课效果。`,
     };
   }
 
@@ -2229,13 +2733,13 @@ function getLearningStyleBattleEffect(style, context = {}) {
   const errorPatterns = Array.isArray(question.errorPatterns) ? question.errorPatterns : [];
 
   if (style.id === "law") {
-    const focused = topic === style.focusTopic;
+    const focused = topicMatchesFocus(topic, style.focusTopic);
     return {
       damageMultiplier: focused ? 1.12 : 0.92,
       rewardMultiplier: focused ? 1.5 : 0.7,
       heartGuard: 0,
       heartPenalty: focused ? 0 : 1,
-      feedback: focused ? "律令派：法规题战斗收益+50%。" : "律令派：跨主题收益下降并增加风险。",
+      feedback: focused ? "律令派：法规题阵收益+50%。" : "律令派：跨主题收益下降并增加风险。",
     };
   }
 
@@ -2288,7 +2792,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
       rewardMultiplier: 1.1,
       heartGuard: 1,
       heartPenalty: 0,
-      feedback: "深读派：练功沉淀带来稳定容错。",
+      feedback: "深读派：短课沉淀带来稳定容错。",
     };
   }
 
@@ -2415,25 +2919,11 @@ function hasMaterials(current = {}, cost = {}) {
   return materialTypes.every((material) => normalized[material.id] >= normalizedCost[material.id]);
 }
 
-function createInitialArtifacts() {
-  return Object.fromEntries(
-    artifactDefinitions.map((artifact) => [artifact.id, { level: 1, unlocked: true }]),
-  );
-}
-
-function normalizeArtifacts(artifacts = {}) {
-  return Object.fromEntries(
-    artifactDefinitions.map((definition) => {
-      const state = artifacts?.[definition.id] || {};
-      return [
-        definition.id,
-        {
-          level: clamp(Number(state.level || 1), 1, definition.maxLevel),
-          unlocked: Boolean(state.unlocked ?? true),
-        },
-      ];
-    }),
-  );
+function getHeartPowerUpgradeCost(currentMaxHeartPower) {
+  const upgradeIndex = Math.max(0, Number(currentMaxHeartPower || 6) - 6);
+  return normalizeMaterials({
+    shuye: 8 + upgradeIndex * 4,
+  });
 }
 
 function normalizeStanceMastery(stanceMastery = {}) {
@@ -2464,18 +2954,6 @@ function calculateStanceLevel(xp) {
   return Math.min(5, Math.floor(Number(xp || 0) / 45) + 1);
 }
 
-function getArtifactUpgradeCost(definition, level) {
-  const multiplier = Math.max(1, Number(level || 1));
-  return normalizeMaterials(
-    Object.fromEntries(
-      materialTypes.map((material) => [
-        material.id,
-        Math.ceil(Number(definition.baseCost?.[material.id] || 0) * multiplier),
-      ]),
-    ),
-  );
-}
-
 function formatNodeRewardPreview(nodeConfig) {
   const materials = normalizeMaterials(nodeConfig.materialRewards);
   const parts = [];
@@ -2485,7 +2963,7 @@ function formatNodeRewardPreview(nodeConfig) {
     parts.push(`${material?.name || id}+${value}`);
   });
   if (nodeConfig.heartRecovery) parts.push(`心力+${nodeConfig.heartRecovery}`);
-  return parts.length ? parts.join(" · ") : "星辉与心法";
+  return parts.length ? parts.join(" · ") : "书页与心法";
 }
 
 function dailyChallenge(id, title, description, current, target, materials) {
@@ -2499,7 +2977,6 @@ function dailyChallenge(id, title, description, current, target, materials) {
       target: safeTarget,
     },
     rewards: {
-      starGlimmer: 3,
       materials: normalizeMaterials(materials),
     },
   };
@@ -2580,7 +3057,7 @@ function dialogueLine(speakerId, text) {
 function getChapterNarrativeLines(chapter) {
   return (chapterNarrativeBeats[chapter.id] || [
     ["mingche", `这处裂隙属于“${chapter.topic}”。先把讲解里的题眼找出来，再让题阵检验你的判断。`],
-    ["azhi", "我会把长解析拆成短课。你只要先记住关键句，后面的战斗就会轻很多。"],
+    ["azhi", "我会把长解析拆成短课。你只要先记住关键句，后面的题阵就会轻很多。"],
     ["qinglan", "答对会让封印发光，答错会留下心魔。我们不怕心魔，只怕不回头看。"],
   ]).map(([speakerId, text]) => dialogueLine(speakerId, text));
 }
@@ -2817,6 +3294,21 @@ function getRouteQuestionRank(question, player) {
   return 4;
 }
 
+function isQuestionAllowedForMode(question, mode = "mainline") {
+  const status = String(question.gameplayStatus || deriveGameplayStatus(question.topic, question.qualityStatus));
+  if (status === "manual_classification" || status === "content_review") return false;
+  if (mode === "practice") return status === "mainline" || status === "practice_only";
+  if (mode === "simulation") return status === "mainline" && question.qualityStatus === "clean";
+  return status === "mainline";
+}
+
+function topicMatchesFocus(topic, focusTopic) {
+  if (topic === focusTopic) return true;
+  const topicDomain = learningDomainByName.get(topic) || legacyTopicToLearningDomain.get(topic);
+  const focusDomain = learningDomainByName.get(focusTopic) || legacyTopicToLearningDomain.get(focusTopic);
+  return Boolean(topicDomain && focusDomain && topicDomain.id === focusDomain.id);
+}
+
 function normalizeConceptPath(value, topic) {
   const fallbackTopic = String(topic || "综合知识").trim() || "综合知识";
   const parts = String(value || "")
@@ -2924,9 +3416,9 @@ function getHint(question, stance, method) {
 function buildLearningCheck(question, studiedBeforeBattle) {
   const mechanic = getChapterMechanicDefinition(question.chapterMechanic);
   const base = studiedBeforeBattle
-    ? `练功检验：已回看讲解，题眼“${question.lesson.keyPoint}”进入破阵结算。`
-    : `战斗检验：未练功直接出阵，结算后回看讲解“${question.lesson.keyPoint}”。`;
-  return `${base}章节机制：${mechanic.name}，${mechanic.prompt}`;
+    ? `短课检验：已回看讲解，题眼“${question.lesson.keyPoint}”进入破阵结算。`
+    : `题阵检验：未看短课直接出阵，结算后回看讲解“${question.lesson.keyPoint}”。`;
+  return `${base}题阵机制：${mechanic.name}，${mechanic.prompt}`;
 }
 
 function getNextRecommendation(run, player) {
@@ -2935,7 +3427,7 @@ function getNextRecommendation(run, player) {
     return {
       topic: lastWrong.topic,
       method: getHeartMethod(lastWrong.topic, player.mastery?.[lastWrong.topic] || 0).name,
-      reason: "错题心魔已生成，建议回到练功区复看讲解后再入回廊。",
+      reason: "错题心魔已生成，建议看题眼短课后进入净化局。",
     };
   }
 
@@ -2949,7 +3441,7 @@ function getNextRecommendation(run, player) {
 
 function getRunNode(run, nodeId) {
   const node = run.nodes.find((item) => item.id === nodeId);
-  if (!node) throw new Error("这处题阵已经失效，请回地图重进。");
+  if (!node) throw new Error("这处题阵已经失效，请回开局台重进。");
   return node;
 }
 
@@ -2981,11 +3473,74 @@ function normalizeAnswer(answer, options = []) {
   return sortOrder.filter((key) => normalized.includes(key)).join("");
 }
 
+function normalizePrimaryDomain(primaryDomain, fallbackTopic = "") {
+  const fallback = String(fallbackTopic || "").trim();
+  const domainFromId = learningDomainById.get(String(primaryDomain?.id || ""));
+  const domainFromName = learningDomainByName.get(String(primaryDomain?.name || ""));
+  const domainFromFallback = learningDomainByName.get(fallback) || legacyTopicToLearningDomain.get(fallback);
+  const domain = domainFromId || domainFromName || domainFromFallback;
+
+  if (domain) {
+    return {
+      id: domain.id,
+      name: domain.name,
+    };
+  }
+  if (String(primaryDomain?.id || "") === manualClassificationDomain.id
+    || String(primaryDomain?.name || fallback) === manualClassificationDomain.name) {
+    return { ...manualClassificationDomain };
+  }
+  if (fallback && fallback !== "综合知识") {
+    return {
+      id: slugTopic(fallback),
+      name: fallback,
+    };
+  }
+  return { ...manualClassificationDomain };
+}
+
+function normalizeQualityStatus(status = "clean") {
+  const normalized = String(status || "clean").trim();
+  if (["clean", "usable_with_caution", "needs_review"].includes(normalized)) return normalized;
+  return "clean";
+}
+
+function deriveGameplayStatus(topic, qualityStatus = "clean") {
+  if (topic === manualClassificationDomain.name) return "manual_classification";
+  if (topic === "综合知识") return "content_review";
+  if (qualityStatus === "needs_review") return "content_review";
+  if (qualityStatus === "usable_with_caution") return "practice_only";
+  return "mainline";
+}
+
+function createStableQuestionId(sourceId, index = 0) {
+  return `bank-${String(Number(index) + 1).padStart(4, "0")}-${sanitizeId(sourceId)}`;
+}
+
+function sanitizeId(value) {
+  const safe = String(value || "question")
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  return safe || "question";
+}
+
 function extractKeyPoint(explanation) {
   const text = String(explanation || "").replace(/\s+/g, " ").trim();
   const match = text.match(/题眼[是：:]*([^。；;]+)/);
   if (match?.[1]) return match[1].trim();
   return text.split(/[。；;]/)[0]?.slice(0, 36) || "先看概念、条件和排除项";
+}
+
+function compactText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function compactStemCue(stem) {
+  const text = compactText(stem).replace(/（\s*）|__+/g, "").trim();
+  if (!text) return "先抓题干中的关键词、场景和限定词。";
+  return text.length > 110 ? `${text.slice(0, 110)}...` : text;
 }
 
 function inferDifficulty(question) {
@@ -2996,6 +3551,36 @@ function inferDifficulty(question) {
 
 function getTopicProfile(topic) {
   const profiles = {
+    "教育法律法规与政策制度": {
+      method: "法规心法",
+      enemy: "法规心魔",
+      realm: "法规政策营",
+    },
+    "教育学原理、课程与教学": {
+      method: "课程心法",
+      enemy: "课程心魔",
+      realm: "课程教学工坊",
+    },
+    "学习心理与认知机制": {
+      method: "观心心法",
+      enemy: "观心心魔",
+      realm: "学习心理实验室",
+    },
+    "学生身心发展与个体差异": {
+      method: "发展心法",
+      enemy: "发展心魔",
+      realm: "学生发展观察站",
+    },
+    "德育、班级管理与家校协同": {
+      method: "现场心法",
+      enemy: "现场心魔",
+      realm: "德育班管现场",
+    },
+    "教师职业素养与专业规范": {
+      method: "师范心法",
+      enemy: "师范心魔",
+      realm: "教师素养评议厅",
+    },
     教育法规: {
       method: "律令心法",
       enemy: "律令心魔",
@@ -3037,7 +3622,7 @@ function getTopicProfile(topic) {
 
 function getLowestMasteryTopic(mastery) {
   const topics = Object.keys(mastery);
-  if (!topics.length) return "教育法规";
+  if (!topics.length) return "教育法律法规与政策制度";
   return topics.reduce((lowest, topic) => (mastery[topic] < mastery[lowest] ? topic : lowest), topics[0]);
 }
 
@@ -3049,7 +3634,7 @@ function getReportTitle(correctRate, failed) {
   if (failed) return "心力告急";
   if (correctRate === 100) return "破阵通明";
   if (correctRate >= 60) return "心法成形";
-  return "回炉练功";
+  return "回看短课";
 }
 
 function unique(items) {

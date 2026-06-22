@@ -25,11 +25,10 @@ test("text runtime exposes the playable scenes", () => {
 
   for (const functionName of [
     "renderWorldStage",
-    "renderStoryStage",
-    "renderTrainingStage",
+    "renderModeSelectStage",
+    "renderBuildSelectStage",
     "renderBattleStage",
     "renderReviewStage",
-    "renderRosterStage",
     "renderDailyStage",
     "renderDashboardStage",
     "renderReport",
@@ -38,38 +37,39 @@ test("text runtime exposes the playable scenes", () => {
   }
 });
 
-test("runtime surfaces story collection, bond stories, and ending options without image assets", () => {
+test("runtime eventizes story instead of exposing it as a primary route", () => {
   const app = readFileSync("app.js", "utf8");
   const core = readFileSync("core.js", "utf8");
 
-  assert.match(app, /getBlackInkCollection/);
-  assert.match(app, /getBondStories/);
-  assert.match(app, /getEndingOptions/);
-  assert.match(app, /黑色墨迹/);
-  assert.match(app, /羁绊剧情/);
-  assert.match(app, /结局/);
+  assert.doesNotMatch(app, /\["story",\s*"剧情"\]/);
+  assert.doesNotMatch(app, /章节提示/);
+  assert.match(app, /runEventBrief/);
+  assert.match(app, /今日推荐/);
   assert.doesNotMatch(core, /assets\/generated\/characters/);
   assert.match(core, /speakerMark/);
 }
 );
 
-test("training UI exposes selectable learning styles", () => {
+test("training UI surfaces the current roguelite build instead of legacy style selection", () => {
   const app = readFileSync("app.js", "utf8");
 
-  assert.match(app, /learningStyleDefinitions/);
-  assert.match(app, /setLearningStyle/);
-  assert.match(app, /renderLearningStyleChoices/);
-  assert.match(app, /selectLearningStyle/);
-  assert.match(app, /学习风格/);
+  assert.match(app, /function renderRunBuildSummary/);
+  assert.match(app, /function formatStudyPrompt/);
+  assert.match(app, /本局流派/);
+  assert.match(app, /getRunBuildDefinition\(run\.buildId \|\| selectedBuildId\)/);
+  assert.doesNotMatch(app, /intro:\s*question\.lesson\.studyPrompt/);
+  assert.doesNotMatch(app, /renderLearningStyleChoices/);
+  assert.doesNotMatch(app, /selectLearningStyle/);
+  assert.doesNotMatch(app, /学习风格/);
 });
 
-test("training and dashboard expose learning-style unlocks, recommendations, and win rates", () => {
+test("training and dashboard expose roguelite build context and win rates", () => {
   const app = readFileSync("app.js", "utf8");
 
-  assert.match(app, /getAvailableLearningStyles/);
-  assert.match(app, /getRecommendedLearningStyle/);
-  assert.match(app, /unlockReason/);
-  assert.match(app, /当前推荐/);
+  assert.match(app, /rogueliteBuildDefinitions/);
+  assert.match(app, /selectedBuildId/);
+  assert.match(app, /renderRunBuildSummary/);
+  assert.match(app, /本局流派/);
   assert.match(app, /styleWinRates/);
   assert.match(app, /流派胜率/);
 });
@@ -79,29 +79,39 @@ test("runtime surfaces chapter mechanic prompts during training and battle", () 
 
   assert.match(app, /mechanicName/);
   assert.match(app, /mechanicPrompt/);
-  assert.match(app, /章节机制/);
+  assert.match(app, /题阵机制/);
   assert.match(app, /buildChapterMechanicState/);
   assert.match(app, /renderChapterMechanicState/);
   assert.match(app, /mechanicState\.displayStem/);
   assert.match(app, /timeLimitSeconds/);
 });
 
-test("runtime builds chapter battles as five-question progression runs", () => {
+test("runtime builds roguelite runs as the primary five-question loop", () => {
   const app = readFileSync("app.js", "utf8");
 
-  assert.match(app, /selectRouteQuestions/);
+  assert.match(app, /createRogueliteRun/);
+  assert.match(app, /createRunRecommendation/);
+  assert.match(app, /rogueliteRunModes/);
+  assert.match(app, /rogueliteBuildDefinitions/);
   assert.match(app, /length:\s*5/);
   assert.doesNotMatch(app, /length:\s*Math\.max\(1,\s*bank\.length/);
 });
 
-test("runtime blocks locked chapters before story, training, or battle starts", () => {
+test("runtime exposes start desk, mode select, and build select instead of a route map", () => {
   const app = readFileSync("app.js", "utf8");
 
-  assert.match(app, /getChapterAvailability/);
-  assert.match(app, /function isSelectedChapterAvailable\(/);
-  assert.match(app, /章节未解锁/);
-  assert.match(app, /is-locked/);
-  assert.match(app, /if \(!isSelectedChapterAvailable\(\)\) return/);
+  assert.match(app, /function renderStartDesk/);
+  assert.match(app, /function renderModeSelectStage/);
+  assert.match(app, /function renderBuildSelectStage/);
+  assert.match(app, /开始一局/);
+  assert.match(app, /换目标/);
+  assert.match(app, /探索新题/);
+  assert.match(app, /净化心魔/);
+  assert.match(app, /综合冲刺/);
+  assert.match(app, /稳修/);
+  assert.match(app, /突击/);
+  assert.match(app, /复盘/);
+  assert.doesNotMatch(app, /function chapterRouteNode\(/);
 });
 
 test("runtime loads the built-in PDF question bank instead of sample data or imported bank state", () => {
@@ -129,25 +139,24 @@ test("pages deployment publishes the runtime PDF question bank", () => {
   assert.match(workflow, /cp data\/questions\.from-pdf\.json _site\/data\/questions\.from-pdf\.json/);
 });
 
-test("runtime preserves PDF bank metadata for source-slot progress", () => {
+test("runtime uses classification audit for filtering without exposing audit counters in HUD", () => {
   const app = readFileSync("app.js", "utf8");
 
-  assert.match(app, /summarizeQuestionBank/);
-  assert.match(app, /let bankSummary/);
-  assert.match(app, /sourceTotalQuestionSlots/);
-  assert.match(app, /playableQuestionCount/);
-  assert.match(app, /reviewQuestionCount/);
+  assert.match(app, /classificationAuditUrls/);
+  assert.match(app, /loadClassificationAudit/);
+  assert.match(app, /parseQuestionImport\(payload, \{ classificationAudit \}\)/);
+  assert.doesNotMatch(app, /let bankSummary|sourceTotalQuestionSlots|playableQuestionCount|reviewQuestionCount/u);
 });
 
-test("quest panel renders the knowledge graph preview from core state", () => {
+test("quest panel renders the current roguelite objective instead of a full dossier", () => {
   const app = readFileSync("app.js", "utf8");
   const styles = readFileSync("styles.css", "utf8");
 
-  assert.match(app, /buildKnowledgeGraphPreview/);
-  assert.match(app, /知识图谱预览/);
-  assert.match(app, /knowledge-graph/);
-  assert.match(app, /graphPreview\.lines/);
-  assert.match(styles, /\.knowledge-graph/);
+  assert.match(app, /本局目标/);
+  assert.match(app, /run\.objective/);
+  assert.match(app, /createRunRecommendation/);
+  assert.match(styles, /\.objective-panel/);
+  assert.doesNotMatch(app, /graphPreview\.lines/);
 });
 
 test("hud exposes save import/export actions without sample or intro shortcuts", () => {
@@ -202,12 +211,123 @@ test("answer-recall battles render answer choices without duplicated placeholder
   assert.doesNotMatch(app, /textButton\(`\$\{option\.key\}\. \$\{option\.text\}`/);
 });
 
-test("observe stance surfaces answer explanations during battle", () => {
+test("battle UI removes risk stance choices and keeps observation as the only hint action", () => {
   const app = readFileSync("app.js", "utf8");
 
+  assert.match(app, /function revealObservationHint\(/);
+  assert.match(app, /function getBattleStanceId\(/);
+  assert.match(app, /textButton\("观照提示", revealObservationHint/);
+  assert.match(app, /observationHintUsed \? "observe" : "steady"/);
+  assert.match(app, /观照提示/);
+  assert.match(app, /提交答案/);
+  assert.match(app, /先看观照提示，再选择答案。/);
+  assert.match(app, /canSubmit \? "提交答案" : "先选择答案"/);
+  assert.match(app, /renderBattleSupportPanel\(\{ node, question, mechanicState \}\)/);
+  assert.match(app, /renderBattleQuestionCard\(\{ question, mechanicState, options \}\)/);
+  assert.doesNotMatch(app, /破招选择/);
+  assert.doesNotMatch(app, /释放破招/);
+  assert.doesNotMatch(app, /稳破/);
+  assert.doesNotMatch(app, /强攻/);
+  assert.doesNotMatch(app, /stances\.map/);
+});
+
+test("battle UI uses a dedicated answer desk layout instead of stacked text panels", () => {
+  const app = readFileSync("app.js", "utf8");
+  const styles = readFileSync("styles.css", "utf8");
+
+  for (const functionName of [
+    "renderBattleDesk",
+    "renderBattleStatusBar",
+    "renderBattleQuestionCard",
+    "renderBattleSupportPanel",
+    "renderBattleActionBar",
+  ]) {
+    assert.match(app, new RegExp(`function ${functionName}\\(`));
+  }
+
+  assert.match(app, /dom\.stage\.replaceChildren\(renderBattleDesk\(\{ node, question, mechanicState, options \}\)\)/);
+  assert.match(app, /el\("article", "battle-desk"/);
+  assert.match(app, /el\("section", "battle-main"/);
+  assert.match(app, /el\("section", "battle-question-card"/);
+  assert.match(app, /el\("aside", "battle-support-panel"/);
+  assert.match(app, /el\("footer", "battle-action-bar"/);
+  assert.doesNotMatch(app, /dom\.stage\.replaceChildren\(textScreen\(\{\n\s+kicker: run\.modeName \|\| "题阵"/);
+
+  for (const className of [
+    "battle-desk",
+    "battle-status-bar",
+    "battle-main",
+    "battle-question-card",
+    "battle-support-panel",
+    "battle-action-bar",
+    "battle-options",
+  ]) {
+    assert.match(styles, new RegExp(`\\.${className}`));
+  }
+
+  assert.match(styles, /\.battle-main\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(280px,\s*360px\)/);
+  assert.match(styles, /\.battle-action-bar\s*\{[\s\S]*position:\s*static/);
+  assert.match(styles, /@media \(max-width: 860px\)\s*\{[\s\S]*\.battle-main\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(styles, /@media \(max-width: 860px\)\s*\{[\s\S]*\.battle-desk\s*\{[\s\S]*grid-template-rows:\s*auto max-content auto/);
+});
+
+test("battle scene gives the answer desk the full stage instead of duplicating the side dossier", () => {
+  const styles = readFileSync("styles.css", "utf8");
+
+  assert.match(styles, /\.rpg-shell\[data-scene="battle"\]\s*\{[\s\S]*grid-template-areas:\s*"hud hud"\s*"stage stage"/);
+  assert.match(styles, /\.rpg-shell\[data-scene="battle"\]\s+\.quest-panel\s*\{[\s\S]*display:\s*none/);
+  assert.match(styles, /\.rpg-shell\[data-scene="battle"\]\s+\.battle-desk\s*\{[\s\S]*height:\s*100%/);
+  assert.match(styles, /@media \(max-width: 860px\)\s*\{[\s\S]*\.rpg-shell\[data-scene="battle"\]\s+\.battle-desk\s*\{[\s\S]*height:\s*auto/);
+});
+
+test("battle question and support panels do not create nested scroll areas", () => {
+  const styles = readFileSync("styles.css", "utf8");
+  const ruleBody = (className) => {
+    const match = styles.match(new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`));
+    assert.ok(match, `missing .${className} rule`);
+    return match[1];
+  };
+
+  assert.match(styles, /\.battle-desk\s*\{[\s\S]*grid-template-rows:\s*auto max-content auto[\s\S]*align-content:\s*start[\s\S]*overflow-y:\s*auto/);
+  assert.match(styles, /\.battle-main\s*\{[\s\S]*min-height:\s*max-content[\s\S]*align-self:\s*start/);
+  assert.match(styles, /\.battle-main\s*\{[\s\S]*overflow:\s*visible/);
+  assert.match(styles, /\.battle-question-card\s*\{[\s\S]*max-height:\s*none[\s\S]*overflow:\s*visible/);
+  assert.match(styles, /\.battle-support-panel\s*\{[\s\S]*max-height:\s*none[\s\S]*overflow:\s*visible/);
+  assert.doesNotMatch(ruleBody("battle-action-bar"), /position:\s*sticky/);
+  assert.doesNotMatch(ruleBody("battle-question-card"), /overflow:\s*(auto|scroll|hidden)/);
+  assert.doesNotMatch(ruleBody("battle-support-panel"), /overflow:\s*(auto|scroll|hidden)/);
+});
+
+test("generic text screens use compact action bars instead of full-width choice lists", () => {
+  const app = readFileSync("app.js", "utf8");
+  const styles = readFileSync("styles.css", "utf8");
+  const ruleBody = (className) => {
+    const match = styles.match(new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`));
+    assert.ok(match, `missing .${className} rule`);
+    return match[1];
+  };
+
+  assert.match(app, /el\("div", "text-action-buttons"/);
+  assert.doesNotMatch(app, /el\("div", "text-choice-list", \{\}, choices\.map/);
+  assert.match(styles, /\.text-body\s*\{[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(260px,\s*1fr\)\)/);
+  assert.match(styles, /\.text-body\s*>\s*\.text-panel:first-child:nth-last-child\(n \+ 2\)\s*\{[\s\S]*grid-column:\s*1 \/ -1/);
+  assert.match(styles, /\.text-action-bar\s*\{/);
+  assert.match(styles, /\.text-action-buttons\s*\{[\s\S]*display:\s*flex[\s\S]*flex-wrap:\s*wrap/);
+  assert.match(styles, /\.text-action-buttons\s+\.text-choice\s*\{[\s\S]*width:\s*auto/);
+  assert.doesNotMatch(ruleBody("text-action-buttons"), /grid-template-columns:\s*1fr/);
+});
+
+test("observation helper surfaces answer explanations during battle", () => {
+  const app = readFileSync("app.js", "utf8");
+  const core = readFileSync("core.js", "utf8");
+
   assert.match(app, /function renderBattleHint\(/);
-  assert.match(app, /question\.lesson\?\.explanation \|\| question\.explanation/);
+  assert.match(app, /buildObservationHint\(question\)/);
+  assert.match(app, /对应答案/);
+  assert.match(app, /依据/);
+  assert.match(core, /stemCue:\s*`题干线索：/);
   assert.doesNotMatch(app, /selectedStanceId === "observe" \? question\.lesson\.keyPoint/);
+  assert.doesNotMatch(app, /panel\("破招选择"/);
 });
 
 test("battle feedback and review list surface typed demon diagnosis", () => {
@@ -224,4 +344,35 @@ test("battle feedback and review list surface typed demon diagnosis", () => {
   assert.match(app, /直接净化/);
   assert.match(app, /errorPortrait/);
   assert.match(app, /retestAccuracy/);
+});
+
+test("battle and report surface roguelite objective and next-run recommendations", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /本局目标/);
+  assert.match(app, /encounterIndex/);
+  assert.match(app, /createRogueliteRunReport/);
+  assert.match(app, /本局报告/);
+  assert.match(app, /下一局建议/);
+  assert.match(app, /continueWithNextAction/);
+});
+
+test("internal roguelite screens do not leak old route-map actions", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  for (const phrase of [
+    "回地图",
+    "回练功",
+    "章节机制",
+    "章节封印",
+    "继续按章节推进",
+    "先选择已开放章节",
+    "章节未解锁",
+  ]) {
+    assert.doesNotMatch(app, new RegExp(phrase, "u"), phrase);
+  }
+
+  assert.match(app, /回开局台/u);
+  assert.match(app, /题眼短课/u);
+  assert.match(app, /题阵机制/u);
 });

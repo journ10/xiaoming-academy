@@ -4,12 +4,16 @@ import {
   applyTrialAnswer,
   buildChapterMechanicState,
   buildErrorDiagnosis,
+  buildObservationHint,
   buildKnowledgeGraphPreview,
   chapterMechanicDefinitions,
   createDailyQuestState,
   createLearningDashboard,
   createMindDemonRun,
+  createRogueliteRun,
+  createRogueliteRunReport,
   createRouteRun,
+  createRunRecommendation,
   createRunReport,
   createSaveArchive,
   createStoryChapters,
@@ -34,6 +38,8 @@ import {
   parseQuestionImport,
   prepareQuestions,
   prunePlayerForQuestions,
+  rogueliteBuildDefinitions,
+  rogueliteRunModes,
   selectRouteQuestions,
   setLearningStyle,
   studyNode,
@@ -183,7 +189,7 @@ test("story characters and chapters bind the question bank to RPG progress", () 
   assert.ok(chapters.every((chapter) => chapter.title && chapter.characterId));
 });
 
-test("chapter availability gates sequential chapters and the final comprehensive chapter", () => {
+test("chapter availability gates sequential learning-domain chapters", () => {
   const prepared = prepareQuestions([
     ...rawQuestions,
     {
@@ -194,15 +200,13 @@ test("chapter availability gates sequential chapters and the final comprehensive
     },
   ]);
   const chapters = createStoryChapters(prepared, { requiredMastery: 16 });
-  const [first, second, third, fourth, fifth, sixth, final] = chapters;
-  const firstSixClears = Object.fromEntries(chapters.slice(0, 6).map((chapter) => [chapter.id, true]));
+  const [first, second, third, fourth, fifth, sixth] = chapters;
 
-  assert.equal(chapters.length, 7);
+  assert.equal(chapters.length, 6);
+  assert.equal(chapters.some((chapter) => chapter.topic === "综合知识"), false);
   assert.equal(getChapterAvailability(first, chapters, initialPlayerState()).available, true);
   assert.equal(getChapterAvailability(second, chapters, initialPlayerState()).available, false);
   assert.match(getChapterAvailability(second, chapters, initialPlayerState()).reason, /第一章|律令花窗/);
-  assert.equal(getChapterAvailability(final, chapters, initialPlayerState()).available, false);
-  assert.match(getChapterAvailability(final, chapters, initialPlayerState()).reason, /前六章/);
 
   assert.equal(getChapterAvailability(second, chapters, {
     ...initialPlayerState(),
@@ -212,10 +216,6 @@ test("chapter availability gates sequential chapters and the final comprehensive
     ...initialPlayerState(),
     chapterClears: { [first.id]: true },
   }).available, false);
-  assert.equal(getChapterAvailability(final, chapters, {
-    ...initialPlayerState(),
-    chapterClears: firstSixClears,
-  }).available, true);
 
   assert.ok([fourth, fifth, sixth].every((chapter) => chapter.order >= 4));
 });
@@ -229,7 +229,7 @@ test("chapter dialogue returns visual-novel beats with pure text speaker marks",
   assert.deepEqual(dialogue.map((line) => line.speakerId).slice(0, 2), ["mingche", "azhi"]);
   assert.ok(dialogue.every((line) => line.text && line.speakerMark));
   assert.ok(dialogue.every((line) => !line.avatar && !line.standee));
-  assert.match(dialogue.at(-1).text, /练功|题阵|心魔|封印/);
+  assert.match(dialogue.at(-1).text, /短课|题阵|心魔|封印/);
 });
 
 test("story collection exposes black ink sayings, bond stories, and final endings", () => {
@@ -258,9 +258,9 @@ test("story collection exposes black ink sayings, bond stories, and final ending
   const bondStories = getBondStories(clearedPlayer);
   const endings = getEndingOptions(chapters, clearedPlayer);
 
-  assert.equal(chapters.at(-1).topic, "综合知识");
-  assert.equal(chapters.at(-1).title, "第七章 万象书阁");
-  assert.equal(ink.length, 8);
+  assert.equal(chapters.at(-1).topic, "儿童发展");
+  assert.equal(chapters.at(-1).title, "第六章 童心星谷");
+  assert.equal(ink.length, 7);
   assert.equal(ink.every((item) => item.unlocked), true);
   assert.deepEqual(bondStories.filter((story) => story.unlocked).map((story) => story.characterId), [
     "mingche",
@@ -345,10 +345,11 @@ test("first-time study grants learning rewards once and repeat study is only rev
   const first = studyNode(initialPlayerState(), run, run.nodes[0].id);
   const second = studyNode(first.player, first.run, first.run.nodes[0].id);
 
-  assert.equal(first.rewards.starGlimmerGain > 0, true);
+  assert.equal(first.rewards.starGlimmerGain, 0);
   assert.equal(first.rewards.growthXpGain > 0, true);
+  assert.equal(first.rewards.materialsGain.shuye > 0, true);
   assert.equal(first.rewards.bondGains.azhi > 0, true);
-  assert.equal(first.player.starGlimmer, first.rewards.starGlimmerGain);
+  assert.equal(first.player.materials.shuye, first.rewards.materialsGain.shuye);
   assert.equal(first.player.bonds.azhi, first.rewards.bondGains.azhi);
   assert.equal(second.rewards.starGlimmerGain, 0);
   assert.equal(second.rewards.growthXpGain, 0);
@@ -372,7 +373,7 @@ test("learning styles can be selected and change study feedback", () => {
   assert.equal(styled.player.learningStyleId, "law");
   assert.ok(styled.rewards.growthXpGain > baseline.rewards.growthXpGain);
   assert.match(styled.rewards.styleFeedback, /律令派|教育法规/);
-  assert.throws(() => setLearningStyle(initialPlayerState(), "missing-style"), /找不到这种学习风格/);
+  assert.throws(() => setLearningStyle(initialPlayerState(), "missing-style"), /找不到这种流派/);
 });
 
 test("learning style build exposes base styles, advanced unlock gates, and recommendations", () => {
@@ -491,8 +492,9 @@ test("correct battle answers grow the player while wrong answers only create stu
   });
 
   assert.equal(correct.isCorrect, true);
-  assert.ok(correct.starGlimmerGain > 0);
+  assert.equal(correct.starGlimmerGain, 0);
   assert.ok(correct.growthXpGain > 0);
+  assert.ok(correct.materialsGain.shuye > 0);
   assert.ok(correct.bondGains.qinglan > 0);
   assert.deepEqual(correct.player.correctQuestionIds, ["law-1"]);
 
@@ -587,6 +589,30 @@ test("prepareQuestions turns PDF explanations into required pre-battle lesson ca
   assert.match(question.lesson.keyPoint, /政府保障/);
   assert.match(question.lesson.explanation, /题眼/);
   assert.equal(question.lesson.studyPrompt.length > 0, true);
+});
+
+test("observation hint links the stem clue to the answer option before explanation", () => {
+  const [question] = prepareQuestions([{
+    id: "moral-fable",
+    year: "2026",
+    type: "单项选择",
+    topic: "德育、班级管理与家校协同",
+    stem: "寓言故事《天鹅，鱼与大虾》里提到这三种动物一起拉车，天鹅往天上拉车，鱼儿往水里钻来拉车，大虾往后跳来拉车，结果车却一动不动，这个故事提醒教师在进行德育时（）。",
+    options: [
+      { key: "A", text: "依靠积极因素克服消极因素" },
+      { key: "B", text: "一致性与连贯性" },
+      { key: "C", text: "集体教育和个别教育相结合" },
+      { key: "D", text: "尊重学生与严格要求学生相结合" },
+    ],
+    answer: "B",
+    explanation: "德育工作中应主动协调多方面的教育力量，统一认识和步调，有计划、有系统的发挥教育的整体功能，培养学生正确的思想品德。",
+  }]);
+
+  const hint = buildObservationHint(question);
+
+  assert.match(hint.stemCue, /天鹅|大虾|车却一动不动/);
+  assert.equal(hint.answerLine, "B. 一致性与连贯性");
+  assert.match(hint.explanation, /德育工作中应主动协调/);
 });
 
 test("question bank summary separates source slots from playable questions", () => {
@@ -883,6 +909,113 @@ test("route question selection enforces concept dependencies before downstream n
   assert.deepEqual(unlockedSelection.map((question) => question.id), ["law-downstream", "law-base"]);
 });
 
+test("roguelite registries expose three run modes and three starter builds", () => {
+  assert.deepEqual(rogueliteRunModes.map((mode) => mode.id), ["explore", "purify", "sprint"]);
+  assert.deepEqual(rogueliteBuildDefinitions.map((build) => build.id), ["steady", "assault", "review"]);
+  assert.ok(rogueliteRunModes.every((mode) => mode.name && mode.primaryAction));
+  assert.ok(rogueliteBuildDefinitions.every((build) => build.name && build.risk && build.reward));
+});
+
+test("roguelite recommendation chooses exploration for fresh players and purification for active demons", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const fresh = createRunRecommendation(prepared, initialPlayerState());
+
+  assert.equal(fresh.modeId, "explore");
+  assert.equal(fresh.buildId, "steady");
+  assert.match(fresh.reason, /新题|探索|点亮/);
+  assert.equal(fresh.primaryAction, "开始一局");
+
+  const demonPlayer = {
+    ...initialPlayerState(),
+    wrongQuestionIds: ["psy-1"],
+    mindDemons: {
+      "psy-1": {
+        id: "psy-1",
+        questionId: "psy-1",
+        topic: "教育心理学",
+        enemy: "镜像心魔",
+        demonType: "概念混淆",
+        pressure: 4,
+      },
+    },
+  };
+  const purify = createRunRecommendation(prepared, demonPlayer);
+
+  assert.equal(purify.modeId, "purify");
+  assert.equal(purify.buildId, "review");
+  assert.match(purify.reason, /心魔|错题|净化/);
+});
+
+test("roguelite runs build exploration, purification, and sprint objectives", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const demonPlayer = {
+    ...initialPlayerState(),
+    wrongQuestionIds: ["psy-1"],
+    mindDemons: {
+      "psy-1": {
+        id: "psy-1",
+        questionId: "psy-1",
+        topic: "教育心理学",
+        enemy: "镜像心魔",
+        demonType: "概念混淆",
+        pressure: 4,
+      },
+    },
+  };
+
+  const explore = createRogueliteRun(prepared, initialPlayerState(), { modeId: "explore", buildId: "steady", length: 5 });
+  assert.equal(explore.mode, "roguelite");
+  assert.equal(explore.modeId, "explore");
+  assert.equal(explore.buildId, "steady");
+  assert.equal(explore.nodes.length, 5);
+  assert.equal(explore.objective.targetNewConcepts, 1);
+  assert.ok(explore.nodes.every((node, index) => node.encounterIndex === index + 1));
+
+  const purify = createRogueliteRun(prepared, demonPlayer, { modeId: "purify", buildId: "review", length: 5 });
+  assert.equal(purify.modeId, "purify");
+  assert.equal(purify.buildId, "review");
+  assert.equal(purify.objective.targetDemonCount, 1);
+  assert.equal(purify.nodes[0].type, "demon");
+  assert.equal(purify.nodes[0].questionId, "psy-1");
+
+  const sprint = createRogueliteRun(prepared, initialPlayerState(), { modeId: "sprint", buildId: "assault", length: 5 });
+  assert.equal(sprint.modeId, "sprint");
+  assert.equal(sprint.buildId, "assault");
+  assert.equal(sprint.objective.targetCorrectCount, 4);
+  assert.ok(new Set(sprint.nodes.map((node) => node.topic)).size > 1);
+  assert.match(sprint.brief, /混合|冲刺|跨域/);
+});
+
+test("roguelite report summarizes result and gives next run actions", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const run = createRogueliteRun(prepared, initialPlayerState(), { modeId: "explore", buildId: "steady", length: 5 });
+  const answeredRun = {
+    ...run,
+    state: "report_ready",
+    answeredCount: 5,
+    correctCount: 3,
+    wrongCount: 2,
+    completed: true,
+    events: [
+      {
+        isCorrect: false,
+        topic: "教育心理学",
+        demonType: "概念混淆",
+        errorPattern: "concept_confusion",
+      },
+    ],
+  };
+  const report = createRogueliteRunReport(answeredRun, initialPlayerState(), prepared);
+
+  assert.equal(report.modeId, "explore");
+  assert.equal(report.buildId, "steady");
+  assert.equal(report.correctCount, 3);
+  assert.equal(report.newDemonCount, 1);
+  assert.match(report.primaryMistake, /概念混淆|教育心理学/);
+  assert.ok(report.nextActions.some((action) => action.modeId === "purify"));
+  assert.ok(report.nextActions.every((action) => action.label && action.reason));
+});
+
 test("chapter mechanics are attached to route nodes and alter battle feedback", () => {
   const [lawQuestion] = prepareQuestions([{
     ...rawQuestions[0],
@@ -979,7 +1112,7 @@ test("study is a training path that improves battle feedback without blocking ba
   assert.equal(unstudied.studiedBeforeBattle, false);
   assert.equal(studiedBattle.studiedBeforeBattle, true);
   assert.ok(studiedBattle.masteryGain > unstudied.masteryGain);
-  assert.match(studiedBattle.learningCheck, /练功|题眼|讲解/);
+  assert.match(studiedBattle.learningCheck, /短课|题眼|讲解/);
 });
 
 test("the three stances create real pre-answer tradeoffs", () => {

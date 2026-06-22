@@ -1,28 +1,24 @@
 import {
   applyTrialAnswer,
   buildChapterMechanicState,
-  buildKnowledgeGraphPreview,
+  buildObservationHint,
   createDailyQuestState,
   createLearningDashboard,
   createMindDemonRun,
+  createRogueliteRun,
+  createRogueliteRunReport,
+  createRunRecommendation,
   createRouteRun,
   createRunReport,
   createStoryChapters,
-  getArtifactRoster,
-  getBlackInkCollection,
-  getBondStories,
   getChapterActionState,
   getChapterAvailability,
   getChapterProgress,
-  getAvailableLearningStyles,
   getDialogueForChapter,
-  getEnergyState,
-  getEndingOptions,
   getHeartMethod,
-  getRecommendedLearningStyle,
+  getHeartPowerUpgradeState,
   initialPlayerState,
   isBankMastered,
-  learningStyleDefinitions,
   markChapterStorySeen,
   markIntroSeen,
   materialTypes,
@@ -30,31 +26,38 @@ import {
   createSaveArchive,
   parseQuestionImport,
   parseSaveArchive,
-  selectRouteQuestions,
-  setLearningStyle,
-  stances,
-  storyCharacters,
+  rogueliteBuildDefinitions,
+  rogueliteRunModes,
   studyNode,
-  summarizeQuestionBank,
-  upgradeArtifact,
-} from "./core.js";
+  upgradeHeartPower,
+} from "./core.js?v=observation-hint-20260622";
 
 const storageKey = "xiaoming-academy-text-game-v1";
 const questionBankUrls = [
   "./data/questions.from-pdf.json",
   "/xiaoming-academy/data/questions.from-pdf.json",
 ];
-const playableScenes = new Set(["world", "story", "training", "battle", "review", "roster", "daily", "dashboard", "report"]);
-const navItems = [
-  ["world", "地图"],
-  ["story", "剧情"],
-  ["training", "练功"],
-  ["battle", "战斗"],
-  ["review", "心魔"],
-  ["roster", "队伍"],
-  ["daily", "日课"],
-  ["dashboard", "仪表"],
+const classificationAuditUrls = [
+  "./data/question-classification.audit.json",
+  "/xiaoming-academy/data/question-classification.audit.json",
 ];
+const playableScenes = new Set(["world", "mode", "build", "training", "battle", "review", "daily", "dashboard", "report"]);
+const navItems = [
+  ["world", "开局"],
+  ["review", "心魔"],
+  ["daily", "日课"],
+  ["dashboard", "报告"],
+];
+const runModeLabels = {
+  explore: "探索新题",
+  purify: "净化心魔",
+  sprint: "综合冲刺",
+};
+const runBuildLabels = {
+  steady: "稳修",
+  assault: "突击",
+  review: "复盘",
+};
 
 const dom = {
   shell: document.querySelector("[data-shell]"),
@@ -74,16 +77,17 @@ let player = initialPlayerState();
 let selectedChapterId = "";
 let scene = resolveInitialScene() || "world";
 let run = createRouteRun([]);
+let selectedRunModeId = "explore";
+let selectedBuildId = "steady";
 let currentNodeIndex = 0;
-let selectedStanceId = "steady";
+let observationHintUsed = false;
 let selectedKeys = [];
 let submittedResult = null;
 let report = null;
-let storyMode = scene === "story" ? "intro" : "";
-let storyLines = scene === "story" ? getIntroDialogue() : [];
+let storyMode = "";
+let storyLines = [];
 let storyIndex = 0;
 let logLine = "秘卷正在展开。";
-let bankSummary = summarizeQuestionBank([]);
 
 dom.importAction.addEventListener("click", showImportPanel);
 dom.exportAction.addEventListener("click", showExportPanel);
@@ -103,21 +107,19 @@ async function initializeGame() {
   try {
     const builtInBank = await loadBuiltInQuestionBank();
     questions = builtInBank.questions;
-    bankSummary = builtInBank.summary;
     chapters = createStoryChapters(questions);
     const saved = loadSavedState();
     player = saved.player;
     selectedChapterId = saved.selectedChapterId || chapters[0]?.id || "";
     scene = resolveInitialScene() || saved.scene || "world";
-    run = createRunForSelectedChapter();
-    storyMode = scene === "story" ? "intro" : "";
-    storyLines = scene === "story" ? getIntroDialogue() : [];
+    run = createRogueliteRun(questions, player, { modeId: selectedRunModeId, buildId: selectedBuildId, length: 5 });
+    storyMode = "";
+    storyLines = [];
     storyIndex = 0;
-    logLine = "先读题眼，再进题阵。";
+    logLine = "选择本局目标，开始一局题阵。";
     render();
   } catch (error) {
     questions = [];
-    bankSummary = summarizeQuestionBank([]);
     chapters = [];
     player = initialPlayerState();
     selectedChapterId = "";
@@ -130,6 +132,7 @@ async function initializeGame() {
 }
 
 async function loadBuiltInQuestionBank() {
+  const classificationAudit = await loadClassificationAudit();
   let lastError = null;
   for (const url of questionBankUrls) {
     try {
@@ -138,13 +141,12 @@ async function loadBuiltInQuestionBank() {
         throw new Error("卷宗入口暂时没有回应。");
       }
       const payload = await response.json();
-      const parsedQuestions = parseQuestionImport(payload);
+      const parsedQuestions = parseQuestionImport(payload, { classificationAudit });
       if (!parsedQuestions.length) {
         throw new Error("卷宗里还没有可练内容");
       }
       return {
         questions: parsedQuestions,
-        summary: summarizeQuestionBank(payload),
       };
     } catch (error) {
       lastError = error;
@@ -152,6 +154,23 @@ async function loadBuiltInQuestionBank() {
   }
 
   throw new Error(lastError?.message || "秘卷暂时无法展开，请稍后再试。");
+}
+
+async function loadClassificationAudit() {
+  let lastError = null;
+  for (const url of classificationAuditUrls) {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("题目校准文件暂时没有回应。");
+      }
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new Error(lastError?.message || "题目校准文件缺失，无法保证题目归类正确。");
 }
 
 function render() {
@@ -169,24 +188,39 @@ function render() {
 }
 
 function renderHud() {
-  const energy = getEnergyState(player);
-  const materials = normalizeMaterialBag(player.materials);
   dom.hudStats.replaceChildren(
     hudStat("心力", `${player.heartPower || 0}/${player.maxHeartPower || 6}`),
-    hudStat("能量", `${energy.energy}/${energy.maxEnergy}`),
-    hudStat("星辉", player.starGlimmer || 0),
-    hudStat("书页", materials.shuye || 0),
-    hudStat("秘卷", `${bankSummary.playableQuestionCount}/${bankSummary.sourceTotalQuestionSlots || questions.length}`),
-    hudStat("待校", bankSummary.reviewQuestionCount),
+    hudStat("本局", formatHudRunProgress()),
+    hudStat("目标", run.objective?.label || run.modeName || runModeLabels[selectedRunModeId] || "开局"),
+    hudStat("题眼", formatHudLessonState()),
   );
 }
 
+function formatHudRunProgress() {
+  const total = Math.max(1, run.nodes?.length || 1);
+  if (run.completed || run.state === "report_ready") {
+    return `${Math.min(total, Math.max(run.answeredCount || 0, currentNodeIndex + 1))}/${total}`;
+  }
+  const current = Math.min(total, Math.max(1, (run.answeredCount || 0) + 1));
+  return `${current}/${total}`;
+}
+
+function formatHudLessonState() {
+  const question = getCurrentQuestion();
+  if (!question) return "待开局";
+  if ((player.studiedLessonIds || []).includes(question.lesson?.id)) return "已短课";
+  if (observationHintUsed) return "已观照";
+  if (scene === "battle") return "可观照";
+  if (scene === "training") return "短课中";
+  return "待进入";
+}
+
 function renderStage() {
-  if (scene === "story") return renderStoryStage();
+  if (scene === "mode") return renderModeSelectStage();
+  if (scene === "build") return renderBuildSelectStage();
   if (scene === "training") return renderTrainingStage();
   if (scene === "battle") return renderBattleStage();
   if (scene === "review") return renderReviewStage();
-  if (scene === "roster") return renderRosterStage();
   if (scene === "daily") return renderDailyStage();
   if (scene === "dashboard") return renderDashboardStage();
   if (scene === "report") return renderReport();
@@ -198,99 +232,107 @@ function renderWorldStage() {
 }
 
 function renderModernWorldStage() {
-  const selected = getSelectedChapter();
-  const action = selected ? getChapterActionState(selected, questions, player) : null;
-  const selectedAvailability = selected ? getChapterAvailability(selected, chapters, player) : null;
-  const selectedProgress = selected ? getChapterProgress(selected, questions, player) : null;
-  const routeNodes = chapters.slice(0, 5).map((chapter, index) =>
-    chapterRouteNode(chapter, index, selectedChapterId === chapter.id),
-  );
-  const nextText = selectedAvailability?.available
-    ? action?.reason || "完成 3 道关键词预检后进入 5 题题阵。"
-    : selectedAvailability?.reason || "先选择可进入章节。";
+  return renderStartDesk();
+}
 
-  dom.stage.replaceChildren(el("article", "text-screen modern-world", {}, [
-    el("header", "stage-head", {}, [
-      el("div", "stage-title", {}, [
-        el("span", "text-kicker", {}, ["当前场景 · 第一章"]),
-        el("h2", "", {}, [chapterShortTitle(selected) || "律令花窗"]),
-        el("p", "stage-sub", {}, [selected?.summary || "遗忘之雾压住了法条关键词。先读短课、抓题眼，再进入题阵。"]),
+function renderStartDesk() {
+  const recommendation = createRunRecommendation(questions, player);
+  const mode = getRunModeDefinition(recommendation.modeId);
+  const build = getRunBuildDefinition(recommendation.buildId);
+  const dashboard = createLearningDashboard(questions, player);
+  const brief = runEventBrief(recommendation);
+
+  dom.stage.replaceChildren(el("article", "text-screen start-desk", {}, [
+    el("header", "start-hero", {}, [
+      el("span", "text-kicker", {}, ["今日推荐"]),
+      el("h2", "", {}, [mode.name]),
+      el("p", "stage-sub", {}, [recommendation.reason]),
+    ]),
+    el("section", "start-focus", {}, [
+      el("div", "objective-panel primary-objective", {}, [
+        el("span", "text-kicker", {}, ["本局目标"]),
+        el("h3", "", {}, [recommendation.targetText]),
+        el("p", "", {}, [brief]),
       ]),
-      el("div", "chapter-pills", {}, [
-        el("span", "pill active", {}, ["推荐路线"]),
-        el("span", "pill", {}, [selected?.topic || "教育法规"]),
-        el("span", "pill", {}, [`${getWorldProgressPercent(selectedProgress)}%`]),
+      el("div", "objective-panel", {}, [
+        el("span", "text-kicker", {}, ["推荐流派"]),
+        el("h3", "", {}, [build.name]),
+        el("p", "", {}, [build.summary]),
       ]),
     ]),
-    el("div", "story-grid", {}, [
-      el("aside", "route", {}, routeNodes),
-      renderWorldTextWindow(selected),
+    el("footer", "start-actions", {}, [
+      textButton("开始一局", () => startRecommendedRun(recommendation), "primary-action"),
+      textButton("换目标", () => goScene("mode"), "text-choice"),
+      textButton("学习报告", () => goScene("dashboard"), "text-choice"),
+      textButton("心魔回廊", () => goScene("review"), "text-choice"),
     ]),
-    el("footer", "stage-actions", {}, [
-      el("div", "command-row", {}, [
-        textButton("进入题阵", startBattle, "cmd primary"),
-        textButton("短课练功", startTraining, "cmd"),
-        textButton("查看剧情", startChapterStory, "cmd"),
-        textButton("观照题眼", startTraining, "cmd"),
-      ]),
-      el("span", "tiny", {}, ["键盘：1-4 选择 · Enter 破阵"]),
-    ]),
-    el("div", "toast inline-toast", {}, ["秘卷已同步 · 12:08"]),
-    el("p", "sr-only", {}, [nextText]),
+    el("p", "text-muted", {}, [dashboard.weakestTopic
+      ? `下一步建议：${dashboard.weakestTopic.title} 心魔 ${dashboard.weakestTopic.demonCount}，心法 ${dashboard.weakestTopic.mastery}。`
+      : "下一步建议：先完成一局探索，再根据错题决定是否净化。"]),
   ]));
 }
 
-function chapterRouteNode(chapter, index, selected) {
-  const progress = getChapterProgress(chapter, questions, player);
-  const availability = getChapterAvailability(chapter, chapters, player);
-  const state = getChapterActionState(chapter, questions, player);
-  const button = textButton("", () => {
-    selectedChapterId = chapter.id;
-    resetRunForChapter();
-    render();
-  }, [
-    "node",
-    selected ? "current" : "",
-    availability.available ? "" : "locked",
-  ].filter(Boolean).join(" "));
-  button.replaceChildren(
-    el("span", "sigil", {}, [String(index + 1)]),
-    el("span", "", {}, [
-      el("span", "node-title", {}, [chapterShortTitle(chapter)]),
-      el("span", "node-meta", {}, [availability.available
-        ? `${chapter.topic} · ${progress.total} 题`
-        : availability.reason]),
-    ]),
-    el("span", `tag ${selected ? "jade" : availability.available ? "" : "muted"}`, {}, [
-      selected ? "推荐" : availability.available ? actionLabel(state.recommendedAction) : "锁定",
-    ]),
-  );
-  return button;
+function renderModeSelectStage() {
+  const recommendation = createRunRecommendation(questions, player);
+  dom.stage.replaceChildren(textScreen({
+    kicker: "选择目标",
+    title: "这一局要解决什么？",
+    intro: "目标只影响本局题池和结算建议。默认推荐已经替你选好，也可以手动改。",
+    body: [
+      el("div", "mode-grid", {}, rogueliteRunModes.map((mode) =>
+        el("article", `mode-card ${mode.id === recommendation.modeId ? "is-recommended" : ""}`, {}, [
+          el("span", "text-kicker", {}, [mode.id === recommendation.modeId ? "推荐" : "可选"]),
+          el("h3", "", {}, [runModeLabels[mode.id] || mode.title]),
+          el("p", "", {}, [mode.summary]),
+          textButton(`选择${runModeLabels[mode.id] || mode.title}`, () => selectRunMode(mode.id), mode.id === recommendation.modeId ? "text-choice is-primary" : "text-choice"),
+        ]),
+      )),
+    ],
+    choices: [["返回开局台", () => goScene("world")]],
+    log: `当前推荐：${getRunModeDefinition(recommendation.modeId).name}。`,
+  }));
 }
 
-function renderWorldTextWindow(selected) {
-  return el("article", "text-window", {}, [
-    el("div", "window-toolbar", {}, [
-      el("div", "toolbar-left", {}, [
-        el("span", "dot", {}, []),
-        el("strong", "", {}, ["短课检验 · 题阵前夜"]),
-      ]),
-      el("span", "tiny", {}, ["第 124 / 649 题"]),
-    ]),
-    el("div", "scene-copy", {}, [
-      el("div", "speaker", {}, ["明澈"]),
-      el("p", "", {}, ["“先钉住关键词，再判断题阵真正问什么。”"]),
-    ]),
-    el("section", "question-card", {}, [
-      el("h3", "", {}, [`题眼预检：${selected?.topic || "教育法规"}里最容易被雾化的关键词是？`]),
-      el("div", "choices", {}, [
-        el("button", "choice selected", { type: "button" }, ["A. 免试与就近入学"]),
-        el("button", "choice", { type: "button" }, ["B. 统一考试与择优录取"]),
-        el("button", "choice", { type: "button" }, ["C. 学校自主设定门槛"]),
-        el("button", "choice", { type: "button" }, ["D. 家长自行承担保障义务"]),
-      ]),
-    ]),
-  ]);
+function renderBuildSelectStage() {
+  const mode = getRunModeDefinition(selectedRunModeId);
+  dom.stage.replaceChildren(textScreen({
+    kicker: "选择流派",
+    title: `${mode.name} · 选择本局打法`,
+    intro: "流派影响整局风险收益；题内只保留观照提示，帮助你在不确定时回看题眼。",
+    body: [
+      el("div", "build-grid", {}, rogueliteBuildDefinitions.map((build) =>
+        el("article", `build-card ${build.id === selectedBuildId ? "is-selected" : ""}`, {}, [
+          el("span", "text-kicker", {}, [`风险 ${build.risk} · 奖励 ${build.reward}`]),
+          el("h3", "", {}, [runBuildLabels[build.id] || build.name]),
+          el("p", "", {}, [build.summary]),
+          textButton(`用${runBuildLabels[build.id] || build.name}开局`, () => selectRunBuild(build.id), build.id === selectedBuildId ? "text-choice is-primary" : "text-choice"),
+        ]),
+      )),
+    ],
+    choices: [
+      ["返回目标", () => goScene("mode")],
+      ["返回开局台", () => goScene("world")],
+    ],
+    log: `${mode.name}会决定本局题池，流派决定收益和风险。`,
+  }));
+}
+
+function runEventBrief(recommendation) {
+  if (recommendation.modeId === "purify") {
+    return "阿芷：这局别急着开新题，先把已经暴露的错因处理掉。";
+  }
+  if (recommendation.modeId === "sprint") {
+    return "青岚：这局会跨域切换，别靠惯性答题，每题先看机制。";
+  }
+  return "明澈：先开一局探索，题阵会告诉你今天最该补哪里。";
+}
+
+function getRunModeDefinition(modeId) {
+  return rogueliteRunModes.find((mode) => mode.id === modeId) || rogueliteRunModes[0];
+}
+
+function getRunBuildDefinition(buildId) {
+  return rogueliteBuildDefinitions.find((build) => build.id === buildId) || rogueliteBuildDefinitions[0];
 }
 
 function renderStoryStage() {
@@ -306,9 +348,9 @@ function renderStoryStage() {
       ))),
     ],
     choices: [
-      [storyIndex >= storyLines.length - 1 ? "完成剧情" : "继续", advanceStory, "text-choice is-primary"],
-      ["去练功", () => leaveStoryFor("training")],
-      ["去战斗", () => leaveStoryFor("battle")],
+      [storyIndex >= storyLines.length - 1 ? "完成阅读" : "继续", advanceStory, "text-choice is-primary"],
+      ["看题眼短课", () => leaveStoryFor("training")],
+      ["去题阵", () => leaveStoryFor("battle")],
     ],
     log: logLine,
   }));
@@ -316,38 +358,37 @@ function renderStoryStage() {
 
 function renderTrainingStage() {
   ensureRun();
-  const chapter = getSelectedChapter();
   const node = getCurrentNode();
   const question = getCurrentQuestion();
-  if (!chapter || !node || !question) {
-    dom.stage.replaceChildren(emptyScreen("暂时没有可练短课", "秘卷展开后会显示本章练功内容。"));
+  if (!node || !question) {
+    dom.stage.replaceChildren(emptyScreen("暂时没有题眼短课", "先开始一局，题阵会给出当前要补的题眼。"));
     return;
   }
 
   const studied = (player.studiedLessonIds || []).includes(question.lesson.id);
-  const trainingLog = studied && logLine.startsWith("练功完成")
+  const trainingLog = studied && logLine.startsWith("短课完成")
     ? logLine
     : studied ? "这道题已经练过，可以直接进题阵。" : logLine;
   dom.stage.replaceChildren(textScreen({
-    kicker: "练功",
+    kicker: "题眼短课",
     title: question.lesson.title,
-    intro: question.lesson.studyPrompt,
+    intro: formatStudyPrompt(question.lesson.studyPrompt),
     body: [
       panel("题眼", [
         el("p", "", {}, [question.lesson.keyPoint]),
         el("p", "text-muted", {}, [question.lesson.explanation]),
       ]),
-      panel("当前阵位", [
+      panel("当前遭遇", [
         el("p", "", {}, [`${nodeTypes[node.type]?.name || node.typeName}：${node.nodeFlavor}`]),
-        el("p", "", {}, [`章节机制：${node.mechanicName || "常规题阵"} · ${node.mechanicPrompt || "按题眼稳定检验。"}`]),
+        el("p", "", {}, [`题阵机制：${node.mechanicName || "常规题阵"} · ${node.mechanicPrompt || "按题眼稳定检验。"}`]),
         el("p", "text-muted", {}, [node.rewardPreview || "完成后获得成长资源。"]),
       ]),
-      panel("学习风格", renderLearningStyleChoices()),
+      panel("本局流派", renderRunBuildSummary()),
     ],
     choices: [
-      [studied ? "复看完成" : "完成练功", studyCurrentNode, "text-choice is-primary"],
-      ["进入战斗", enterBattleAfterTraining],
-      ["回地图", () => goScene("world")],
+      [studied ? "复看完成" : "完成短课", studyCurrentNode, "text-choice is-primary"],
+      ["进入题阵", enterBattleAfterTraining],
+      ["回开局台", () => goScene("world")],
     ],
     log: trainingLog,
   }));
@@ -358,13 +399,13 @@ function renderBattleStage() {
   const node = getCurrentNode();
   const question = getCurrentQuestion();
   if (!node || !question) {
-    dom.stage.replaceChildren(emptyScreen("暂时没有题阵", "先选择已开放章节，或稍后再回来。"));
+    dom.stage.replaceChildren(emptyScreen("暂时没有题阵", "先回开局台选择一局，或稍后再回来。"));
     return;
   }
   const mechanicState = buildChapterMechanicState(question, player, {
     node,
     nodeType: node.type,
-    reveal: selectedStanceId === "observe",
+    reveal: observationHintUsed,
   });
 
   const options = question.options.map((option) => {
@@ -373,31 +414,101 @@ function renderBattleStage() {
     return button;
   });
 
-  dom.stage.replaceChildren(textScreen({
-    kicker: "战斗",
-    title: `${question.enemy} · ${nodeTypes[node.type]?.name || node.typeName} · ${node.mechanicName || "常规题阵"}`,
-    intro: mechanicState.displayStem,
-    body: [
-      renderChapterMechanicState(mechanicState),
-      panel(answerPanelTitle(question), el("div", "text-choice-list", {}, options)),
-      panel("招式", el("div", "text-grid", {}, stances.map((stance) => {
-        const mastery = player.stanceMastery?.[stance.id] || { level: 1 };
-        return textButton(`${stance.name} Lv.${mastery.level}`, () => {
-          selectedStanceId = stance.id;
-          render();
-        }, stance.id === selectedStanceId ? "text-choice is-selected" : "text-choice", stance.description);
-      }))),
-      submittedResult ? renderBattleFeedback(question) : renderBattleHint(question),
-    ],
-    choices: submittedResult
-      ? getBattleResultChoices()
-      : [
-          ["释放破招", handleBattleAction, "text-choice is-primary"],
-          ["回练功", startTraining],
-          ["回地图", () => goScene("world")],
-        ],
-    log: `已选：${selectedKeys.join("") || "无"} · 招式：${getStance(selectedStanceId).name}`,
-  }));
+  dom.stage.replaceChildren(renderBattleDesk({ node, question, mechanicState, options }));
+}
+
+function renderBattleDesk({ node, question, mechanicState, options }) {
+  return el("article", "battle-desk", {}, [
+    renderBattleStatusBar({ node, question, mechanicState }),
+    el("section", "battle-main", {}, [
+      renderBattleQuestionCard({ question, mechanicState, options }),
+      renderBattleSupportPanel({ node, question, mechanicState }),
+    ]),
+    renderBattleActionBar(question),
+  ]);
+}
+
+function renderBattleStatusBar({ node, question, mechanicState }) {
+  const progressText = node?.encounterIndex
+    ? `${node.encounterIndex}/${node.encounterTotal || run.nodes.length}`
+    : `${Math.min(run.answeredCount + 1, run.nodes.length)}/${run.nodes.length}`;
+  return el("header", "battle-status-bar", {}, [
+    battleStatusChip("本局", run.modeName || "题阵"),
+    battleStatusChip("遭遇", progressText),
+    battleStatusChip("题型", nodeTypes[node.type]?.name || node.typeName || "题阵"),
+    battleStatusChip("题眼", question.lesson?.title || question.topic || "当前题"),
+    battleStatusChip("机制", mechanicState.name || node.mechanicName || "常规题阵"),
+    battleStatusChip("提示", observationHintUsed ? "已看观照" : "可观照", observationHintUsed ? "is-muted" : "is-ready"),
+  ]);
+}
+
+function battleStatusChip(label, value, modifier = "") {
+  return el("div", `battle-status-chip ${modifier}`.trim(), {}, [
+    el("span", "", {}, [label]),
+    el("strong", "", {}, [String(value || "未定")]),
+  ]);
+}
+
+function renderBattleQuestionCard({ question, mechanicState, options }) {
+  return el("section", "battle-question-card", {}, [
+    el("div", "battle-question-head", {}, [
+      el("span", "text-kicker", {}, [question.topic || "题阵"]),
+      el("h2", "", {}, [question.enemy || question.lesson?.title || "当前题"]),
+      el("p", "text-muted", {}, [`${mechanicState.name || "常规题阵"} · ${answerPanelTitle(question)}`]),
+    ]),
+    el("p", "battle-stem", {}, [mechanicState.displayStem]),
+    el("div", "battle-options", {}, [
+      el("div", "battle-section-title", {}, [
+        el("span", "", {}, [answerPanelTitle(question)]),
+        el("span", "", {}, [question.answer.length > 1 ? "可多选" : "单选"]),
+      ]),
+      ...options,
+    ]),
+  ]);
+}
+
+function renderBattleSupportPanel({ node, question, mechanicState }) {
+  return el("aside", "battle-support-panel", {}, [
+    submittedResult ? renderBattleFeedback(question) : renderBattleHint(question),
+    renderRunObjectivePanel(node),
+    renderChapterMechanicState(mechanicState),
+  ]);
+}
+
+function renderBattleActionBar(question) {
+  const choices = submittedResult ? getBattleResultChoices() : getBattleActionChoices(question);
+  const selectionText = selectedKeys.length ? `已选 ${selectedKeys.join("、")}` : "未选择答案";
+  const hintText = submittedResult
+    ? "本题已结算，可以进入下一步。"
+    : observationHintUsed ? "已看观照提示，作答收益会降低。" : "可先看观照提示，再选择答案提交。";
+  return el("footer", "battle-action-bar", {}, [
+    el("div", "battle-selection-state", {}, [
+      el("span", "text-kicker", {}, ["答题状态"]),
+      el("strong", "", {}, [selectionText]),
+      el("small", "", {}, [hintText]),
+    ]),
+    el("div", "battle-action-buttons", {}, choices.map(([label, onClick, className = "text-choice", detail = ""]) =>
+      textButton(label, onClick, battleActionClassName(className), detail),
+    )),
+  ]);
+}
+
+function battleActionClassName(className = "") {
+  const classes = ["battle-action"];
+  if (className.includes("is-primary")) classes.push("is-primary");
+  if (className.includes("is-disabled")) classes.push("is-disabled");
+  return classes.join(" ");
+}
+
+function renderRunObjectivePanel(node) {
+  const objective = run.objective || {};
+  const progressText = node?.encounterIndex
+    ? `${node.encounterIndex}/${node.encounterTotal || run.nodes.length}`
+    : `${Math.min(run.answeredCount + 1, run.nodes.length)}/${run.nodes.length}`;
+  return panel("本局目标", [
+    el("p", "", {}, [`${objective.label || "完成题阵"} · 遭遇 ${progressText}`]),
+    el("p", "text-muted", {}, [objective.prompt || run.brief || "完成本局后会给出下一局建议。"]),
+  ]);
 }
 
 function answerPanelTitle(question) {
@@ -419,15 +530,48 @@ function isAnswerRecallQuestion(question) {
 }
 
 function renderBattleHint(question) {
-  if (selectedStanceId === "observe") {
-    const explanation = question.lesson?.explanation || question.explanation || question.lesson?.keyPoint || "讲解还在整理中。";
-    return panel("提示", [
-      el("p", "", {}, [explanation]),
-      question.lesson?.keyPoint ? el("p", "text-muted", {}, [`题眼：${question.lesson.keyPoint}`]) : "",
+  if (observationHintUsed) {
+    const hint = buildObservationHint(question);
+    return panel("观照提示", [
+      el("p", "", {}, [hint.stemCue]),
+      el("p", "", {}, [`对应答案：${hint.answerLine}`]),
+      el("p", "text-muted", {}, [`依据：${hint.explanation}`]),
+      hint.keyPoint ? el("p", "text-muted", {}, [`题眼：${hint.keyPoint}`]) : "",
+      el("p", "text-muted", {}, ["本题已查看提示，作答后按提示答题记录，收益会降低。"]),
     ]);
   }
-  return panel("提示", "选择答案后释放破招。");
+  return panel("提示", [
+    el("p", "", {}, ["不确定时先看观照提示，再选择答案。"]),
+    el("p", "text-muted", {}, ["选择答案后，用底部按钮提交。"]),
+    textButton("观照提示", revealObservationHint, "text-choice", "查看解析摘录与题眼；本题收益降低。"),
+  ]);
 }
+
+function getBattleActionChoices(question) {
+  const canSubmit = selectedKeys.length > 0;
+  return [
+    [
+      canSubmit ? "提交答案" : "先选择答案",
+      canSubmit ? handleBattleAction : noop,
+      canSubmit ? "text-choice is-primary" : "text-choice is-primary is-disabled",
+      canSubmit ? "" : "从上方选项中选择后再提交。",
+    ],
+    ["看题眼短课", startTraining],
+    ["回开局台", () => goScene("world")],
+  ];
+}
+
+function revealObservationHint() {
+  if (submittedResult) return;
+  observationHintUsed = true;
+  render();
+}
+
+function getBattleStanceId() {
+  return observationHintUsed ? "observe" : "steady";
+}
+
+function noop() {}
 
 function renderChapterMechanicState(mechanicState) {
   const lines = [
@@ -453,16 +597,15 @@ function renderChapterMechanicState(mechanicState) {
   if (mechanicState.exactAnswerRequired) {
     lines.push(el("p", "text-muted", {}, [`精确记忆：仅 ${mechanicState.attemptsAllowed} 次机会。${mechanicState.memoryHint || ""}`]));
   }
-  return panel("章节机制", lines);
+  return panel("题阵机制", lines);
 }
 
 function renderReviewStage() {
-  const demonRun = createMindDemonRun(questions, player, { title: "错题净化" });
   const demons = Object.values(player.mindDemons || {});
   dom.stage.replaceChildren(textScreen({
     kicker: "心魔",
     title: demons.length ? "错题回廊" : "心魔未现",
-    intro: demons.length ? "这些错题会保留压迫值，重新答对可以净化。" : "当前没有错题心魔。先去战斗检验，答错后这里会出现复训目标。",
+    intro: demons.length ? "这些错题会保留压迫值，重新答对可以净化。" : "当前没有错题心魔。先去题阵检验，答错后这里会出现复训目标。",
     body: [
       panel("心魔列表", demons.length
         ? el("div", "text-choice-list", {}, demons.map((demon) =>
@@ -471,58 +614,15 @@ function renderReviewStage() {
               el("p", "", {}, [`主题：${demon.topic || "待定主题"} · 压力：${demon.pressure || 0} · 错因：${demon.demonType || "待诊断"}`]),
               el("p", "text-muted", {}, [`概念：${demon.concept || "待梳理概念"}`]),
               el("p", "text-muted", {}, [`诊断：${demon.diagnosis || "复看题眼，确认错误来源。"}`]),
-              el("p", "text-muted", {}, [`净化建议：${demon.remedy || "先练功，再净化。"}`]),
+              el("p", "text-muted", {}, [`净化建议：${demon.remedy || "先看题眼短课，再净化。"}`]),
             ]),
           ))
         : "没有待处理错题。"),
     ],
     choices: [
-      ["开始净化", () => startDemonBattle(demonRun), "text-choice is-primary"],
-      ["去战斗检验", startBattle],
-      ["回地图", () => goScene("world")],
-    ],
-    log: logLine,
-  }));
-}
-
-function renderRosterStage() {
-  const artifacts = getArtifactRoster(player);
-  const totalBond = Object.values(player.bonds || {}).reduce((sum, value) => sum + Number(value || 0), 0);
-  const inkCollection = getBlackInkCollection(chapters, player);
-  const bondStories = getBondStories(player);
-  const endings = getEndingOptions(chapters, player);
-  dom.stage.replaceChildren(textScreen({
-    kicker: "队伍",
-    title: "同伴与法器",
-    intro: `总羁绊 ${totalBond}。法器升级会消耗材料；不升级也能继续巡游。`,
-    body: [
-      panel("同伴", el("div", "text-grid", {}, storyCharacters.map((character) =>
-        el("article", "text-panel", {}, [
-          el("h3", "", {}, [character.name]),
-          el("p", "", {}, [character.role]),
-          el("p", "text-muted", {}, [`羁绊 ${player.bonds?.[character.id] || 0}`]),
-        ]),
-      ))),
-      panel("法器", el("div", "text-choice-list", {}, artifacts.map((artifact) =>
-        textButton(`${artifact.name} Lv.${artifact.level}`, () => upgradeArtifactAction(artifact.id), artifact.canUpgrade ? "text-choice is-primary" : "text-choice", formatCost(artifact.cost)),
-      ))),
-      panel("黑色墨迹", el("div", "text-log", {}, inkCollection.map((item) =>
-        el("p", "", {}, [item.unlocked ? `✓ ${item.text}` : "🔒 未收集墨迹"]),
-      ))),
-      panel("羁绊剧情", el("div", "text-log", {}, bondStories.map((story) =>
-        el("p", "", {}, [story.unlocked
-          ? `✓ ${story.title}：${story.text}`
-          : `🔒 ${story.characterName} 羁绊 ${story.bond}/${story.requiredBond}`]),
-      ))),
-      panel("结局", endings.length
-        ? el("div", "text-log", {}, endings.map((ending) =>
-            el("p", "", {}, [`${ending.title}：${ending.text}`]),
-          ))
-        : "第七章万象书阁通关后解锁双结局。"),
-    ],
-    choices: [
-      ["回地图", () => goScene("world"), "text-choice is-primary"],
-      ["去日课", () => goScene("daily")],
+      ["开始净化", () => startRogueliteRun("purify", "review"), "text-choice is-primary"],
+      ["去题阵检验", startBattle],
+      ["回开局台", () => goScene("world")],
     ],
     log: logLine,
   }));
@@ -561,9 +661,9 @@ function renderDailyStage() {
       ]),
     ],
     choices: [
-      ["按日课练功", startTraining, "text-choice is-primary"],
-      ["按日课战斗", startBattle],
-      ["回地图", () => goScene("world")],
+      ["按日课短课", startTraining, "text-choice is-primary"],
+      ["按日课题阵", startBattle],
+      ["回开局台", () => goScene("world")],
     ],
     log: logLine,
   }));
@@ -574,18 +674,25 @@ function renderDashboardStage() {
   const weakest = dashboard.weakestTopic;
   const topicCoverageBars = dashboard.topicCoverageBars;
   const averageTimeTrend = dashboard.averageTimeTrend;
+  const heartUpgrade = getHeartPowerUpgradeState(player);
   dom.stage.replaceChildren(textScreen({
     kicker: "仪表",
     title: "学习仪表盘",
     intro: weakest
       ? `当前优先补：${weakest.title}。心魔 ${weakest.demonCount}，心法 ${weakest.mastery}。`
-      : "还没有明显薄弱主题，继续按章节推进。",
+      : "还没有明显薄弱主题，继续按推荐开局。",
     body: [
       panel("总体进度", [
-        statLine("题目练功", `${dashboard.questionProgress.studiedCount}/${dashboard.questionProgress.total} · ${dashboard.questionProgress.studiedPercent}%`),
+        statLine("题眼短课", `${dashboard.questionProgress.studiedCount}/${dashboard.questionProgress.total} · ${dashboard.questionProgress.studiedPercent}%`),
         statLine("答对覆盖", `${dashboard.questionProgress.correctCount}/${dashboard.questionProgress.total} · ${dashboard.questionProgress.correctPercent}%`),
-        statLine("章节封印", `${dashboard.chapterStats.clearedCount}/${dashboard.chapterStats.totalCount}`),
+        statLine("学习域覆盖", `${dashboard.chapterStats.clearedCount}/${dashboard.chapterStats.totalCount}`),
         statLine("心魔", `活跃 ${dashboard.demonStats.activeCount} · 已净化 ${dashboard.demonStats.purifiedCount} · 压力 ${dashboard.demonStats.totalPressure}`),
+      ]),
+      panel("心力修炼", [
+        statLine("心力", `${player.heartPower || 0}/${player.maxHeartPower || 6}`),
+        statLine("书页", normalizeMaterialBag(player.materials).shuye),
+        statLine("下次提升", heartUpgrade.maxed ? "已满" : `${heartUpgrade.currentMaxHeartPower} -> ${heartUpgrade.nextMaxHeartPower}`),
+        statLine("需要", heartUpgrade.maxed ? "无需材料" : formatCost(heartUpgrade.cost)),
       ]),
       panel("错题画像", dashboard.errorPatternStats.length
         ? el("div", "text-log", {}, dashboard.errorPatternStats.map((item) =>
@@ -615,87 +722,80 @@ function renderDashboardStage() {
     ],
     choices: [
       ["导出复习清单", showReviewChecklist, "text-choice is-primary"],
+      [heartUpgrade.maxed ? "心力已满" : "升级心力", upgradeHeartPowerAction, heartUpgrade.canUpgrade ? "text-choice" : "text-choice is-disabled"],
       ["去心魔", () => goScene("review")],
-      ["回地图", () => goScene("world")],
+      ["回开局台", () => goScene("world")],
     ],
     log: "所有进度只保存在这台设备的存档里。",
   }));
 }
 
 function renderReport() {
-  const reportData = report || createRunReport(run, player);
+  const reportData = report || (run.mode === "roguelite"
+    ? createRogueliteRunReport(run, player, questions)
+    : createRunReport(run, player));
   dom.stage.replaceChildren(textScreen({
-    kicker: "战报",
-    title: reportData.title,
+    kicker: "本局报告",
+    title: reportData.resultLabel || reportData.title,
     intro: `正确率 ${reportData.correctRate}% · 答题 ${reportData.correctCount}/${reportData.answeredCount} · 错题 ${reportData.wrongCount}`,
     body: [
       panel("本轮收益", [
-        statLine("星辉", `+${reportData.starGlimmerGain}`),
         statLine("修为", `+${reportData.growthXpGain}`),
         statLine("材料", formatMaterials(reportData.materialsGain) || "无"),
-        statLine("下一步", reportData.nextRecommendation.reason),
+        statLine("主要错因", reportData.primaryMistake || reportData.nextRecommendation.reason),
       ]),
+      panel("下一局建议", el("div", "text-choice-list", {}, (reportData.nextActions || []).map((action) =>
+        textButton(action.label, () => continueWithNextAction(action), "text-choice", action.reason),
+      ))),
       panel("事件", reportData.events.length
         ? el("div", "text-log", {}, reportData.events.map((event) =>
             el("p", "", {}, [`${event.topic}：${event.isCorrect ? "答对" : "答错"}，${event.learningCheck}`]),
           ))
-        : "还没有战斗记录。"),
+        : "还没有题阵记录。"),
     ],
     choices: [
-      ["继续战斗", startBattle, "text-choice is-primary"],
+      ["开始一局", startRecommendedRun, "text-choice is-primary"],
       ["去心魔", () => goScene("review")],
-      ["回地图", () => goScene("world")],
+      ["回开局台", () => goScene("world")],
     ],
-    log: "战报会指出下一步巡游方向。"
+    log: "结算会决定下一局更该探索、净化还是冲刺。"
   }));
 }
 
+function continueWithNextAction(action) {
+  selectedRunModeId = action.modeId || "explore";
+  selectedBuildId = action.buildId || "steady";
+  startRogueliteRun(selectedRunModeId, selectedBuildId);
+}
+
 function renderQuestPanel() {
-  const chapter = getSelectedChapter();
-  if (!chapter) {
-    dom.questPanel.replaceChildren();
-    return;
-  }
-  const progress = getChapterProgress(chapter, questions, player);
-  const method = getHeartMethod(chapter.topic, progress.mastery);
-  const clearedCount = chapters.filter((item) => getChapterProgress(item, questions, player).cleared).length;
-  const graphPreview = buildKnowledgeGraphPreview(chapter, questions, player, { maxLines: 10 });
+  const recommendation = createRunRecommendation(questions, player);
+  const mode = getRunModeDefinition(run.modeId || recommendation.modeId);
+  const build = getRunBuildDefinition(run.buildId || recommendation.buildId);
   const dashboard = createLearningDashboard(questions, player);
-  const progressPercent = getWorldProgressPercent(progress);
+  const objective = run.objective || {
+    label: recommendation.targetText,
+    prompt: recommendation.reason,
+  };
   dom.questPanel.replaceChildren(
     el("header", "dossier-head", {}, [
-      el("span", "text-kicker", {}, ["卷宗"]),
-      el("h2", "", {}, ["当前进度"]),
+      el("span", "text-kicker", {}, ["局势"]),
+      el("h2", "", {}, [scene === "battle" ? "本局进行中" : "下一步"]),
     ]),
-    el("section", "meter quest-meter", {}, [
-      el("div", "meter-head", {}, [
-        el("span", "", {}, [`${chapterShortTitle(chapter)}完成度`]),
-        el("span", "", {}, [`${progressPercent}%`]),
-      ]),
-      el("div", "track", {}, [el("span", "fill", { style: `width:${progressPercent}%` }, [])]),
-    ]),
-    el("section", "rows", {}, [
+    el("section", "objective-panel", {}, [
       el("div", "section-title", {}, [
-        el("span", "", {}, ["当前卷宗"]),
-        el("span", "", {}, [chapter.topic]),
+        el("span", "", {}, ["本局目标"]),
+        el("span", "", {}, [mode.name]),
       ]),
-      questLine("练功", `${progress.studiedCount} / ${progress.total}`),
-      questLine("答对", `${progress.correctCount} / ${progress.total}`),
-      questLine("活跃心魔", String(progress.demonCount)),
-      questLine(method.name, `${progress.mastery}%`),
-      questLine("总进度", isBankMastered(questions, player) ? "秘卷归元" : `${clearedCount} / ${chapters.length}`),
+      questLine("目标", objective.label || recommendation.targetText),
+      questLine("流派", build.name),
+      questLine("进度", run.nodes?.length ? `${run.answeredCount}/${run.nodes.length}` : "未开局"),
+      el("p", "text-muted", {}, [objective.prompt || recommendation.reason]),
     ]),
-    el("section", "graph", {}, [
-      el("div", "section-title", {}, [
-        el("span", "", {}, ["知识图谱预览"]),
-        el("span", "", {}, [`${graphPreview.masteredConcepts} / ${graphPreview.totalConcepts}`]),
-      ]),
-    ]),
-    el("pre", "knowledge-graph", {}, [graphPreview.lines.join("\n")]),
     el("section", "portrait", {}, [
       el("div", "section-title", {}, [
         el("span", "", {}, ["错题画像"]),
-        el("span", "", {}, ["本周"]),
+        el("span", "", {}, ["当前"]),
       ]),
       ...dashboard.errorPortrait.slice(0, 4).map((item) =>
         el("div", "barline", {}, [
@@ -707,23 +807,58 @@ function renderQuestPanel() {
     ]),
     el("section", "next-box", {}, [
       el("strong", "", {}, ["下一步建议"]),
-      el("p", "", {}, ["完成 3 道关键词预检后进入 5 题题阵。"]),
+      el("p", "", {}, [scene === "world" ? recommendation.reason : "完成本局后查看报告，系统会给出下一局建议。"]),
     ]),
   );
 }
 
 function renderBottomNav() {
   dom.bottomNav.replaceChildren(...navItems.map(([id, label]) => {
-    const button = textButton(label, () => {
-      if (id === "training") startTraining();
-      else if (id === "battle") startBattle();
-      else goScene(id);
-    }, scene === id ? "is-active" : "");
+    const button = textButton(label, () => goScene(id), scene === id ? "is-active" : "");
     button.dataset.navId = id;
-    button.setAttribute("aria-label", `切换到${label}`);
+    button.setAttribute("aria-label", `打开${label}`);
     button.setAttribute("aria-current", scene === id ? "page" : "false");
     return button;
   }));
+}
+
+function startRecommendedRun(recommendation = createRunRecommendation(questions, player)) {
+  selectedRunModeId = recommendation.modeId;
+  selectedBuildId = recommendation.buildId;
+  startRogueliteRun(selectedRunModeId, selectedBuildId);
+}
+
+function selectRunMode(modeId) {
+  selectedRunModeId = modeId;
+  const recommendation = createRunRecommendation(questions, player);
+  selectedBuildId = recommendation.modeId === modeId
+    ? recommendation.buildId
+    : modeId === "purify" ? "review" : "steady";
+  scene = "build";
+  render();
+}
+
+function selectRunBuild(buildId) {
+  selectedBuildId = buildId;
+  startRogueliteRun(selectedRunModeId, selectedBuildId);
+}
+
+function startRogueliteRun(modeId = selectedRunModeId, buildId = selectedBuildId) {
+  run = createRogueliteRun(questions, player, { modeId, buildId, length: 5 });
+  if (!run.nodes.length) {
+    showToast("当前还没有可进入的题阵。");
+    return;
+  }
+  selectedRunModeId = run.modeId;
+  selectedBuildId = run.buildId;
+  currentNodeIndex = 0;
+  submittedResult = null;
+  selectedKeys = [];
+  observationHintUsed = false;
+  report = null;
+  logLine = run.brief;
+  scene = "battle";
+  render();
 }
 
 function startIntro(forced = false) {
@@ -774,11 +909,11 @@ function leaveStoryFor(nextScene) {
 }
 
 function startTraining() {
-  if (!isSelectedChapterAvailable()) return;
   ensureRun();
   scene = "training";
   submittedResult = null;
   selectedKeys = [];
+  observationHintUsed = false;
   render();
 }
 
@@ -788,57 +923,44 @@ function studyCurrentNode() {
   const result = studyNode(player, run, node.id, { bankQuestions: questions });
   player = result.player;
   run = result.run;
-  logLine = `练功完成：星辉 +${result.rewards.starGlimmerGain}，修为 +${result.rewards.growthXpGain}。${result.rewards.styleFeedback || ""}`;
+  const materialText = formatMaterials(result.rewards.materialsGain);
+  logLine = `短课完成：修为 +${result.rewards.growthXpGain}${materialText ? `，${materialText}` : ""}。${result.rewards.styleFeedback || ""}`;
   savePlayer(player);
   render();
 }
 
-function renderLearningStyleChoices() {
-  const styles = getAvailableLearningStyles(player, chapters);
-  const recommended = getRecommendedLearningStyle(questions, player, chapters);
+function renderRunBuildSummary() {
+  const build = getRunBuildDefinition(run.buildId || selectedBuildId);
   return el("div", "text-choice-list", {}, [
-    el("p", "text-muted", {}, [`当前推荐：${recommended.name}。${recommended.reason}`]),
-    el("div", "text-grid", {}, styles.map((style) => {
-      const className = [
-        "text-choice",
-        player.learningStyleId === style.id ? "is-selected" : "",
-        style.unlocked ? "" : "is-locked",
-      ].filter(Boolean).join(" ");
-      return textButton(
-        `${style.unlocked ? "🔓" : "🔒"} ${style.name}`,
-        () => selectLearningStyle(style.id),
-        className,
-        style.unlocked ? style.description : `${style.unlockReason} · ${style.description}`,
-      );
-    })),
+    el("p", "", {}, [`${build.name}：${build.summary}`]),
+    el("p", "text-muted", {}, [`风险 ${build.risk} · 奖励 ${build.reward}。流派在开局前选择，本局内保持不变。`]),
   ]);
 }
 
-function selectLearningStyle(styleId) {
-  try {
-    player = setLearningStyle(player, styleId, { chapters });
-    const style = learningStyleDefinitions.find((item) => item.id === styleId);
-    logLine = `学习风格已切换：${style?.name || styleId}。`;
-    savePlayer(player);
-    render();
-  } catch (error) {
-    showToast(error.message || "暂时无法切换学习风格");
-  }
+function formatStudyPrompt(prompt = "") {
+  const oldLessonGoal = String.fromCharCode(32451, 21151, 30446, 26631);
+  const oldLesson = String.fromCharCode(32451, 21151);
+  const oldBattle = String.fromCharCode(25112, 26007);
+  return String(prompt || "短课目标：先抓住题眼，再进题阵检验。")
+    .replace(new RegExp(oldLessonGoal, "g"), "短课目标")
+    .replace(new RegExp(oldLesson, "g"), "短课")
+    .replace(new RegExp(oldBattle, "g"), "题阵");
 }
 
 function enterBattleAfterTraining() {
-  if (!isSelectedChapterAvailable()) return;
   scene = "battle";
   submittedResult = null;
   selectedKeys = [];
+  observationHintUsed = false;
   render();
 }
 
 function startBattle() {
-  if (!isSelectedChapterAvailable()) return;
-  resetRunForChapter();
-  scene = "battle";
-  render();
+  startRecommendedRun();
+}
+
+function startMixedSimulation() {
+  startRogueliteRun("sprint", "steady");
 }
 
 function startDemonBattle(demonRun) {
@@ -850,6 +972,7 @@ function startDemonBattle(demonRun) {
   currentNodeIndex = 0;
   submittedResult = null;
   selectedKeys = [];
+  observationHintUsed = false;
   scene = "battle";
   render();
 }
@@ -857,12 +980,12 @@ function startDemonBattle(demonRun) {
 function getBattleResultChoices() {
   const choices = [
     [run.completed ? "查看战报" : "下一题", handleBattleAdvance, "text-choice is-primary"],
-    ["去练功", startTraining],
+    ["看题眼短课", startTraining],
   ];
   if (submittedResult?.errorDiagnosis?.primary) {
-    choices.push(["直接净化", () => startDemonBattle(createMindDemonRun(questions, player, { title: "诊断净化" }))]);
+    choices.push(["直接净化", () => startRogueliteRun("purify", "review")]);
   }
-  choices.push(["回地图", () => goScene("world")]);
+  choices.push(["回开局台", () => goScene("world")]);
   return choices;
 }
 
@@ -887,35 +1010,36 @@ function handleBattleAction() {
     nodeId: node.id,
     question,
     selectedAnswer: selectedKeys.join(""),
-    stanceId: selectedStanceId,
+    stanceId: getBattleStanceId(),
     bankQuestions: questions,
   });
   player = submittedResult.player;
   run = submittedResult.run;
-  report = run.completed ? createRunReport(run, player) : null;
-  logLine = submittedResult.isCorrect ? "破招成功。" : `答错，正解 ${submittedResult.correctAnswer}。`;
+  report = run.completed ? createRogueliteRunReport(run, player, questions) : null;
+  logLine = submittedResult.isCorrect ? "提交成功。" : `答错，正解 ${submittedResult.correctAnswer}。`;
   savePlayer(player);
   render();
 }
 
 function handleBattleAdvance() {
   if (run.completed) {
-    report = createRunReport(run, player);
+    report = createRogueliteRunReport(run, player, questions);
     scene = "report";
     render();
     return;
   }
   currentNodeIndex = Math.min(run.nodes.length - 1, currentNodeIndex + 1);
   selectedKeys = [];
+  observationHintUsed = false;
   submittedResult = null;
   render();
 }
 
-function upgradeArtifactAction(id) {
+function upgradeHeartPowerAction() {
   try {
-    const result = upgradeArtifact(player, id);
+    const result = upgradeHeartPower(player);
     player = result.player;
-    logLine = `${result.artifact.name} 升到 Lv.${result.artifact.level}。`;
+    logLine = `心力上限提升到 ${result.nextMaxHeartPower}。`;
     savePlayer(player);
     render();
   } catch (error) {
@@ -1003,7 +1127,7 @@ function createSaveText() {
 function createReviewChecklistText(dashboard) {
   const lines = [
     "小明书院复习清单",
-    `题目练功：${dashboard.questionProgress.studiedCount}/${dashboard.questionProgress.total}`,
+    `题眼短课：${dashboard.questionProgress.studiedCount}/${dashboard.questionProgress.total}`,
     `答对覆盖：${dashboard.questionProgress.correctCount}/${dashboard.questionProgress.total}`,
     `活跃心魔：${dashboard.demonStats.activeCount}`,
     "",
@@ -1015,7 +1139,7 @@ function createReviewChecklistText(dashboard) {
     dashboard.reviewItems.forEach((item, index) => {
       lines.push(`${index + 1}. ${item.topic} · ${item.demonType} · 压力 ${item.pressure}`);
       lines.push(`   概念：${item.concept}`);
-      lines.push(`   建议：先回练功，再进心魔回廊净化。`);
+      lines.push(`   建议：先看题眼短课，再进心魔回廊净化。`);
     });
   }
 
@@ -1048,7 +1172,7 @@ function resetProgress() {
   storyLines = getIntroDialogue();
   storyIndex = 0;
   logLine = "进度已重置。";
-  scene = "story";
+  scene = "world";
   savePlayer(player);
   render();
 }
@@ -1058,6 +1182,7 @@ function goScene(nextScene) {
   if (!normalized) return;
   scene = normalized;
   if (scene !== "battle") submittedResult = null;
+  if (scene !== "battle") observationHintUsed = false;
   render();
 }
 
@@ -1066,27 +1191,16 @@ function ensureRun() {
 }
 
 function resetRunForChapter() {
-  run = createRunForSelectedChapter();
+  run = createRogueliteRun(questions, player, { modeId: selectedRunModeId, buildId: selectedBuildId, length: 5 });
   currentNodeIndex = 0;
   selectedKeys = [];
+  observationHintUsed = false;
   submittedResult = null;
   report = null;
 }
 
 function createRunForSelectedChapter() {
-  const chapter = getSelectedChapter();
-  const bank = getChapterQuestions(chapter);
-  if (chapter && !getChapterAvailability(chapter, chapters, player).available) {
-    return createRouteRun([], {
-      title: chapter?.title || "今日破阵",
-      length: 5,
-    });
-  }
-  const selectedQuestions = selectRouteQuestions(bank.length ? bank : questions, player, { length: 5 });
-  return createRouteRun(selectedQuestions, {
-    title: chapter?.title || "今日破阵",
-    length: 5,
-  });
+  return createRogueliteRun(questions, player, { modeId: selectedRunModeId, buildId: selectedBuildId, length: 5 });
 }
 
 function getSelectedChapter() {
@@ -1098,7 +1212,7 @@ function isSelectedChapterAvailable() {
   const availability = getChapterAvailability(chapter, chapters, player);
   if (availability.available) return true;
 
-  logLine = `章节未解锁：${availability.reason}`;
+  logLine = `当前题域未开放：${availability.reason}`;
   showToast(logLine);
   scene = "world";
   render();
@@ -1129,7 +1243,7 @@ function renderBattleFeedback(question) {
   const demon = submittedResult.demonProfile;
   const content = [
     el("p", "", {}, [submittedResult.isCorrect
-      ? `伤害 ${submittedResult.damage}，星辉 +${submittedResult.starGlimmerGain}，修为 +${submittedResult.growthXpGain}。`
+      ? `伤害 ${submittedResult.damage}，修为 +${submittedResult.growthXpGain}，${formatMaterials(submittedResult.materialsGain) || "无材料"}。`
       : `正解 ${question.answer}。心力 ${signed(submittedResult.heartDelta)}，${demon ? `${demon.demonType}已生成。` : "已记录复训目标。"}`]),
     submittedResult.styleFeedback ? el("p", "text-muted", {}, [submittedResult.styleFeedback]) : "",
     el("p", "text-muted", {}, [submittedResult.learningCheck]),
@@ -1166,9 +1280,9 @@ function textScreen({ kicker, title, intro, body = [], choices = [], log = "" })
       el("p", "", {}, [intro]),
     ]),
     el("div", "text-body", {}, body),
-    el("footer", "", {}, [
-      el("div", "text-choice-list", {}, choices.map(([label, onClick, className = "text-choice"]) =>
-        textButton(label, onClick, className),
+    el("footer", "text-action-bar", {}, [
+      el("div", "text-action-buttons", {}, choices.map(([label, onClick, className = "text-choice", detail = ""]) =>
+        textButton(label, onClick, className, detail),
       )),
       log ? el("div", "text-log", {}, [log]) : "",
     ]),
@@ -1180,7 +1294,7 @@ function emptyScreen(title, detail) {
     kicker: "提示",
     title,
     intro: detail,
-    choices: [["回地图", () => goScene("world"), "text-choice is-primary"]],
+    choices: [["回开局台", () => goScene("world"), "text-choice is-primary"]],
     log: logLine,
   });
 }
@@ -1197,6 +1311,10 @@ function textButton(label, onClick, className = "text-choice", detail = "") {
   const button = document.createElement("button");
   button.type = "button";
   button.className = className;
+  if (className.includes("is-disabled")) {
+    button.disabled = true;
+    button.setAttribute("aria-disabled", "true");
+  }
   button.append(el("strong", "", {}, [label]));
   if (detail) button.append(el("small", "", {}, [detail]));
   button.addEventListener("click", onClick);
@@ -1267,10 +1385,6 @@ function getOptionClass(question, key) {
   return classes.join(" ");
 }
 
-function getStance(id) {
-  return stances.find((stance) => stance.id === id) || stances[0];
-}
-
 function getWorldProgressPercent(progress) {
   if (!progress) return 0;
   if (progress.cleared) return 100;
@@ -1281,8 +1395,8 @@ function getWorldProgressPercent(progress) {
 function actionLabel(action) {
   return {
     story: "剧情",
-    training: "练功",
-    battle: "战斗",
+    training: "短课",
+    battle: "题阵",
     review: "心魔",
     cleared: "已通关",
   }[action] || "行动";
@@ -1294,10 +1408,10 @@ function chapterShortTitle(chapter) {
 
 function getIntroDialogue() {
   return [
-    { speakerName: "明澈", text: "小明书院是一座显化书院。知识会变成秘境，遗忘会凝成雾。" },
-    { speakerName: "阿芷", text: "先练功，把讲解拆成题眼。战斗应该是检验，不是硬猜。" },
-    { speakerName: "青岚", text: "破阵时选稳破、强攻或观照。答错会留下心魔，之后要回来处理。" },
-    { speakerName: "小墨", text: "六章全亮，代表秘卷里的题都练过、答对过、清过心魔。" },
+    { speakerName: "明澈", text: "这里按真实知识域备考，不再使用旧的综合知识兜底分类。" },
+    { speakerName: "阿芷", text: "先短课抓题眼，再进题阵检验；答错会留下错题心魔，之后回到复盘处理。" },
+    { speakerName: "青岚", text: "综合模拟会从已开放的题阵中抽题，用来训练跨知识域迁移。" },
+    { speakerName: "小墨", text: "还没整理稳的旧卷先封存，别让它干扰你的记忆。" },
   ];
 }
 
@@ -1314,7 +1428,6 @@ function formatQuestReward(rewards = {}) {
   const parts = [];
   const materialText = formatMaterials(rewards.materials || rewards);
   if (materialText) parts.push(materialText);
-  if (Number(rewards.starGlimmer || 0) > 0) parts.push(`星辉+${rewards.starGlimmer}`);
   if (rewards.title) parts.push(`称号：${rewards.title}`);
   return parts.join(" · ") || "完成后记录进度";
 }

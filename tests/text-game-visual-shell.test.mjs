@@ -6,20 +6,44 @@ const appSource = readFileSync("app.js", "utf8");
 const cssSource = readFileSync("styles.css", "utf8");
 
 test("world screen renders the modern text-game stage contract", () => {
-  assert.match(appSource, /renderModernWorldStage/u);
-  assert.match(appSource, /短课检验 · 题阵前夜/u);
-  assert.match(appSource, /进入题阵/u);
-  assert.match(appSource, /观照题眼/u);
+  assert.match(appSource, /renderStartDesk/u);
+  assert.match(appSource, /start-desk/u);
+  assert.match(appSource, /今日推荐/u);
+  assert.match(appSource, /开始一局/u);
+  assert.match(appSource, /换目标/u);
+  assert.match(appSource, /本局目标/u);
   assert.match(appSource, /下一步建议/u);
+  assert.doesNotMatch(appSource, /章节提示/u);
+  assert.doesNotMatch(appSource, /备考路线/u);
   assert.match(appSource, /scene = resolveInitialScene\(\) \|\| saved\.scene \|\| "world"/u);
 });
 
 test("visual shell CSS matches the mobile-first dark text-game design", () => {
   assert.match(cssSource, /--ui-bg:\s*#111317/u);
   assert.match(cssSource, /--ui-jade:\s*#53c6a2/u);
-  assert.match(cssSource, /\.rpg-shell\s*\{[^}]*grid-template-areas:\s*"hud hud"[\s\S]*"stage quest"[\s\S]*"nav quest"/u);
-  assert.match(cssSource, /@media \(max-width:\s*760px\)[\s\S]*grid-template-rows:\s*154px auto auto 68px/u);
+  assert.match(cssSource, /\.rpg-shell\s*\{[^}]*grid-template-areas:\s*"hud hud"[\s\S]*"stage quest"/u);
+  assert.match(cssSource, /\.rpg-shell\s*\{[^}]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/u);
+  assert.match(cssSource, /\.hud-stats\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/u);
+  assert.match(cssSource, /@media \(max-width:\s*760px\)[\s\S]*grid-template-rows:\s*136px auto auto/u);
+  assert.doesNotMatch(cssSource, /\.hud-stat:nth-child/u);
+  assert.match(cssSource, /\.start-desk/u);
+  assert.match(cssSource, /\.mode-card/u);
+  assert.match(cssSource, /\.build-card/u);
   assert.match(cssSource, /\.text-window \.question-card\s*\{[\s\S]*display:\s*none/u);
+});
+
+test("persistent HUD exposes current run state, not resource or audit counters", () => {
+  const renderHudSource = appSource.match(/function renderHud\(\) \{[\s\S]*?\n\}/u)?.[0] ?? "";
+
+  assert.match(renderHudSource, /hudStat\("心力"/u);
+  assert.match(renderHudSource, /hudStat\("本局"/u);
+  assert.match(renderHudSource, /hudStat\("目标"/u);
+  assert.match(renderHudSource, /hudStat\("题眼"/u);
+  assert.match(renderHudSource, /formatHudRunProgress/u);
+  assert.match(renderHudSource, /formatHudLessonState/u);
+  assert.doesNotMatch(renderHudSource, /hudStat\("能量"|hudStat\("星辉"|hudStat\("书页"|getEnergyState|normalizeMaterialBag/u);
+  assert.doesNotMatch(renderHudSource, /正式题|待归类|题位|暂缓|mainlineQuestionCount|manualClassificationCount|sourceTotalQuestionSlots|reviewQuestionCount/u);
+  assert.doesNotMatch(appSource, /inline-toast[\s\S]*正式题/u);
 });
 
 test("mobile shell keeps the page scrollable below the design screenshot height", () => {
