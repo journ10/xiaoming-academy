@@ -2,6 +2,7 @@ import {
   applyTrialAnswer,
   buildChapterMechanicState,
   buildObservationHint,
+  claimDailyQuestReward,
   createDailyQuestState,
   createLearningDashboard,
   createMindDemonRun,
@@ -11,26 +12,20 @@ import {
   createRouteRun,
   createRunReport,
   createStoryChapters,
-  getChapterActionState,
-  getChapterAvailability,
-  getChapterProgress,
-  getDialogueForChapter,
   getHeartMethod,
   getHeartPowerUpgradeState,
   initialPlayerState,
-  isBankMastered,
-  markChapterStorySeen,
-  markIntroSeen,
   materialTypes,
   nodeTypes,
   createSaveArchive,
   parseQuestionImport,
   parseSaveArchive,
+  restFromFatigue,
   rogueliteBuildDefinitions,
   rogueliteRunModes,
   studyNode,
   upgradeHeartPower,
-} from "./core.js?v=observation-hint-20260622";
+} from "./core.js?v=study-journal-20260623p";
 
 const storageKey = "xiaoming-academy-text-game-v1";
 const questionBankUrls = [
@@ -42,12 +37,6 @@ const classificationAuditUrls = [
   "/xiaoming-academy/data/question-classification.audit.json",
 ];
 const playableScenes = new Set(["world", "mode", "build", "training", "battle", "review", "daily", "dashboard", "report"]);
-const navItems = [
-  ["world", "开局"],
-  ["review", "心魔"],
-  ["daily", "日课"],
-  ["dashboard", "报告"],
-];
 const runModeLabels = {
   explore: "探索新题",
   purify: "净化心魔",
@@ -58,13 +47,29 @@ const runBuildLabels = {
   assault: "突击",
   review: "复盘",
 };
+const breakMoveDefinitions = [
+  {
+    id: "steady",
+    name: "稳破",
+    detail: "正常收益，低风险；适合按标准流程审题。",
+  },
+  {
+    id: "assault",
+    name: "强攻",
+    detail: "答对收获更高，答错心力压力更重。",
+  },
+  {
+    id: "observe",
+    name: "观照",
+    detail: "先看答案与题眼，本题按低收益记录。",
+  },
+];
 
 const dom = {
   shell: document.querySelector("[data-shell]"),
   stage: document.querySelector("[data-stage]"),
   questPanel: document.querySelector("[data-quest-panel]"),
   hudStats: document.querySelector("[data-hud-stats]"),
-  bottomNav: document.querySelector("[data-bottom-nav]"),
   importAction: document.querySelector("[data-import-action]"),
   exportAction: document.querySelector("[data-export-action]"),
   resetAction: document.querySelector("[data-reset-action]"),
@@ -81,12 +86,11 @@ let selectedRunModeId = "explore";
 let selectedBuildId = "steady";
 let currentNodeIndex = 0;
 let observationHintUsed = false;
+let selectedBreakMoveId = "steady";
 let selectedKeys = [];
 let submittedResult = null;
 let report = null;
-let storyMode = "";
-let storyLines = [];
-let storyIndex = 0;
+let battleQuestionStartedAt = Date.now();
 let logLine = "秘卷正在展开。";
 
 dom.importAction.addEventListener("click", showImportPanel);
@@ -113,10 +117,7 @@ async function initializeGame() {
     selectedChapterId = saved.selectedChapterId || chapters[0]?.id || "";
     scene = resolveInitialScene() || saved.scene || "world";
     run = createRogueliteRun(questions, player, { modeId: selectedRunModeId, buildId: selectedBuildId, length: 5 });
-    storyMode = "";
-    storyLines = [];
-    storyIndex = 0;
-    logLine = "选择本局目标，开始一局题阵。";
+    logLine = "选择今日小目标，开始一页题眼手账。";
     render();
   } catch (error) {
     questions = [];
@@ -184,7 +185,6 @@ function render() {
   renderHud();
   renderStage();
   renderQuestPanel();
-  renderBottomNav();
 }
 
 function renderHud() {
@@ -197,22 +197,31 @@ function renderHud() {
 }
 
 function formatHudRunProgress() {
-  const total = Math.max(1, run.nodes?.length || 1);
-  if (run.completed || run.state === "report_ready") {
-    return `${Math.min(total, Math.max(run.answeredCount || 0, currentNodeIndex + 1))}/${total}`;
-  }
-  const current = Math.min(total, Math.max(1, (run.answeredCount || 0) + 1));
-  return `${current}/${total}`;
+  return formatRunAnsweredProgress(run);
+}
+
+function formatRunAnsweredProgress(currentRun = run) {
+  if (!currentRun.nodes?.length) return "未开局";
+  const total = currentRun.nodes.length;
+  return `${Math.min(total, currentRun.answeredCount || 0)}/${total}`;
 }
 
 function formatHudLessonState() {
   const question = getCurrentQuestion();
   if (!question) return "待开局";
+  if (submittedResult) return formatBattleSettleState();
   if ((player.studiedLessonIds || []).includes(question.lesson?.id)) return "已短课";
-  if (observationHintUsed) return "已观照";
-  if (scene === "battle") return "可观照";
+  if (observationHintUsed) return "已看答案";
+  if (scene === "battle") return "可看答案";
   if (scene === "training") return "短课中";
   return "待进入";
+}
+
+function formatBattleSettleState() {
+  if (!submittedResult) return "待进入";
+  if (submittedResult.countsAsLit) return "已点亮";
+  if (submittedResult.isCorrect) return "已观照";
+  return "已结算";
 }
 
 function renderStage() {
@@ -241,35 +250,57 @@ function renderStartDesk() {
   const build = getRunBuildDefinition(recommendation.buildId);
   const dashboard = createLearningDashboard(questions, player);
   const brief = runEventBrief(recommendation);
+  const collectionText = formatJournalCollection(player.journalCollection);
 
   dom.stage.replaceChildren(el("article", "text-screen start-desk", {}, [
     el("header", "start-hero", {}, [
-      el("span", "text-kicker", {}, ["今日推荐"]),
-      el("h2", "", {}, [mode.name]),
+      el("span", "text-kicker", {}, ["今日小目标"]),
+      el("h2", "", {}, [recommendation.targetText]),
       el("p", "stage-sub", {}, [recommendation.reason]),
+    ]),
+    el("section", "journal-flow", {}, [
+      journalSticker("今日小目标"),
+      journalSticker("开一页题眼手账"),
+      journalSticker("5 道题"),
+      journalSticker("题眼贴纸"),
+      journalSticker("书签收藏"),
+      journalSticker("今日手账页"),
     ]),
     el("section", "start-focus", {}, [
       el("div", "objective-panel primary-objective", {}, [
-        el("span", "text-kicker", {}, ["本局目标"]),
-        el("h3", "", {}, [recommendation.targetText]),
+        el("span", "text-kicker", {}, ["今日手账页"]),
+        el("h3", "", {}, [mode.name]),
         el("p", "", {}, [brief]),
       ]),
       el("div", "objective-panel", {}, [
-        el("span", "text-kicker", {}, ["推荐流派"]),
+        el("span", "text-kicker", {}, ["本页奖励"]),
         el("h3", "", {}, [build.name]),
-        el("p", "", {}, [build.summary]),
+        el("p", "", {}, [recommendation.rewardText || build.summary]),
+        el("p", "text-muted", {}, [`手账收藏：${collectionText}`]),
       ]),
     ]),
     el("footer", "start-actions", {}, [
-      textButton("开始一局", () => startRecommendedRun(recommendation), "primary-action"),
+      textButton(recommendation.primaryAction || "开一页题眼手账", () => startRecommendedRun(recommendation), "primary-action"),
       textButton("换目标", () => goScene("mode"), "text-choice"),
+      textButton("今日清单", () => goScene("daily"), "text-choice"),
       textButton("学习报告", () => goScene("dashboard"), "text-choice"),
       textButton("心魔回廊", () => goScene("review"), "text-choice"),
     ]),
-    el("p", "text-muted", {}, [dashboard.weakestTopic
-      ? `下一步建议：${dashboard.weakestTopic.title} 心魔 ${dashboard.weakestTopic.demonCount}，心法 ${dashboard.weakestTopic.mastery}。`
-      : "下一步建议：先完成一局探索，再根据错题决定是否净化。"]),
+    el("p", "text-muted", {}, [formatStartDeskSuggestion(dashboard)]),
   ]));
+}
+
+function formatStartDeskSuggestion(dashboard) {
+  const topic = dashboard.weakestTopic;
+  if (!topic) return "下一页建议：先完成一页题眼手账，再根据错因决定是否整理。";
+  if (Number(topic.demonCount || 0) > 0) {
+    return `下一页建议：整理 ${topic.title} 心魔 ${topic.demonCount}，心法 ${topic.mastery}。`;
+  }
+  return `下一页建议：补强 ${topic.title} 题眼，心法 ${topic.mastery}。`;
+}
+
+function journalSticker(label) {
+  return el("span", "journal-sticker", {}, [label]);
 }
 
 function renderModeSelectStage() {
@@ -277,7 +308,7 @@ function renderModeSelectStage() {
   dom.stage.replaceChildren(textScreen({
     kicker: "选择目标",
     title: "这一局要解决什么？",
-    intro: "目标只影响本局题池和结算建议。默认推荐已经替你选好，也可以手动改。",
+    intro: "目标只影响本页题池和结算建议。默认推荐已经替你选好，也可以手动改。",
     body: [
       el("div", "mode-grid", {}, rogueliteRunModes.map((mode) =>
         el("article", `mode-card ${mode.id === recommendation.modeId ? "is-recommended" : ""}`, {}, [
@@ -297,12 +328,12 @@ function renderBuildSelectStage() {
   const mode = getRunModeDefinition(selectedRunModeId);
   dom.stage.replaceChildren(textScreen({
     kicker: "选择流派",
-    title: `${mode.name} · 选择本局打法`,
-    intro: "流派影响整局风险收益；题内只保留观照提示，帮助你在不确定时回看题眼。",
+    title: `${mode.name} · 选择本页流派`,
+    intro: "流派影响本页节奏与收获；题内保留低收益看答案，适合卡住时确认解析。",
     body: [
       el("div", "build-grid", {}, rogueliteBuildDefinitions.map((build) =>
         el("article", `build-card ${build.id === selectedBuildId ? "is-selected" : ""}`, {}, [
-          el("span", "text-kicker", {}, [`风险 ${build.risk} · 奖励 ${build.reward}`]),
+          el("span", "text-kicker", {}, [`节奏 ${build.risk} · 收获 ${build.reward}`]),
           el("h3", "", {}, [runBuildLabels[build.id] || build.name]),
           el("p", "", {}, [build.summary]),
           textButton(`用${runBuildLabels[build.id] || build.name}开局`, () => selectRunBuild(build.id), build.id === selectedBuildId ? "text-choice is-primary" : "text-choice"),
@@ -313,18 +344,18 @@ function renderBuildSelectStage() {
       ["返回目标", () => goScene("mode")],
       ["返回开局台", () => goScene("world")],
     ],
-    log: `${mode.name}会决定本局题池，流派决定收益和风险。`,
+    log: `${mode.name}会决定本页题池，流派决定收获节奏。`,
   }));
 }
 
 function runEventBrief(recommendation) {
   if (recommendation.modeId === "purify") {
-    return "阿芷：这局别急着开新题，先把已经暴露的错因处理掉。";
+    return "阿芷：这页别急着开新题，先把已经暴露的错因整理成书签。";
   }
   if (recommendation.modeId === "sprint") {
-    return "青岚：这局会跨域切换，别靠惯性答题，每题先看机制。";
+    return "青岚：这页会跨域切换，别靠惯性答题，每题先看机制。";
   }
-  return "明澈：先开一局探索，题阵会告诉你今天最该补哪里。";
+  return "明澈：先开一页题眼手账，题阵会告诉你今天最该补哪里。";
 }
 
 function getRunModeDefinition(modeId) {
@@ -335,33 +366,12 @@ function getRunBuildDefinition(buildId) {
   return rogueliteBuildDefinitions.find((build) => build.id === buildId) || rogueliteBuildDefinitions[0];
 }
 
-function renderStoryStage() {
-  if (!storyLines.length) startChapterStory();
-  const line = storyLines[storyIndex] || storyLines[0];
-  dom.stage.replaceChildren(textScreen({
-    kicker: storyMode.startsWith("intro") ? "序章" : "剧情",
-    title: line?.speakerName || "书院",
-    intro: line?.text || "书院暂时安静。",
-    body: [
-      panel("已读记录", el("div", "text-log", {}, storyLines.slice(0, storyIndex + 1).map((item) =>
-        el("p", "", {}, [`${item.speakerName}：${item.text}`]),
-      ))),
-    ],
-    choices: [
-      [storyIndex >= storyLines.length - 1 ? "完成阅读" : "继续", advanceStory, "text-choice is-primary"],
-      ["看题眼短课", () => leaveStoryFor("training")],
-      ["去题阵", () => leaveStoryFor("battle")],
-    ],
-    log: logLine,
-  }));
-}
-
 function renderTrainingStage() {
   ensureRun();
   const node = getCurrentNode();
   const question = getCurrentQuestion();
   if (!node || !question) {
-    dom.stage.replaceChildren(emptyScreen("暂时没有题眼短课", "先开始一局，题阵会给出当前要补的题眼。"));
+    dom.stage.replaceChildren(emptyScreen("暂时没有题眼短课", "先开一页题眼手账，题阵会给出当前要补的题眼。"));
     return;
   }
 
@@ -432,13 +442,16 @@ function renderBattleStatusBar({ node, question, mechanicState }) {
   const progressText = node?.encounterIndex
     ? `${node.encounterIndex}/${node.encounterTotal || run.nodes.length}`
     : `${Math.min(run.answeredCount + 1, run.nodes.length)}/${run.nodes.length}`;
+  const hintState = submittedResult
+    ? { label: formatBattleSettleState(), modifier: "is-muted" }
+    : { label: observationHintUsed ? "已看答案" : "可看答案", modifier: observationHintUsed ? "is-muted" : "is-ready" };
   return el("header", "battle-status-bar", {}, [
-    battleStatusChip("本局", run.modeName || "题阵"),
-    battleStatusChip("遭遇", progressText),
+    battleStatusChip("本页", run.modeName || "题阵"),
+    battleStatusChip("进度", progressText),
     battleStatusChip("题型", nodeTypes[node.type]?.name || node.typeName || "题阵"),
     battleStatusChip("题眼", question.lesson?.title || question.topic || "当前题"),
     battleStatusChip("机制", mechanicState.name || node.mechanicName || "常规题阵"),
-    battleStatusChip("提示", observationHintUsed ? "已看观照" : "可观照", observationHintUsed ? "is-muted" : "is-ready"),
+    battleStatusChip("提示", hintState.label, hintState.modifier),
   ]);
 }
 
@@ -456,7 +469,7 @@ function renderBattleQuestionCard({ question, mechanicState, options }) {
       el("h2", "", {}, [question.enemy || question.lesson?.title || "当前题"]),
       el("p", "text-muted", {}, [`${mechanicState.name || "常规题阵"} · ${answerPanelTitle(question)}`]),
     ]),
-    el("p", "battle-stem", {}, [mechanicState.displayStem]),
+    el("p", "battle-stem", {}, [question.stem]),
     el("div", "battle-options", {}, [
       el("div", "battle-section-title", {}, [
         el("span", "", {}, [answerPanelTitle(question)]),
@@ -480,17 +493,50 @@ function renderBattleActionBar(question) {
   const selectionText = selectedKeys.length ? `已选 ${selectedKeys.join("、")}` : "未选择答案";
   const hintText = submittedResult
     ? "本题已结算，可以进入下一步。"
-    : observationHintUsed ? "已看观照提示，作答收益会降低。" : "可先看观照提示，再选择答案提交。";
+    : selectedBreakMoveId === "observe" ? "已选择观照，本题按低收益记录。" : `当前破招：${getBreakMoveDefinition(selectedBreakMoveId).name}。`;
   return el("footer", "battle-action-bar", {}, [
-    el("div", "battle-selection-state", {}, [
-      el("span", "text-kicker", {}, ["答题状态"]),
-      el("strong", "", {}, [selectionText]),
-      el("small", "", {}, [hintText]),
+    el("div", "battle-action-meta", {}, [
+      el("div", "battle-selection-state", {}, [
+        el("span", "text-kicker", {}, ["答题状态"]),
+        el("strong", "", {}, [selectionText]),
+        el("small", "", {}, [hintText]),
+      ]),
+      submittedResult ? "" : renderBreakMoveChoices(),
     ]),
     el("div", "battle-action-buttons", {}, choices.map(([label, onClick, className = "text-choice", detail = ""]) =>
       textButton(label, onClick, battleActionClassName(className), detail),
     )),
   ]);
+}
+
+function renderBreakMoveChoices() {
+  return el("div", "break-move-picker", {}, [
+    el("span", "text-kicker", {}, ["破招式"]),
+    el("div", "break-move-list", {}, breakMoveDefinitions.map((move) =>
+      textButton(
+        move.name,
+        () => selectBreakMove(move.id),
+        `text-choice break-move ${selectedBreakMoveId === move.id ? "is-selected" : ""}`,
+        move.detail,
+      ),
+    )),
+  ]);
+}
+
+function selectBreakMove(moveId) {
+  if (submittedResult) return;
+  const move = getBreakMoveDefinition(moveId);
+  if (observationHintUsed && move.id !== "observe") {
+    showToast("本题已观照，作答将按低收益记录。");
+    return;
+  }
+  selectedBreakMoveId = move.id;
+  if (selectedBreakMoveId === "observe") observationHintUsed = true;
+  render();
+}
+
+function getBreakMoveDefinition(moveId) {
+  return breakMoveDefinitions.find((move) => move.id === moveId) || breakMoveDefinitions[0];
 }
 
 function battleActionClassName(className = "") {
@@ -505,9 +551,9 @@ function renderRunObjectivePanel(node) {
   const progressText = node?.encounterIndex
     ? `${node.encounterIndex}/${node.encounterTotal || run.nodes.length}`
     : `${Math.min(run.answeredCount + 1, run.nodes.length)}/${run.nodes.length}`;
-  return panel("本局目标", [
+  return panel("今日小目标", [
     el("p", "", {}, [`${objective.label || "完成题阵"} · 遭遇 ${progressText}`]),
-    el("p", "text-muted", {}, [objective.prompt || run.brief || "完成本局后会给出下一局建议。"]),
+    el("p", "text-muted", {}, [objective.prompt || run.brief || "完成本页后会给出下一页建议。"]),
   ]);
 }
 
@@ -532,18 +578,18 @@ function isAnswerRecallQuestion(question) {
 function renderBattleHint(question) {
   if (observationHintUsed) {
     const hint = buildObservationHint(question);
-    return panel("观照提示", [
+    return panel("低收益看答案", [
       el("p", "", {}, [hint.stemCue]),
       el("p", "", {}, [`对应答案：${hint.answerLine}`]),
       el("p", "text-muted", {}, [`依据：${hint.explanation}`]),
       hint.keyPoint ? el("p", "text-muted", {}, [`题眼：${hint.keyPoint}`]) : "",
-      el("p", "text-muted", {}, ["本题已查看提示，作答后按提示答题记录，收益会降低。"]),
+      el("p", "text-muted", {}, ["本题已看答案，作答后按低收益答题记录。"]),
     ]);
   }
   return panel("提示", [
-    el("p", "", {}, ["不确定时先看观照提示，再选择答案。"]),
+    el("p", "", {}, ["不确定时可以低收益看答案，再选择答案。"]),
     el("p", "text-muted", {}, ["选择答案后，用底部按钮提交。"]),
-    textButton("观照提示", revealObservationHint, "text-choice", "查看解析摘录与题眼；本题收益降低。"),
+    textButton("低收益看答案", revealObservationHint, "text-choice", "直接查看答案、解析摘录与题眼；本题收益降低。"),
   ]);
 }
 
@@ -551,7 +597,7 @@ function getBattleActionChoices(question) {
   const canSubmit = selectedKeys.length > 0;
   return [
     [
-      canSubmit ? "提交答案" : "先选择答案",
+      canSubmit ? "释放破招" : "先选择答案",
       canSubmit ? handleBattleAction : noop,
       canSubmit ? "text-choice is-primary" : "text-choice is-primary is-disabled",
       canSubmit ? "" : "从上方选项中选择后再提交。",
@@ -564,11 +610,12 @@ function getBattleActionChoices(question) {
 function revealObservationHint() {
   if (submittedResult) return;
   observationHintUsed = true;
+  selectedBreakMoveId = "observe";
   render();
 }
 
 function getBattleStanceId() {
-  return observationHintUsed ? "observe" : "steady";
+  return selectedBreakMoveId;
 }
 
 function noop() {}
@@ -578,7 +625,7 @@ function renderChapterMechanicState(mechanicState) {
     el("p", "", {}, [`${mechanicState.name}：${mechanicState.prompt}`]),
   ];
   if (mechanicState.borrowedMechanic) {
-    lines.push(el("p", "text-muted", {}, [`万象混沌借用：${mechanicState.borrowedMechanic}`]));
+    lines.push(el("p", "text-muted", {}, [`万象混沌借用：${mechanicState.borrowedMechanicName || "题眼机制"}`]));
   }
   if (mechanicState.timeLimitSeconds) {
     lines.push(el("p", "text-muted", {}, [`⏳ 本题建议限时 ${mechanicState.timeLimitSeconds} 秒${mechanicState.recoverAddsSeconds ? `；息阵时间 +${mechanicState.recoverAddsSeconds} 秒` : ""}`]));
@@ -629,7 +676,7 @@ function renderReviewStage() {
 }
 
 function renderDailyStage() {
-  const questState = createDailyQuestState(questions, player);
+  const questState = createDailyQuestState(questions, player, { now: new Date() });
   const challenges = questState.daily;
   const weekly = questState.weekly;
   const fatigue = questState.fatigue;
@@ -639,25 +686,21 @@ function renderDailyStage() {
     intro: "日课和周课会提示你现在最该补哪一块。",
     body: [
       panel("日课", el("div", "text-choice-list", {}, challenges.map((challenge) =>
-        el("article", "text-panel", {}, [
-          el("h3", "", {}, [challenge.title]),
-          el("p", "", {}, [challenge.description]),
-          meter(`${challenge.progress.current}/${challenge.progress.target}`, challenge.progress.current, challenge.progress.target),
-          el("p", "text-muted", {}, [formatQuestReward(challenge.rewards)]),
-        ]),
+        renderQuestRewardCard(challenge),
       ))),
       panel("周课", el("div", "text-choice-list", {}, weekly.map((quest) =>
-        el("article", "text-panel", {}, [
-          el("h3", "", {}, [quest.title]),
-          el("p", "", {}, [quest.description]),
-          meter(`${quest.progress.current}/${quest.progress.target}`, quest.progress.current, quest.progress.target),
-          el("p", "text-muted", {}, [formatQuestReward(quest.rewards)]),
-        ]),
+        renderQuestRewardCard(quest),
       ))),
       panel("休息提醒", [
-        statLine("连续破阵", fatigue.consecutiveRouteRuns),
+        statLine("连续手账页", fatigue.consecutiveRouteRuns),
         statLine("收益倍率", `${Math.round(fatigue.rewardMultiplier * 100)}%`),
         el("p", "text-muted", {}, [fatigue.warning]),
+        textButton(
+          "休息一下",
+          fatigue.consecutiveRouteRuns > 0 ? restFatigueAction : noop,
+          fatigue.consecutiveRouteRuns > 0 ? "text-choice is-primary" : "text-choice is-disabled",
+          fatigue.consecutiveRouteRuns > 0 ? "暂停连做节奏，恢复正常收益。" : "当前节奏正常。",
+        ),
       ]),
     ],
     choices: [
@@ -667,6 +710,21 @@ function renderDailyStage() {
     ],
     log: logLine,
   }));
+}
+
+function renderQuestRewardCard(quest) {
+  const canClaim = quest.completed && !quest.claimed;
+  return el("article", "text-panel quest-reward-card", {}, [
+    el("h3", "", {}, [quest.title]),
+    el("p", "", {}, [quest.description]),
+    meter(`${quest.progress.current}/${quest.progress.target}`, quest.progress.current, quest.progress.target),
+    el("p", "text-muted", {}, [formatQuestReward(quest.rewards)]),
+    textButton(
+      quest.claimed ? "已领取" : canClaim ? "领取奖励" : "未完成",
+      canClaim ? () => claimQuestReward(quest.id) : noop,
+      canClaim ? "text-choice is-primary" : "text-choice is-disabled",
+    ),
+  ]);
 }
 
 function renderDashboardStage() {
@@ -685,7 +743,7 @@ function renderDashboardStage() {
       panel("总体进度", [
         statLine("题眼短课", `${dashboard.questionProgress.studiedCount}/${dashboard.questionProgress.total} · ${dashboard.questionProgress.studiedPercent}%`),
         statLine("答对覆盖", `${dashboard.questionProgress.correctCount}/${dashboard.questionProgress.total} · ${dashboard.questionProgress.correctPercent}%`),
-        statLine("学习域覆盖", `${dashboard.chapterStats.clearedCount}/${dashboard.chapterStats.totalCount}`),
+        statLine("已触达学习域", `${dashboard.topicTouchStats.touchedCount}/${dashboard.topicTouchStats.totalCount} · ${dashboard.topicTouchStats.percent}%`),
         statLine("心魔", `活跃 ${dashboard.demonStats.activeCount} · 已净化 ${dashboard.demonStats.purifiedCount} · 压力 ${dashboard.demonStats.totalPressure}`),
       ]),
       panel("心力修炼", [
@@ -711,7 +769,7 @@ function renderDashboardStage() {
         statLine("平均秒数", averageTimeTrend.averageSeconds),
         statLine("趋势", averageTimeTrend.label),
       ]),
-      panel("流派胜率", el("div", "text-log", {}, dashboard.styleWinRates.map((item) =>
+      panel("流派胜率", el("div", "text-log", {}, dashboard.buildWinRates.map((item) =>
         el("p", "", {}, [`${item.name}：${item.correct}/${item.attempts} · ${item.winRate}%`]),
       ))),
       panel("复习清单", dashboard.reviewItems.length
@@ -734,38 +792,132 @@ function renderReport() {
   const reportData = report || (run.mode === "roguelite"
     ? createRogueliteRunReport(run, player, questions)
     : createRunReport(run, player));
-  dom.stage.replaceChildren(textScreen({
-    kicker: "本局报告",
+  const journal = reportData.journalSummary || {
     title: reportData.resultLabel || reportData.title,
-    intro: `正确率 ${reportData.correctRate}% · 答题 ${reportData.correctCount}/${reportData.answeredCount} · 错题 ${reportData.wrongCount}`,
+    litKeyPoints: reportData.correctCount,
+    totalKeyPoints: reportData.answeredCount,
+    organizedDemons: reportData.purifiedDemonCount || reportData.purifiedCount || 0,
+    pendingDemons: reportData.newDemonCount || reportData.wrongCount || 0,
+    bookmark: reportData.buildName || "稳修",
+    nextSuggestion: reportData.nextRecommendation?.reason || "继续开一页题眼手账",
+  };
+  dom.stage.replaceChildren(textScreen({
+    kicker: "今日手账页",
+    title: journal.title,
+    intro: `点亮题眼 ${journal.litKeyPoints}/${journal.totalKeyPoints} · 已整理心魔 ${journal.organizedDemons} · 新增待整理 ${journal.pendingDemons}`,
     body: [
-      panel("本轮收益", [
+      panel(journal.title, [
+        el("div", "journal-summary", {}, [
+          statLine("点亮题眼", `${journal.litKeyPoints}/${journal.totalKeyPoints}`),
+          statLine("已整理心魔", journal.organizedDemons),
+          statLine("新增待整理", journal.pendingDemons),
+          statLine("本页书签", journal.bookmark),
+          statLine("下一页建议", journal.nextSuggestion),
+        ]),
+      ]),
+      panel("本页奖励", [
         statLine("修为", `+${reportData.growthXpGain}`),
         statLine("材料", formatMaterials(reportData.materialsGain) || "无"),
-        statLine("主要错因", reportData.primaryMistake || reportData.nextRecommendation.reason),
+        statLine("手账收藏", formatJournalCollection(player.journalCollection)),
+        statLine("秘卷碎片", player.journalCollection?.fragments || 0),
+        statLine("错因记录", reportData.primaryMistake || journal.nextSuggestion),
       ]),
-      panel("下一局建议", el("div", "text-choice-list", {}, (reportData.nextActions || []).map((action) =>
+      panel("下一页建议", el("div", "text-choice-list", {}, (reportData.nextActions || []).map((action) =>
         textButton(action.label, () => continueWithNextAction(action), "text-choice", action.reason),
       ))),
       panel("事件", reportData.events.length
         ? el("div", "text-log", {}, reportData.events.map((event) =>
-            el("p", "", {}, [`${event.topic}：${event.isCorrect ? "答对" : "答错"}，${event.learningCheck}`]),
+            el("p", "", {}, [`${event.topic}：${formatJournalEventResult(event)}，${event.learningCheck}`]),
           ))
         : "还没有题阵记录。"),
     ],
     choices: [
-      ["开始一局", startRecommendedRun, "text-choice is-primary"],
+      ["再开一页", startRecommendedRun, "text-choice is-primary"],
       ["去心魔", () => goScene("review")],
       ["回开局台", () => goScene("world")],
     ],
-    log: "结算会决定下一局更该探索、净化还是冲刺。"
+    log: "学习报告会决定下一页更该点亮题眼、整理心魔还是跨域检验。",
   }));
 }
 
 function continueWithNextAction(action) {
+  if (action.scene === "training") {
+    currentNodeIndex = findFirstReviewNodeIndex();
+    scene = "training";
+    submittedResult = null;
+    selectedKeys = [];
+    observationHintUsed = false;
+    selectedBreakMoveId = "steady";
+    logLine = action.reason || "回看题眼短课，再重新点亮题眼。";
+    render();
+    resetScrollPosition();
+    return;
+  }
   selectedRunModeId = action.modeId || "explore";
   selectedBuildId = action.buildId || "steady";
   startRogueliteRun(selectedRunModeId, selectedBuildId);
+}
+
+function findFirstReviewNodeIndex() {
+  const eventsByNode = new Map((run.events || []).map((event) => [event.nodeId, event]));
+  const index = (run.nodes || []).findIndex((node) => !eventsByNode.get(node.id)?.countsAsLit);
+  return index >= 0 ? index : Math.max(0, Math.min(currentNodeIndex, Math.max(0, (run.nodes || []).length - 1)));
+}
+
+function formatJournalEventResult(event) {
+  if (event.countsAsLit) return "题眼贴纸已点亮";
+  if (event.isCorrect && event.stanceId === "observe") return "观照题眼已记录";
+  return "错因心结已收录待整理";
+}
+
+function getQuestPanelStageState({ recommendation = {}, objective = {} } = {}) {
+  if (scene === "report") {
+    return {
+      title: "学习报告",
+      prompt: "这页已经结算，按报告建议选择下一页目标。",
+      nextLabel: "报告建议",
+      nextText: formatReportPanelNextText(report),
+    };
+  }
+  if (scene === "training" && run.state === "report_ready") {
+    return {
+      title: "短课复盘",
+      prompt: "正在回看这页的题眼短课，先补题眼再重新点亮。",
+      nextLabel: "复盘后",
+      nextText: "回看题眼短课后，重新正式点亮这一页。",
+    };
+  }
+  if (scene === "battle") {
+    return {
+      title: "手账页进行中",
+      prompt: objective.prompt || recommendation.reason || "完成一页题眼手账，再查看学习报告。",
+      nextLabel: "下一步",
+      nextText: "完成本页后查看学习报告，再决定下一步。",
+    };
+  }
+  if (scene === "world") {
+    return {
+      title: "下一页",
+      prompt: objective.prompt || recommendation.reason || "选择一页题眼手账开始。",
+      nextLabel: "下一页建议",
+      nextText: recommendation.reason || "从推荐目标开始点亮题眼。",
+    };
+  }
+  return {
+    title: "下一页",
+    prompt: objective.prompt || recommendation.reason || "先完成一页题眼手账。",
+    nextLabel: "下一页建议",
+    nextText: recommendation.reason || "先完成一页题眼手账，再根据报告选择下一步。",
+  };
+}
+
+function formatReportPanelNextText(reportData = report) {
+  const labels = (reportData?.nextActions || [])
+    .map((action) => action.label)
+    .filter(Boolean)
+    .slice(0, 2);
+  if (labels.length) return `按报告建议继续 ${labels.join(" / ")}。`;
+  return "按报告建议选择下一页目标。";
 }
 
 function renderQuestPanel() {
@@ -777,25 +929,26 @@ function renderQuestPanel() {
     label: recommendation.targetText,
     prompt: recommendation.reason,
   };
+  const panelState = getQuestPanelStageState({ recommendation, objective });
   dom.questPanel.replaceChildren(
     el("header", "dossier-head", {}, [
       el("span", "text-kicker", {}, ["局势"]),
-      el("h2", "", {}, [scene === "battle" ? "本局进行中" : "下一步"]),
+      el("h2", "", {}, [panelState.title]),
     ]),
     el("section", "objective-panel", {}, [
       el("div", "section-title", {}, [
-        el("span", "", {}, ["本局目标"]),
+        el("span", "", {}, ["今日小目标"]),
         el("span", "", {}, [mode.name]),
       ]),
       questLine("目标", objective.label || recommendation.targetText),
       questLine("流派", build.name),
-      questLine("进度", run.nodes?.length ? `${run.answeredCount}/${run.nodes.length}` : "未开局"),
-      el("p", "text-muted", {}, [objective.prompt || recommendation.reason]),
+      questLine("进度", formatRunAnsweredProgress(run)),
+      el("p", "text-muted", {}, [panelState.prompt]),
     ]),
     el("section", "portrait", {}, [
       el("div", "section-title", {}, [
         el("span", "", {}, ["错题画像"]),
-        el("span", "", {}, ["当前"]),
+        el("span", "", {}, ["全局画像"]),
       ]),
       ...dashboard.errorPortrait.slice(0, 4).map((item) =>
         el("div", "barline", {}, [
@@ -806,20 +959,10 @@ function renderQuestPanel() {
       ),
     ]),
     el("section", "next-box", {}, [
-      el("strong", "", {}, ["下一步建议"]),
-      el("p", "", {}, [scene === "world" ? recommendation.reason : "完成本局后查看报告，系统会给出下一局建议。"]),
+      el("strong", "", {}, [panelState.nextLabel]),
+      el("p", "", {}, [panelState.nextText]),
     ]),
   );
-}
-
-function renderBottomNav() {
-  dom.bottomNav.replaceChildren(...navItems.map(([id, label]) => {
-    const button = textButton(label, () => goScene(id), scene === id ? "is-active" : "");
-    button.dataset.navId = id;
-    button.setAttribute("aria-label", `打开${label}`);
-    button.setAttribute("aria-current", scene === id ? "page" : "false");
-    return button;
-  }));
 }
 
 function startRecommendedRun(recommendation = createRunRecommendation(questions, player)) {
@@ -855,57 +998,13 @@ function startRogueliteRun(modeId = selectedRunModeId, buildId = selectedBuildId
   submittedResult = null;
   selectedKeys = [];
   observationHintUsed = false;
+  selectedBreakMoveId = "steady";
   report = null;
   logLine = run.brief;
   scene = "battle";
+  resetBattleTimer();
   render();
-}
-
-function startIntro(forced = false) {
-  storyMode = forced ? "intro-forced" : "intro";
-  storyLines = getIntroDialogue();
-  storyIndex = 0;
-  scene = "story";
-  render();
-}
-
-function startChapterStory() {
-  if (!isSelectedChapterAvailable()) return;
-  const chapter = getSelectedChapter();
-  storyMode = "chapter";
-  storyLines = getDialogueForChapter(chapter, player);
-  storyIndex = 0;
-  scene = "story";
-  render();
-}
-
-function advanceStory() {
-  if (storyIndex < storyLines.length - 1) {
-    storyIndex += 1;
-    render();
-    return;
-  }
-  finishStory();
-}
-
-function finishStory() {
-  if (storyMode.startsWith("intro")) {
-    player = markIntroSeen(player);
-    logLine = "序章已读。";
-  } else {
-    const chapter = getSelectedChapter();
-    player = markChapterStorySeen(player, chapter?.id);
-    logLine = `${chapter?.title || "章节"}剧情已读。`;
-  }
-  savePlayer(player);
-  scene = "world";
-  render();
-}
-
-function leaveStoryFor(nextScene) {
-  finishStory();
-  if (nextScene === "training") startTraining();
-  else if (nextScene === "battle") startBattle();
+  resetScrollPosition();
 }
 
 function startTraining() {
@@ -914,7 +1013,9 @@ function startTraining() {
   submittedResult = null;
   selectedKeys = [];
   observationHintUsed = false;
+  selectedBreakMoveId = "steady";
   render();
+  resetScrollPosition();
 }
 
 function studyCurrentNode() {
@@ -933,7 +1034,7 @@ function renderRunBuildSummary() {
   const build = getRunBuildDefinition(run.buildId || selectedBuildId);
   return el("div", "text-choice-list", {}, [
     el("p", "", {}, [`${build.name}：${build.summary}`]),
-    el("p", "text-muted", {}, [`风险 ${build.risk} · 奖励 ${build.reward}。流派在开局前选择，本局内保持不变。`]),
+    el("p", "text-muted", {}, [`节奏 ${build.risk} · 收获 ${build.reward}。流派在开局前选择，本页内保持不变。`]),
   ]);
 }
 
@@ -952,7 +1053,10 @@ function enterBattleAfterTraining() {
   submittedResult = null;
   selectedKeys = [];
   observationHintUsed = false;
+  selectedBreakMoveId = "steady";
+  resetBattleTimer();
   render();
+  resetScrollPosition();
 }
 
 function startBattle() {
@@ -973,13 +1077,15 @@ function startDemonBattle(demonRun) {
   submittedResult = null;
   selectedKeys = [];
   observationHintUsed = false;
+  selectedBreakMoveId = "steady";
   scene = "battle";
+  resetBattleTimer();
   render();
 }
 
 function getBattleResultChoices() {
   const choices = [
-    [run.completed ? "查看战报" : "下一题", handleBattleAdvance, "text-choice is-primary"],
+    [run.completed ? "查看今日手账页" : "下一题", handleBattleAdvance, "text-choice is-primary"],
     ["看题眼短课", startTraining],
   ];
   if (submittedResult?.errorDiagnosis?.primary) {
@@ -1012,11 +1118,14 @@ function handleBattleAction() {
     selectedAnswer: selectedKeys.join(""),
     stanceId: getBattleStanceId(),
     bankQuestions: questions,
+    elapsedSeconds: getBattleElapsedSeconds(),
   });
   player = submittedResult.player;
   run = submittedResult.run;
   report = run.completed ? createRogueliteRunReport(run, player, questions) : null;
-  logLine = submittedResult.isCorrect ? "提交成功。" : `答错，正解 ${submittedResult.correctAnswer}。`;
+  logLine = submittedResult.countsAsLit
+    ? "题眼已点亮。"
+    : submittedResult.isCorrect ? "观照题眼已记录，本题不计入正式点亮。" : `已收进心魔回廊，正解 ${submittedResult.correctAnswer}。`;
   savePlayer(player);
   render();
 }
@@ -1031,8 +1140,18 @@ function handleBattleAdvance() {
   currentNodeIndex = Math.min(run.nodes.length - 1, currentNodeIndex + 1);
   selectedKeys = [];
   observationHintUsed = false;
+  selectedBreakMoveId = "steady";
   submittedResult = null;
+  resetBattleTimer();
   render();
+}
+
+function resetBattleTimer() {
+  battleQuestionStartedAt = Date.now();
+}
+
+function getBattleElapsedSeconds() {
+  return Math.max(0.1, Math.round(((Date.now() - battleQuestionStartedAt) / 1000) * 10) / 10);
 }
 
 function upgradeHeartPowerAction() {
@@ -1045,6 +1164,29 @@ function upgradeHeartPowerAction() {
   } catch (error) {
     showToast(error.message);
   }
+}
+
+function claimQuestReward(questId) {
+  try {
+    const result = claimDailyQuestReward(questions, player, questId, { now: new Date() });
+    const materialText = formatMaterials(result.reward.materials);
+    const titleText = result.reward.title ? `称号：${result.reward.title}` : "";
+    player = result.player;
+    logLine = `已领取 ${result.quest.title}：${[materialText, titleText].filter(Boolean).join(" · ") || "已记录"}`;
+    savePlayer(player);
+    render();
+    showToast(logLine);
+  } catch (error) {
+    showToast(error.message || "暂时不能领取这项奖励。");
+  }
+}
+
+function restFatigueAction() {
+  player = restFromFatigue(player, { now: new Date() });
+  logLine = "已休息，手账节奏已恢复。";
+  savePlayer(player);
+  render();
+  showToast(logLine);
 }
 
 function showExportPanel() {
@@ -1168,9 +1310,6 @@ function resetProgress() {
   player = initialPlayerState();
   selectedChapterId = chapters[0]?.id || "";
   resetRunForChapter();
-  storyMode = "intro";
-  storyLines = getIntroDialogue();
-  storyIndex = 0;
   logLine = "进度已重置。";
   scene = "world";
   savePlayer(player);
@@ -1183,7 +1322,17 @@ function goScene(nextScene) {
   scene = normalized;
   if (scene !== "battle") submittedResult = null;
   if (scene !== "battle") observationHintUsed = false;
+  if (scene !== "battle") selectedBreakMoveId = "steady";
   render();
+  resetScrollPosition();
+}
+
+function resetScrollPosition() {
+  window.requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    dom.shell?.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+    dom.stage?.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+  });
 }
 
 function ensureRun() {
@@ -1195,34 +1344,13 @@ function resetRunForChapter() {
   currentNodeIndex = 0;
   selectedKeys = [];
   observationHintUsed = false;
+  selectedBreakMoveId = "steady";
   submittedResult = null;
   report = null;
 }
 
 function createRunForSelectedChapter() {
   return createRogueliteRun(questions, player, { modeId: selectedRunModeId, buildId: selectedBuildId, length: 5 });
-}
-
-function getSelectedChapter() {
-  return chapters.find((chapter) => chapter.id === selectedChapterId) || chapters[0] || null;
-}
-
-function isSelectedChapterAvailable() {
-  const chapter = getSelectedChapter();
-  const availability = getChapterAvailability(chapter, chapters, player);
-  if (availability.available) return true;
-
-  logLine = `当前题域未开放：${availability.reason}`;
-  showToast(logLine);
-  scene = "world";
-  render();
-  return false;
-}
-
-function getChapterQuestions(chapter) {
-  if (!chapter) return questions;
-  const topicQuestions = questions.filter((question) => question.topic === chapter.topic);
-  return topicQuestions.length ? topicQuestions : questions;
 }
 
 function getCurrentNode() {
@@ -1241,10 +1369,16 @@ function ensureRunIndex() {
 
 function renderBattleFeedback(question) {
   const demon = submittedResult.demonProfile;
+  const pageProgress = `${run.correctCount || 0}/${Math.max(1, run.nodes?.length || run.answeredCount || 5)}`;
   const content = [
-    el("p", "", {}, [submittedResult.isCorrect
-      ? `伤害 ${submittedResult.damage}，修为 +${submittedResult.growthXpGain}，${formatMaterials(submittedResult.materialsGain) || "无材料"}。`
-      : `正解 ${question.answer}。心力 ${signed(submittedResult.heartDelta)}，${demon ? `${demon.demonType}已生成。` : "已记录复训目标。"}`]),
+    el("p", "", {}, [submittedResult.countsAsLit
+      ? `题眼贴纸：${question.lesson?.title || question.topic || "当前题眼"} 已点亮。修为 +${submittedResult.growthXpGain}，${formatMaterials(submittedResult.materialsGain) || "本页进度已记录"}。`
+      : submittedResult.isCorrect
+        ? `观照题眼：${question.lesson?.title || question.topic || "当前题眼"} 已记录。本题已看答案，不计入正式点亮和贴纸。`
+        : `这道题暴露了一个容易混淆的点。正解 ${question.answer}，已收进心魔回廊，下一页可以整理掉。`]),
+    el("p", "text-muted", {}, [submittedResult.isCorrect
+      ? `今日手账页进度：已点亮 ${pageProgress}。`
+      : `错因心结：${demon?.demonType || submittedResult.errorDiagnosis?.primary?.name || "待整理"}。`]),
     submittedResult.styleFeedback ? el("p", "text-muted", {}, [submittedResult.styleFeedback]) : "",
     el("p", "text-muted", {}, [submittedResult.learningCheck]),
   ];
@@ -1252,19 +1386,19 @@ function renderBattleFeedback(question) {
   if (demon) {
     content.push(
       el("p", "text-muted", {}, [`错因：${demon.errorPatternName || demon.demonType}。${demon.diagnosis}`]),
-      el("p", "text-muted", {}, [`净化建议：${demon.remedy}`]),
+      el("p", "text-muted", {}, [`整理建议：${demon.remedy}`]),
     );
   }
   if (submittedResult.errorDiagnosis?.primary) {
     content.push(renderErrorDiagnosisPanel(submittedResult.errorDiagnosis));
   }
 
-  return panel(submittedResult.isCorrect ? "结算：成功" : "结算：失误", content);
+  return panel(submittedResult.countsAsLit ? "题眼贴纸" : submittedResult.isCorrect ? "观照题眼" : "错因收录", content);
 }
 
 function renderErrorDiagnosisPanel(errorDiagnosis) {
   return el("div", "text-log", {}, [
-    el("p", "", {}, [`失误诊断：${errorDiagnosis.primary.name} · ${errorDiagnosis.primary.probability}%`]),
+    el("p", "", {}, [`错因诊断：${errorDiagnosis.primary.name} · ${errorDiagnosis.primary.probability}%`]),
     ...errorDiagnosis.probabilities.map((item) =>
       el("p", "", {}, [`${item.bar} ${item.probability}% ${item.name}：${item.diagnosis}`]),
     ),
@@ -1392,29 +1526,6 @@ function getWorldProgressPercent(progress) {
   return Math.round(((progress.studiedCount * 0.4 + progress.correctCount * 0.6) / total) * 100);
 }
 
-function actionLabel(action) {
-  return {
-    story: "剧情",
-    training: "短课",
-    battle: "题阵",
-    review: "心魔",
-    cleared: "已通关",
-  }[action] || "行动";
-}
-
-function chapterShortTitle(chapter) {
-  return String(chapter?.title || "").replace(/^第[一二三四五六七八九十]+章\s*/u, "");
-}
-
-function getIntroDialogue() {
-  return [
-    { speakerName: "明澈", text: "这里按真实知识域备考，不再使用旧的综合知识兜底分类。" },
-    { speakerName: "阿芷", text: "先短课抓题眼，再进题阵检验；答错会留下错题心魔，之后回到复盘处理。" },
-    { speakerName: "青岚", text: "综合模拟会从已开放的题阵中抽题，用来训练跨知识域迁移。" },
-    { speakerName: "小墨", text: "还没整理稳的旧卷先封存，别让它干扰你的记忆。" },
-  ];
-}
-
 function formatMaterials(materials = {}) {
   const bag = normalizeMaterialBag(materials);
   return materialTypes
@@ -1422,6 +1533,13 @@ function formatMaterials(materials = {}) {
     .filter(([, value]) => value > 0)
     .map(([name, value]) => `${name}+${value}`)
     .join(" · ");
+}
+
+function formatJournalCollection(collection = {}) {
+  const stickers = Array.isArray(collection?.stickers) ? collection.stickers.length : 0;
+  const bookmarks = Array.isArray(collection?.bookmarks) ? collection.bookmarks.length : 0;
+  const fragments = Number(collection?.fragments || 0);
+  return `贴纸 ${stickers} · 书签 ${bookmarks} · 秘卷碎片 ${fragments}`;
 }
 
 function formatQuestReward(rewards = {}) {

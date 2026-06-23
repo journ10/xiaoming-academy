@@ -2,7 +2,7 @@ import {
   getChapterMechanic,
   inferConcept,
   normalizeErrorPatterns,
-} from "./src/content-rules.js";
+} from "./src/content-rules.js?v=study-journal-20260623p";
 
 export const stances = [
   {
@@ -191,10 +191,10 @@ export const errorPatternDefinitions = {
 };
 
 export const chapterMechanicDefinitions = {
-  "law-fog": {
-    id: "law-fog",
-    name: "法条迷雾",
-    prompt: "先圈出法条关键词，再判断应当、可以、不得等措辞。",
+  "law-review": {
+    id: "law-review",
+    name: "法规审题",
+    prompt: "圈主体、义务词、责任后果，再判断应当、可以、不得等措辞。",
     wrongHeartLossBonus: 1,
     studiedDamageBonus: 0.04,
   },
@@ -655,8 +655,29 @@ export function initialPlayerState() {
     mindDemons: {},
     purifiedDemonIds: [],
     dailyQuestProgress: {
+      day: "",
+      studiedLessonIds: [],
+      correctQuestionIds: [],
+      resonanceTopicIds: [],
       demonPurifications: 0,
     },
+    weeklyQuestProgress: {
+      week: "",
+      correctQuestionIds: [],
+      purifiedDemonIds: [],
+      topicCorrectCounts: {},
+    },
+    dailyQuestClaims: {},
+    journalCollection: {
+      stickers: [],
+      bookmarks: [],
+      fragments: 0,
+    },
+    answerTimeSamples: [],
+    earnedTitles: [],
+    consecutiveRouteRuns: 0,
+    lastRouteRunDay: "",
+    lastFatigueRestDay: "",
     chapterClears: {},
     errorStats: {},
     retestStats: { attempts: 0, correct: 0 },
@@ -735,7 +756,10 @@ export function prepareQuestions(rawQuestions = []) {
   return rawQuestions.map((raw, index) => {
     const topic = String(raw.topic || "综合知识");
     const profile = getTopicProfile(topic);
-    const options = normalizeOptions(raw.options);
+    const options = normalizeOptions(raw.options).map((option) => ({
+      ...option,
+      text: normalizeQuestionCopy(option.text),
+    }));
     const rawId = String(raw.id || `question-${index + 1}`);
     const sourceId = String(raw.sourceId || rawId);
     const alreadyStable = Boolean(raw.sourceId && rawId !== raw.sourceId);
@@ -744,7 +768,7 @@ export function prepareQuestions(rawQuestions = []) {
       ? rawId
       : createStableQuestionId(sourceId, bankIndex);
     const difficulty = clamp(Number(raw.difficulty || inferDifficulty(raw)), 1, 5);
-    const explanation = String(raw.explanation || raw.analysis || "讲解还在整理中。");
+    const explanation = normalizeQuestionCopy(raw.explanation || raw.analysis || "讲解还在整理中。");
     const qualityStatus = normalizeQualityStatus(raw.qualityStatus || raw.quality?.status);
     const gameplayStatus = String(raw.gameplayStatus || deriveGameplayStatus(topic, qualityStatus));
     const lesson = normalizeLesson(raw.lesson, {
@@ -776,7 +800,7 @@ export function prepareQuestions(rawQuestions = []) {
       year: String(raw.year || "未标注"),
       type: String(raw.type || "练习题"),
       topic,
-      stem: String(raw.stem || "题干还在整理中"),
+      stem: normalizeQuestionCopy(raw.stem || "题干还在整理中"),
       options,
       answer: normalizeAnswer(raw.answer, options),
       explanation,
@@ -862,6 +886,11 @@ export function createSaveArchive({
 } = {}) {
   const preparedQuestions = questions.length ? prepareQuestions(questions) : [];
   const chapters = createStoryChapters(preparedQuestions);
+  const mergedPlayer = {
+    ...initialPlayerState(),
+    ...(player || {}),
+    journalCollection: normalizeJournalCollection(player?.journalCollection),
+  };
 
   return {
     type: "xiaoming-academy-save",
@@ -870,8 +899,8 @@ export function createSaveArchive({
     selectedChapterId: chapters.length ? resolveArchiveChapterId(chapters, selectedChapterId) : String(selectedChapterId || ""),
     scene: String(scene || "world"),
     player: preparedQuestions.length
-      ? prunePlayerForQuestions({ ...initialPlayerState(), ...(player || {}) }, preparedQuestions)
-      : { ...initialPlayerState(), ...(player || {}) },
+      ? prunePlayerForQuestions(mergedPlayer, preparedQuestions)
+      : mergedPlayer,
   };
 }
 
@@ -889,7 +918,12 @@ export function parseSaveArchive(payload, options = {}) {
   const contextQuestions = Array.isArray(options) ? options : options.questions || [];
   const preparedQuestions = contextQuestions.length ? prepareQuestions(contextQuestions) : [];
   const chapters = createStoryChapters(preparedQuestions);
-  const mergedPlayer = { ...initialPlayerState(), ...(payload.player || payload) };
+  const sourcePlayer = payload.player || payload;
+  const mergedPlayer = {
+    ...initialPlayerState(),
+    ...sourcePlayer,
+    journalCollection: normalizeJournalCollection(sourcePlayer.journalCollection),
+  };
   const player = preparedQuestions.length ? prunePlayerForQuestions(mergedPlayer, preparedQuestions) : mergedPlayer;
 
   return {
@@ -922,6 +956,7 @@ export function prunePlayerForQuestions(player, questions) {
     correctQuestionIds: (player.correctQuestionIds || []).filter((id) => questionIds.has(id)),
     wrongQuestionIds: (player.wrongQuestionIds || []).filter((id) => questionIds.has(id)),
     purifiedDemonIds: (player.purifiedDemonIds || []).filter((id) => questionIds.has(id)),
+    journalCollection: normalizeJournalCollection(player.journalCollection, { questionIds }),
     mindDemons: nextMindDemons,
     chapterClears: Object.fromEntries(
       Object.entries(player.chapterClears || {}).filter(([chapterId]) => chapterIds.has(chapterId)),
@@ -1275,12 +1310,21 @@ export function getLearningStyle(styleId = "balanced") {
 }
 
 function getLearningStyleForRun(player = initialPlayerState(), run = {}) {
-  const buildToStyle = {
+  return getLearningStyle(getLearningStyleIdForBuild(run?.buildId) || player.learningStyleId || "balanced");
+}
+
+function getLearningStyleIdForBuild(buildId = "") {
+  return {
     steady: "balanced",
     assault: "assault-flow",
     review: "review",
-  };
-  return getLearningStyle(buildToStyle[run?.buildId] || player.learningStyleId || "balanced");
+  }[buildId] || "";
+}
+
+function getVisibleLearningStyleName(style = {}, run = {}) {
+  const build = rogueliteBuildDefinitions.find((item) => item.id === run?.buildId);
+  if (build && getLearningStyleIdForBuild(build.id) === style.id) return build.name;
+  return style.name || "流派";
 }
 
 export function getAvailableLearningStyles(player = initialPlayerState(), chapters = []) {
@@ -1327,12 +1371,10 @@ export function getChapterMechanicDefinition(mechanicId = "chaos-mix") {
 export function buildChapterMechanicState(question, player = initialPlayerState(), context = {}) {
   const prepared = prepareQuestions([question])[0];
   const mechanic = getChapterMechanicDefinition(prepared.chapterMechanic);
-  const studied = (player.studiedLessonIds || []).includes(prepared.lesson.id) || Boolean(context.studied);
   const baseState = {
     id: mechanic.id,
     name: mechanic.name,
     prompt: mechanic.prompt,
-    displayStem: prepared.stem,
     optionWarnings: [],
     timeLimitSeconds: 0,
     recoverAddsSeconds: 0,
@@ -1344,6 +1386,7 @@ export function buildChapterMechanicState(question, player = initialPlayerState(
     attemptsAllowed: Infinity,
     forcedDemonOnMiss: false,
     borrowedMechanic: "",
+    borrowedMechanicName: "",
   };
 
   if (mechanic.id === "chaos-mix") {
@@ -1358,14 +1401,7 @@ export function buildChapterMechanicState(question, player = initialPlayerState(
       name: mechanic.name,
       prompt: mechanic.prompt,
       borrowedMechanic,
-    };
-  }
-
-  if (mechanic.id === "law-fog") {
-    return {
-      ...baseState,
-      displayStem: studied || context.reveal ? prepared.stem : maskLawKeywords(prepared, prepared.difficulty),
-      fogLevel: Math.min(3, Math.max(1, Number(prepared.difficulty || 1))),
+      borrowedMechanicName: getChapterMechanicDefinition(borrowedMechanic).name,
     };
   }
 
@@ -1583,10 +1619,11 @@ export function createRunRecommendation(questions = [], player = initialPlayerSt
     return {
       modeId: "purify",
       buildId: "review",
-      primaryAction: "开始一局",
-      title: "今日推荐：净化心魔",
-      reason: `${strongest?.topic || "错题"}还有活跃心魔，先净化错题比继续探索更稳。`,
-      targetText: `净化 ${Math.min(2, activeDemons.length)} 个错题心魔`,
+      primaryAction: "开一页题眼手账",
+      title: "今日小目标：整理错因心魔",
+      reason: `${strongest?.topic || "错题"}还有待整理心魔，先开一页复盘手账会更稳。`,
+      targetText: `整理 ${Math.min(2, activeDemons.length)} 个错因心魔`,
+      rewardText: "本页奖励：错因书签 + 复盘贴纸",
     };
   }
 
@@ -1597,20 +1634,22 @@ export function createRunRecommendation(questions = [], player = initialPlayerSt
     return {
       modeId: "explore",
       buildId: "steady",
-      primaryAction: "开始一局",
-      title: "今日推荐：探索新题",
-      reason: "还有新题眼没有点亮，先打一局探索局建立知识覆盖。",
-      targetText: "点亮 1 个新概念",
+      primaryAction: "开一页题眼手账",
+      title: "今日小目标：点亮题眼",
+      reason: "还有新题眼没有点亮，先完成一页 5 题手账建立知识覆盖。",
+      targetText: "今天点亮 5 个题眼",
+      rewardText: "本页奖励：题眼贴纸 + 稳修书签",
     };
   }
 
   return {
     modeId: "sprint",
     buildId: "steady",
-    primaryAction: "开始一局",
-    title: "今日推荐：综合冲刺",
-    reason: "当前新题推进趋稳，适合用混合题阵检验迁移能力。",
-    targetText: "完成 5 题跨域检验",
+    primaryAction: "开一页题眼手账",
+    title: "今日小目标：完成稳修手账",
+    reason: "当前新题推进趋稳，适合开一页跨域手账检验迁移能力。",
+    targetText: "完成一页稳修手账",
+    rewardText: "本页奖励：跨域书签 + 秘卷碎片",
   };
 }
 
@@ -1660,10 +1699,12 @@ export function createRogueliteRunReport(run, player = initialPlayerState(), que
   const primaryWrong = wrongEvents[0] || null;
   const purifiedCount = run.purifiedDemonIds?.length || 0;
   const newDemonCount = wrongEvents.length;
+  const targetCorrectCount = getRogueliteTargetCorrectCount(run);
+  const nextActions = createRogueliteNextActions(run, player, questions, { wrongEvents, purifiedCount, targetCorrectCount });
   const resultLabel = run.failed
     ? "题阵中断"
     : run.completed || run.state === "report_ready"
-      ? base.correctRate >= 60 ? "本局完成" : "完成但需复盘"
+      ? getRogueliteResultLabel(run, base.correctRate, purifiedCount)
       : "进行中";
 
   return {
@@ -1679,8 +1720,58 @@ export function createRogueliteRunReport(run, player = initialPlayerState(), que
     primaryMistake: primaryWrong
       ? `${primaryWrong.topic || "本局"} · ${primaryWrong.demonType || primaryWrong.errorPattern || "错因待复盘"}`
       : "本局没有新增明显错因",
-    nextActions: createRogueliteNextActions(run, player, questions, { wrongEvents, purifiedCount }),
+    nextActions,
+    journalSummary: createJournalSummary({ base, run, primaryWrong, wrongEvents, purifiedCount, nextActions, title: resultLabel, targetCorrectCount }),
   };
+}
+
+function getRogueliteResultLabel(run, correctRate, purifiedCount) {
+  if ((run.modeId || "") === "purify" && Number(purifiedCount || 0) === 0) {
+    return "今日手账页待整理";
+  }
+  return correctRate >= 60 ? "今日手账页完成" : "今日手账页待复盘";
+}
+
+function createJournalSummary({ base, run, primaryWrong, wrongEvents, purifiedCount, nextActions, title, targetCorrectCount }) {
+  const bookmarkEarned = hasEarnedRogueliteRunBookmark(run, { targetCorrectCount });
+  return {
+    title,
+    litKeyPoints: Number(base.correctCount || 0),
+    totalKeyPoints: Math.max(1, Number(run.nodes?.length || base.answeredCount || 5)),
+    organizedDemons: Number(purifiedCount || 0),
+    pendingDemons: wrongEvents.length,
+    bookmark: bookmarkEarned ? run.buildName || getRogueliteBuild(run.buildId).name : getUnearnedJournalBookmarkLabel(run),
+    bookmarkEarned,
+    nextSuggestion: createJournalNextSuggestion(primaryWrong, nextActions),
+  };
+}
+
+function getRogueliteTargetCorrectCount(run = {}) {
+  const objectiveTarget = Number(run.objective?.targetCorrectCount || 0);
+  if (objectiveTarget > 0) return objectiveTarget;
+  const total = Math.max(1, Number(run.nodes?.length || run.answeredCount || 5));
+  return Math.max(1, Math.ceil(total * 0.6));
+}
+
+function hasEarnedRogueliteRunBookmark(run = {}, options = {}) {
+  const targetCorrectCount = Number(options.targetCorrectCount || getRogueliteTargetCorrectCount(run));
+  return Number(run.correctCount || 0) >= targetCorrectCount;
+}
+
+function getUnearnedJournalBookmarkLabel(run = {}) {
+  const observedCount = (run.events || []).filter((event) => event.isCorrect && !event.countsAsLit).length;
+  if (observedCount > 0 && Number(run.correctCount || 0) === 0) return "观照记录";
+  return "未获得";
+}
+
+function createJournalNextSuggestion(primaryWrong, nextActions = []) {
+  if (primaryWrong) {
+    const target = primaryWrong.demonType || primaryWrong.errorPattern || primaryWrong.topic || "概念混淆";
+    return `继续整理「${target}」`;
+  }
+  const next = nextActions[0];
+  if (next) return `${next.label}：${next.reason}`;
+  return "继续开一页题眼手账";
 }
 
 function getRogueliteMode(modeId = "explore") {
@@ -1746,34 +1837,58 @@ function createRogueliteObjective(modeId, questions = [], player = initialPlayer
 
   return {
     type: "explore",
-    label: "探索新题",
-    targetNewConcepts: 1,
+    label: "点亮题眼",
+    targetQuestionCount: questions.length || 5,
     targetCorrectCount: Math.max(1, Math.min(3, questions.length || 1)),
-    prompt: "先点亮新题眼，再根据错因决定下一局。",
+    prompt: "完成一页 5 题手账，再根据错因决定下一页。",
   };
 }
 
 function createRogueliteBrief(mode, build, objective) {
   if (mode.id === "purify") {
-    return `净化局启动：${objective.prompt}推荐使用${build.name}，把错题心魔转成复盘收益。`;
+    return `复盘手账已打开：${objective.prompt}推荐使用${build.name}，把错题心魔整理成复盘贴纸。`;
   }
   if (mode.id === "sprint") {
-    return `综合冲刺启动：混合题阵会跨域切换，${build.name}会改变本局风险收益。`;
+    return `跨域手账已打开：混合题阵会跨域切换，${build.name}会影响本页书签收益。`;
   }
-  return `探索局启动：先点亮新题眼，${build.name}会帮助你稳定完成第一轮题阵。`;
+  return `题眼手账已打开：完成 5 题，${build.name}会帮助你稳定点亮本页题眼。`;
 }
 
 function createRogueliteNextActions(run, player, questions, context = {}) {
   const wrongEvents = context.wrongEvents || [];
+  const targetCorrectCount = Number(context.targetCorrectCount || getRogueliteTargetCorrectCount(run));
+  const correctCount = Number(run.correctCount || 0);
+  const totalKeyPoints = Math.max(1, Number((run.nodes || []).length || run.answeredCount || targetCorrectCount || 5));
+  const missingBookmarkCount = Math.max(0, targetCorrectCount - correctCount);
+  const reportReady = run.completed || run.state === "report_ready";
   const actions = [];
-  if (wrongEvents.length || Object.keys(player.mindDemons || {}).length) {
+  if (reportReady && correctCount < targetCorrectCount) {
+    actions.push({
+      label: "回看短课",
+      scene: "training",
+      modeId: run.modeId || "explore",
+      buildId: run.buildId || "steady",
+      reason: `本页已点亮 ${correctCount}/${totalKeyPoints}，书签目标 ${correctCount}/${targetCorrectCount}，距离书签目标还差 ${missingBookmarkCount} 个。先回看题眼短课，再重新正式点亮。`,
+    });
+    actions.push({
+      label: "重新点亮",
+      modeId: run.modeId || "explore",
+      buildId: run.buildId || "steady",
+      reason: "本页还没达到书签目标，先不用开新页。",
+    });
+  }
+  const activeDemonCount = Object.keys(player.mindDemons || {}).length;
+  if (wrongEvents.length || activeDemonCount) {
     actions.push({
       label: "继续净化",
       modeId: "purify",
       buildId: "review",
-      reason: "本局出现错因，下一局优先处理心魔。",
+      reason: wrongEvents.length
+        ? "本局出现错因，下一局优先处理心魔。"
+        : "仍有历史心魔待整理，下一局优先回到心魔回廊。",
     });
   }
+  if (reportReady && correctCount < targetCorrectCount) return actions.slice(0, 3);
   actions.push({
     label: "探索新题",
     modeId: "explore",
@@ -1829,6 +1944,7 @@ export function studyNode(player, run, nodeId, options = {}) {
   const rewards = calculateStudyRewards(wasStudied, {
     question: studiedQuestion,
     style: getLearningStyleForRun(player, run),
+    run,
     hasActiveDemon: Boolean(player.mindDemons?.[node.questionId]),
   });
   const studiedLessonIds = unique([...(player.studiedLessonIds || []), node.lessonId]);
@@ -1846,6 +1962,10 @@ export function studyNode(player, run, nodeId, options = {}) {
     materials: addMaterials(player.materials, rewards.materialsGain),
     bonds: applyBondGains(player.bonds, rewards.bondGains),
     studiedLessonIds,
+    dailyQuestProgress: addDailyQuestProgress(player, {
+      now: options.now,
+      studiedLessonId: node.lessonId,
+    }),
   }, options.bankQuestions || [], options.chapterOptions || {});
 
   return {
@@ -1865,8 +1985,11 @@ export function applyTrialAnswer(player, run, action) {
   const stance = getStance(action.stanceId);
   const question = prepareQuestions([action.question])[0];
   const nodeConfig = nodeTypes[node.type] || nodeTypes.normal;
+  const fatigue = getFatigueState(player, { now: action.now });
+  const fatigueMultiplier = Number(fatigue.rewardMultiplier || 1);
   const normalizedSelected = normalizeAnswer(action.selectedAnswer, question.options);
   const isCorrect = normalizedSelected === question.answer;
+  const countsAsLit = isCorrect && stance.id !== "observe";
   const hadActiveDemon = Boolean(player.mindDemons?.[question.id]);
   const errorDiagnosis = isCorrect ? null : buildErrorDiagnosis(question, normalizedSelected);
   const style = getLearningStyleForRun(player, run);
@@ -1881,13 +2004,19 @@ export function applyTrialAnswer(player, run, action) {
   const method = getHeartMethod(question.topic, player.mastery?.[question.topic] || 0);
   const damage = Math.round(calculateDamage({ question, stance, nodeConfig, method, isCorrect, studiedBeforeBattle }) * styleEffect.damageMultiplier);
   const baseHeartDelta = calculateHeartDelta({ question, stance, nodeConfig, method, isCorrect });
-  const heartDelta = isCorrect ? baseHeartDelta : Math.min(0, baseHeartDelta + styleEffect.heartGuard - styleEffect.heartPenalty);
-  const spiritPagesGain = Math.max(0, Math.round(calculateSpiritPages({ question, stance, nodeConfig, isCorrect, studiedBeforeBattle }) * styleEffect.rewardMultiplier));
-  const materialsGain = calculateMaterialsGain({ question, nodeConfig, isCorrect, studiedBeforeBattle });
-  const masteryGain = calculateMasteryGain({ question, isCorrect, studiedBeforeBattle });
-  const stanceMasteryGain = calculateStanceMasteryGain({ question, nodeConfig, isCorrect, studiedBeforeBattle });
+  const heartDelta = countsAsLit
+    ? baseHeartDelta
+    : isCorrect ? 0 : Math.min(0, baseHeartDelta + styleEffect.heartGuard - styleEffect.heartPenalty);
+  const spiritPagesGain = applyRewardMultiplier(
+    Math.max(0, Math.round(calculateSpiritPages({ question, stance, nodeConfig, isCorrect, studiedBeforeBattle }) * styleEffect.rewardMultiplier)),
+    fatigueMultiplier,
+  );
+  const materialsGain = scaleMaterials(calculateMaterialsGain({ question, nodeConfig, isCorrect: countsAsLit, studiedBeforeBattle }), fatigueMultiplier);
+  const masteryGain = calculateMasteryGain({ question, isCorrect: countsAsLit, studiedBeforeBattle });
+  const stanceMasteryGain = calculateStanceMasteryGain({ question, nodeConfig, isCorrect: countsAsLit, studiedBeforeBattle });
   const demonResult = updateMindDemon(player, question, {
     isCorrect,
+    countsAsLit,
     normalizedSelected,
     stance,
     nodeConfig,
@@ -1897,15 +2026,16 @@ export function applyTrialAnswer(player, run, action) {
     ...(player.mastery || {}),
     [question.topic]: clamp((player.mastery?.[question.topic] || 0) + masteryGain, 0, 100),
   };
+  const resonanceTopicId = countsAsLit && Number(nextMastery[question.topic] || 0) >= 50 ? question.topic : "";
   const nextStanceStats = {
     steady: player.stanceStats?.steady || 0,
     assault: player.stanceStats?.assault || 0,
     observe: player.stanceStats?.observe || 0,
     [stance.id]: (player.stanceStats?.[stance.id] || 0) + 1,
   };
-  const nextStyleStats = updateLearningStyleStats(player.styleStats, style.id, isCorrect);
+  const nextStyleStats = updateLearningStyleStats(player.styleStats, style.id, countsAsLit);
   const nextErrorStats = updateErrorStats(player.errorStats, errorDiagnosis?.primary?.errorPattern);
-  const nextRetestStats = updateRetestStats(player.retestStats, hadActiveDemon, isCorrect);
+  const nextRetestStats = updateRetestStats(player.retestStats, hadActiveDemon, countsAsLit);
   const nextWrongIds = isCorrect
     ? demonResult.purifiedDemonId
       ? (player.wrongQuestionIds || []).filter((id) => id !== question.id)
@@ -1914,28 +2044,43 @@ export function applyTrialAnswer(player, run, action) {
   const nextPurifiedIds = demonResult.purifiedDemonId
     ? unique([...(player.purifiedDemonIds || []), demonResult.purifiedDemonId])
     : [...(player.purifiedDemonIds || [])];
-  const nextDailyQuestProgress = {
-    ...(player.dailyQuestProgress || {}),
-    demonPurifications: demonResult.purifiedDemonId
-      ? Math.min(1, Number(player.dailyQuestProgress?.demonPurifications || 0) + 1)
-      : Number(player.dailyQuestProgress?.demonPurifications || 0),
-  };
+  const nextDailyQuestProgress = addDailyQuestProgress(player, {
+    now: action.now,
+    correctQuestionId: countsAsLit ? question.id : "",
+    resonanceTopicId,
+    demonPurifications: demonResult.purifiedDemonId ? 1 : 0,
+  });
+  const nextWeeklyQuestProgress = addWeeklyQuestProgress(player, {
+    now: action.now,
+    correctQuestionId: countsAsLit ? question.id : "",
+    purifiedDemonId: demonResult.purifiedDemonId || "",
+    topic: countsAsLit ? question.topic : "",
+  });
   const starGlimmerGain = 0;
-  const growthXpGain = Math.max(0, Math.round(calculateBattleGrowthXp({ question, isCorrect, studiedBeforeBattle }) * styleEffect.rewardMultiplier));
+  const growthXpGain = applyRewardMultiplier(
+    Math.max(0, Math.round(calculateBattleGrowthXp({ question, isCorrect: countsAsLit, studiedBeforeBattle }) * styleEffect.rewardMultiplier)),
+    fatigueMultiplier,
+  );
   const bondGains = calculateBattleBondGains({
-    isCorrect,
+    isCorrect: countsAsLit,
     purifiedDemonId: demonResult.purifiedDemonId,
   });
   const nextGrowthXp = Number(player.growthXp || 0) + growthXpGain;
-  const nextCorrectQuestionIds = isCorrect
+  const nextCorrectQuestionIds = countsAsLit
     ? unique([...(player.correctQuestionIds || []), question.id])
     : [...(player.correctQuestionIds || [])];
-  const energyDelta = calculateEnergyDelta({ isCorrect, stance });
+  const energyDelta = countsAsLit ? calculateEnergyDelta({ isCorrect, stance }) : isCorrect ? 0 : calculateEnergyDelta({ isCorrect, stance });
   const nextEnergy = clamp(
     Number(player.energy ?? player.maxEnergy ?? 12) + energyDelta,
     0,
     Number(player.maxEnergy || 12),
   );
+  const nextAnswerTimeSamples = appendAnswerTimeSample(player.answerTimeSamples, action.elapsedSeconds);
+  const nextJournalCollection = addJournalAnswerCollectible(player.journalCollection, {
+    question,
+    isCorrect: countsAsLit,
+    now: action.now,
+  });
 
   const nextPlayer = updateChapterClears({
     ...player,
@@ -1949,7 +2094,7 @@ export function applyTrialAnswer(player, run, action) {
     spiritPages: (player.spiritPages || 0) + spiritPagesGain,
     materials: addMaterials(player.materials, materialsGain),
     stanceMastery: applyStanceMastery(player.stanceMastery, stance.id, stanceMasteryGain),
-    streak: isCorrect ? (player.streak || 0) + 1 : 0,
+    streak: countsAsLit ? (player.streak || 0) + 1 : 0,
     bonds: applyBondGains(player.bonds, bondGains),
     mastery: nextMastery,
     studiedLessonIds: [...(player.studiedLessonIds || [])],
@@ -1959,16 +2104,20 @@ export function applyTrialAnswer(player, run, action) {
     mindDemons: demonResult.mindDemons,
     purifiedDemonIds: nextPurifiedIds,
     dailyQuestProgress: nextDailyQuestProgress,
+    weeklyQuestProgress: nextWeeklyQuestProgress,
+    journalCollection: nextJournalCollection,
     stanceStats: nextStanceStats,
     styleStats: nextStyleStats,
     errorStats: nextErrorStats,
     retestStats: nextRetestStats,
+    answerTimeSamples: nextAnswerTimeSamples,
   }, action.bankQuestions || [question], action.chapterOptions || {});
 
   const nextRun = updateRun(run, {
     node,
     question,
     stance,
+    countsAsLit,
     isCorrect,
     normalizedSelected,
     damage,
@@ -1992,9 +2141,23 @@ export function applyTrialAnswer(player, run, action) {
     styleFeedback: styleEffect.feedback,
     errorDiagnosis,
   });
+  const finalPlayer = nextRun.completed && !run.completed
+    ? {
+        ...nextPlayer,
+        consecutiveRouteRuns: Number(fatigue.consecutiveRouteRuns || 0) + 1,
+        lastRouteRunDay: localDateKey(normalizeDate(action.now)),
+        journalCollection: hasEarnedRogueliteRunBookmark(nextRun)
+          ? addJournalRunCollectibles(nextJournalCollection, {
+              run: nextRun,
+              now: action.now,
+            })
+          : nextJournalCollection,
+      }
+    : nextPlayer;
 
   return {
     isCorrect,
+    countsAsLit,
     selectedAnswer: normalizedSelected,
     correctAnswer: question.answer,
     damage,
@@ -2014,7 +2177,7 @@ export function applyTrialAnswer(player, run, action) {
     demonProfile: demonResult.activeDemon || null,
     errorDiagnosis,
     styleFeedback: styleEffect.feedback,
-    player: nextPlayer,
+    player: finalPlayer,
     run: nextRun,
   };
 }
@@ -2103,61 +2266,100 @@ export function upgradeHeartPower(player = initialPlayerState()) {
   };
 }
 
-export function createDailyChallenges(questions = [], player = initialPlayerState()) {
+export function createDailyChallenges(questions = [], player = initialPlayerState(), options = {}) {
   const prepared = prepareQuestions(questions);
-  const studiedLessonIds = new Set(player.studiedLessonIds || []);
-  const correctQuestionIds = new Set(player.correctQuestionIds || []);
+  const claims = player.dailyQuestClaims || {};
+  const cycle = createQuestCycle(options);
+  const progress = getDailyQuestProgressForCycle(player, cycle);
+  const studiedLessonIds = new Set(progress.studiedLessonIds);
+  const correctQuestionIds = new Set(progress.correctQuestionIds);
+  const resonanceTopicIds = new Set(progress.resonanceTopicIds);
   const topicCount = new Set(prepared.map((question) => question.topic)).size || 1;
   const studiedCount = prepared.filter((question) => studiedLessonIds.has(question.lesson.id)).length;
   const correctCount = prepared.filter((question) => correctQuestionIds.has(question.id)).length;
   const demonCount = Object.keys(player.mindDemons || {}).length;
-  const demonPurifications = Math.min(1, Number(player.dailyQuestProgress?.demonPurifications || 0));
-  const resonanceCount = Object.values(player.mastery || {}).filter((value) => Number(value || 0) >= 50).length;
+  const demonPurifications = Math.min(1, Number(progress.demonPurifications || 0));
+  const resonanceCount = [...new Set(prepared.map((question) => question.topic))]
+    .filter((topic) => resonanceTopicIds.has(topic)).length;
 
   return [
-    dailyChallenge("daily-study", "晨课三问", "完成题眼短课，把讲解转成题眼记忆。", studiedCount, Math.min(3, prepared.length || 3), {
+    dailyChallenge("daily-study", "晨间贴纸", "完成题眼短课，把讲解转成题眼记忆。", studiedCount, Math.min(3, prepared.length || 3), {
       shuye: 3,
-    }),
-    dailyChallenge("daily-battle", "连破题阵", "在任意题阵中答对题目，用题阵检验短课结果。", correctCount, Math.min(5, prepared.length || 5), {
+    }, isQuestClaimed(claims, "daily-study", cycle)),
+    dailyChallenge("daily-battle", "题眼贴纸页", "在任意题阵中答对题目，把今日手账页点亮。", correctCount, Math.min(5, prepared.length || 5), {
       shuye: 4,
-    }),
-    dailyChallenge("daily-demon", "净墨回廊", demonCount
-      ? "处理错题心魔，降低秘卷黑墨压迫。"
-      : "题阵中出现错题心魔后，再回净墨回廊处理。", demonPurifications, 1, {
+    }, isQuestClaimed(claims, "daily-battle", cycle)),
+    dailyChallenge("daily-demon", "心魔整理贴", demonCount
+      ? "整理一个错题心魔，把它收进复盘手账。"
+      : "题阵中出现错题心魔后，再回来补一张整理贴。", demonPurifications, 1, {
       moyu: 2,
-    }),
-    dailyChallenge("daily-resonance", "心法共鸣", "把至少一个主题心法练到半熟以上。", resonanceCount, Math.min(2, topicCount), {
+    }, isQuestClaimed(claims, "daily-demon", cycle)),
+    dailyChallenge("daily-resonance", "主题徽章", "把至少一个主题整理到半熟以上，点亮主题徽章。", resonanceCount, Math.min(2, topicCount), {
       shuye: 2,
-    }),
+    }, isQuestClaimed(claims, "daily-resonance", cycle)),
   ];
 }
 
-export function createDailyQuestState(questions = [], player = initialPlayerState()) {
+export function createDailyQuestState(questions = [], player = initialPlayerState(), options = {}) {
   const prepared = prepareQuestions(questions);
-  const correctCount = (player.correctQuestionIds || []).length;
-  const purifiedCount = (player.purifiedDemonIds || []).length;
-  const topicCorrectCounts = prepared.reduce((counts, question) => {
-    if ((player.correctQuestionIds || []).includes(question.id)) {
-      counts[question.topic] = (counts[question.topic] || 0) + 1;
-    }
-    return counts;
-  }, {});
+  const claims = player.dailyQuestClaims || {};
+  const cycle = createQuestCycle(options);
+  const weeklyProgress = getWeeklyQuestProgressForCycle(player, cycle);
+  const weeklyCorrectQuestionIds = new Set(weeklyProgress.correctQuestionIds);
+  const weeklyPurifiedDemonIds = new Set(weeklyProgress.purifiedDemonIds);
+  const correctCount = prepared.filter((question) => weeklyCorrectQuestionIds.has(question.id)).length;
+  const purifiedCount = prepared.filter((question) => weeklyPurifiedDemonIds.has(question.id)).length;
+  const topicCorrectCounts = { ...(weeklyProgress.topicCorrectCounts || {}) };
   const bestTopicCorrect = Math.max(0, ...Object.values(topicCorrectCounts));
 
   return {
-    daily: createDailyChallenges(prepared, player),
+    daily: createDailyChallenges(prepared, player, options),
     weekly: [
-      weeklyQuest("weekly-graph", "知识巡检", "点亮知识图谱10个新节点。", correctCount, 10, {
-        title: "图谱巡检者",
-      }),
-      weeklyQuest("weekly-demon-sweep", "错题大扫除", "净化5个心魔。", purifiedCount, 5, {
-        title: "净墨行者",
-      }),
-      weeklyQuest("weekly-topic", "主题挑战", "任一主题答对20题。", bestTopicCorrect, 20, {
-        title: "主题破阵者",
-      }),
+      weeklyQuest("weekly-graph", "收藏册进度", "本周点亮10个题眼，把收藏册推进一格。", correctCount, 10, {
+        title: "收藏册新页",
+      }, isQuestClaimed(claims, "weekly-graph", cycle)),
+      weeklyQuest("weekly-demon-sweep", "心魔整理页", "本周整理5个心魔，补齐一页复盘手账。", purifiedCount, 5, {
+        title: "复盘书签",
+      }, isQuestClaimed(claims, "weekly-demon-sweep", cycle)),
+      weeklyQuest("weekly-topic", "主题徽章册", "任一主题点亮20题，收下一枚主题徽章。", bestTopicCorrect, 20, {
+        title: "主题徽章贴",
+      }, isQuestClaimed(claims, "weekly-topic", cycle)),
     ],
-    fatigue: getFatigueState(player),
+    fatigue: getFatigueState(player, options),
+  };
+}
+
+export function claimDailyQuestReward(questions = [], player = initialPlayerState(), questId = "", options = {}) {
+  const questState = createDailyQuestState(questions, player, options);
+  const quest = [...questState.daily, ...questState.weekly].find((item) => item.id === questId);
+  if (!quest) {
+    throw new Error("找不到这项日课。");
+  }
+  if (!quest.completed) {
+    throw new Error("这项日课还没有完成。");
+  }
+  if (quest.claimed) {
+    throw new Error("这项奖励已经领取。");
+  }
+
+  const reward = normalizeQuestReward(quest.rewards);
+  const titles = reward.title
+    ? unique([...(player.earnedTitles || []), reward.title])
+    : [...(player.earnedTitles || [])];
+  const nextPlayer = {
+    ...player,
+    materials: addMaterials(player.materials, reward.materials),
+    earnedTitles: titles,
+    dailyQuestClaims: {
+      ...(player.dailyQuestClaims || {}),
+      [questClaimKey(quest.id, createQuestCycle(options))]: true,
+    },
+  };
+
+  return {
+    player: nextPlayer,
+    quest,
+    reward,
   };
 }
 
@@ -2174,7 +2376,7 @@ export function createLearningDashboard(questions = [], player = initialPlayerSt
     const progress = getChapterProgress(chapter, prepared, player);
     return {
       topic: chapter.topic,
-      title: chapter.title,
+      title: chapter.topic,
       studiedCount: progress.studiedCount,
       correctCount: progress.correctCount,
       demonCount: progress.demonCount,
@@ -2216,13 +2418,16 @@ export function createLearningDashboard(questions = [], player = initialPlayerSt
   const weakestTopic = topicStats
     .filter((item) => item.total > 0)
     .sort((a, b) => b.demonCount - a.demonCount || a.mastery - b.mastery || a.correctCount - b.correctCount)[0] || null;
-  const styleWinRates = learningStyleDefinitions.map((style) => {
-    const stats = player.styleStats?.[style.id] || {};
+  const touchedTopicCount = topicStats.filter((item) => item.studiedCount > 0 || item.correctCount > 0).length;
+  const buildWinRates = rogueliteBuildDefinitions.map((build) => {
+    const styleId = getLearningStyleIdForBuild(build.id);
+    const stats = player.styleStats?.[styleId] || {};
     const attempts = Number(stats.attempts || 0);
     const correct = Number(stats.correct || 0);
     return {
-      id: style.id,
-      name: style.name,
+      id: build.id,
+      name: build.name,
+      styleId,
       attempts,
       correct,
       winRate: attempts ? Math.round((correct / attempts) * 1000) / 10 : 0,
@@ -2266,6 +2471,11 @@ export function createLearningDashboard(questions = [], player = initialPlayerSt
       totalCount: chapters.length,
       clearedCount: topicStats.filter((item) => item.cleared).length,
     },
+    topicTouchStats: {
+      totalCount: topicStats.length,
+      touchedCount: touchedTopicCount,
+      percent: percent(touchedTopicCount, topicStats.length),
+    },
     demonStats: {
       activeCount: activeDemons.length,
       purifiedCount: (player.purifiedDemonIds || []).length,
@@ -2276,7 +2486,7 @@ export function createLearningDashboard(questions = [], player = initialPlayerSt
     weakestTopic,
     errorPatternStats,
     reviewItems,
-    styleWinRates,
+    buildWinRates,
     errorPortrait,
     retestAccuracy: {
       attempts: retestAttempts,
@@ -2311,16 +2521,60 @@ export function buildObservationHint(question = {}) {
 }
 
 function normalizeLesson(rawLesson, source) {
-  const keyPoint = String(rawLesson?.keyPoint || extractKeyPoint(source.explanation));
+  const keyPoint = normalizeQuestionCopy(rawLesson?.keyPoint || extractKeyPoint(source.explanation));
 
   return {
     id: String(rawLesson?.id || `lesson-${source.id}`),
-    title: String(rawLesson?.title || `${source.topic} · ${source.year || "真题"}讲解`),
+    title: normalizeLessonTitle(rawLesson?.title, source),
     sourceRef: String(rawLesson?.sourceRef || source.sourceRef || "书院讲解"),
     keyPoint,
-    explanation: String(rawLesson?.explanation || source.explanation),
-    studyPrompt: String(rawLesson?.studyPrompt || `短课目标：先记住“${keyPoint}”，再用题阵检验。`),
+    explanation: normalizeLessonExplanationCopy(rawLesson?.explanation || source.explanation),
+    studyPrompt: normalizeStudyPromptCopy(rawLesson?.studyPrompt, keyPoint),
   };
+}
+
+function normalizeLessonExplanationCopy(value) {
+  return normalizeQuestionCopy(value)
+    .replace(/\r\n?/g, "\n")
+    .replace(/专业入员/g, "专业人员")
+    .replace(/学生[ \t\u00a0\n]+象(?=的特点)/g, "学生对象")
+    .replace(/对环[ \t\u00a0\n]*的依赖/g, "对环境的依赖")
+    .replace(/([\u3400-\u9fff\uf900-\ufaff])[\t \u00a0]*\n[\t \u00a0]*(?=[\u3400-\u9fff\uf900-\ufaff])/gu, "$1")
+    .replace(/([\u3400-\u9fff\uf900-\ufaff])[\t \u00a0]+(?=[\u3400-\u9fff\uf900-\ufaff])/gu, "$1")
+    .replace(/[ \t\u00a0]*\n[ \t\u00a0]*/g, " ")
+    .replace(/[ \t\u00a0]+/g, " ")
+    .trim();
+}
+
+function normalizeQuestionCopy(value) {
+  return String(value || "")
+    .replace(/米成年人/g, "未成年人")
+    .replace(/职[ \t\u00a0\n]*贵/g, "职责")
+    .replace(/抚养义务7/g, "抚养义务")
+    .replace(/太双避冲突/g, "双避冲突")
+    .replace(/对环[ \t\u00a0\n]*的依赖/g, "对环境的依赖")
+    .trim();
+}
+
+function normalizeLessonTitle(rawTitle, source) {
+  const fallbackTitle = `${source.topic} · ${source.year || "真题"}讲解`;
+  const title = String(rawTitle || fallbackTitle).trim() || fallbackTitle;
+  const legacyCatchAllTopic = "综合知识";
+  if (!title.includes(legacyCatchAllTopic)) return title;
+
+  const topic = String(source.topic || "").trim();
+  const replacementTopic = topic && topic !== legacyCatchAllTopic ? topic : "题眼短课";
+  return title.split(legacyCatchAllTopic).join(replacementTopic);
+}
+
+function normalizeStudyPromptCopy(rawPrompt, keyPoint) {
+  const oldLessonGoal = String.fromCharCode(32451, 21151, 30446, 26631);
+  const oldLesson = String.fromCharCode(32451, 21151);
+  const oldBattle = String.fromCharCode(25112, 26007);
+  return String(rawPrompt || `短课目标：先记住“${keyPoint}”，再用题阵检验。`)
+    .split(oldLessonGoal).join("短课目标")
+    .split(oldLesson).join("短课")
+    .split(oldBattle).join("题阵");
 }
 
 function validateImportedQuestion(raw, index) {
@@ -2443,7 +2697,7 @@ function updateRun(run, event) {
     nodes,
     state: completed ? "report_ready" : "node_complete",
     answeredCount,
-    correctCount: run.correctCount + (event.isCorrect ? 1 : 0),
+    correctCount: run.correctCount + (event.countsAsLit ? 1 : 0),
     wrongCount: run.wrongCount + (event.isCorrect ? 0 : 1),
     assaultMistakes,
     demonPressure: event.demonPressure,
@@ -2470,6 +2724,7 @@ function updateRun(run, event) {
         selectedAnswer: event.normalizedSelected,
         correctAnswer: event.question.answer,
         isCorrect: event.isCorrect,
+        countsAsLit: Boolean(event.countsAsLit),
         studiedBeforeBattle: event.studiedBeforeBattle,
         damage: event.damage,
         heartDelta: event.heartDelta,
@@ -2521,6 +2776,8 @@ function updateMindDemon(player, question, details) {
       lastMistake: details.normalizedSelected,
     };
     nextMindDemons[question.id] = activeDemon;
+  } else if (!details.countsAsLit) {
+    activeDemon = existing || null;
   } else if (existing) {
     const purifyCount = (existing.purifyCount || 0) + 1;
     if (purifyCount >= 2) {
@@ -2622,6 +2879,7 @@ function calculateStudyRewards(wasStudied, context = {}) {
   const effect = getLearningStyleStudyEffect(style, context.question, {
     wasStudied,
     hasActiveDemon: Boolean(context.hasActiveDemon),
+    run: context.run,
   });
 
   if (wasStudied && !(style.id === "review" && context.hasActiveDemon)) {
@@ -2653,6 +2911,7 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
   const topic = question?.topic || "";
   const type = question?.type || "";
   const errorPatterns = Array.isArray(question?.errorPatterns) ? question.errorPatterns : [];
+  const styleName = getVisibleLearningStyleName(style, context.run);
 
   if (style.id === "law") {
     const focused = topicMatchesFocus(topic, style.focusTopic);
@@ -2660,8 +2919,8 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
       growthXpMultiplier: focused ? 1.5 : 0.7,
       starGlimmerBonus: focused ? 1 : 0,
       feedback: focused
-        ? "律令派：教育法规题眼收益提高。"
-        : "律令派：跨主题短课收益降低。",
+        ? `${styleName}：教育法规题眼收益提高。`
+        : `${styleName}：跨主题短课收益降低。`,
     };
   }
 
@@ -2671,8 +2930,8 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
       growthXpMultiplier: focused ? 1.25 : 0.9,
       starGlimmerBonus: focused ? 1 : 0,
       feedback: focused
-        ? "观心派：正在强化概念区分。"
-        : "观心派：非概念混淆题收益略低。",
+        ? `${styleName}：正在强化概念区分。`
+        : `${styleName}：非概念混淆题收益略低。`,
     };
   }
 
@@ -2682,8 +2941,8 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
       growthXpMultiplier: focused ? 1.5 : 0.8,
       starGlimmerBonus: focused ? 2 : 0,
       feedback: focused
-        ? "复盘派：错题与复看短课收益提高。"
-        : "复盘派：新题短课收益降低。",
+        ? `${styleName}：错题与复看短课收益提高。`
+        : `${styleName}：新题短课收益降低。`,
     };
   }
 
@@ -2691,7 +2950,7 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
     return {
       growthXpMultiplier: 1.15,
       starGlimmerBonus: 1,
-      feedback: "突击派：本局按连破节奏推进。",
+      feedback: `${styleName}：本页按连破节奏推进。`,
     };
   }
 
@@ -2699,7 +2958,7 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
     return {
       growthXpMultiplier: 1.05,
       starGlimmerBonus: 1,
-      feedback: "速攻派：短课压缩为限时抓题眼。",
+      feedback: `${styleName}：短课压缩为限时抓题眼。`,
     };
   }
 
@@ -2707,7 +2966,7 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
     return {
       growthXpMultiplier: 1.25,
       starGlimmerBonus: 0,
-      feedback: "深读派：额外沉淀1张知识点卡片。",
+      feedback: `${styleName}：额外沉淀1张知识点卡片。`,
     };
   }
 
@@ -2715,14 +2974,14 @@ function getLearningStyleStudyEffect(style, question, context = {}) {
     const borrowed = pickChaosBorrowedStyle(question);
     return {
       ...getLearningStyleStudyEffect(borrowed, question, context),
-      feedback: `混沌派：本题借用${borrowed.name}短课效果。`,
+      feedback: `${styleName}：本题借用${borrowed.name}短课效果。`,
     };
   }
 
   return {
     growthXpMultiplier: 1,
     starGlimmerBonus: 0,
-    feedback: "均衡派：稳定吸收题眼。",
+    feedback: `${styleName}：稳定吸收题眼。`,
   };
 }
 
@@ -2731,6 +2990,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
   const topic = question.topic || "";
   const type = question.type || "";
   const errorPatterns = Array.isArray(question.errorPatterns) ? question.errorPatterns : [];
+  const styleName = getVisibleLearningStyleName(style, context.run);
 
   if (style.id === "law") {
     const focused = topicMatchesFocus(topic, style.focusTopic);
@@ -2739,7 +2999,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
       rewardMultiplier: focused ? 1.5 : 0.7,
       heartGuard: 0,
       heartPenalty: focused ? 0 : 1,
-      feedback: focused ? "律令派：法规题阵收益+50%。" : "律令派：跨主题收益下降并增加风险。",
+      feedback: focused ? `${styleName}：法规题阵收益+50%。` : `${styleName}：跨主题收益下降并增加风险。`,
     };
   }
 
@@ -2750,7 +3010,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
       rewardMultiplier: focused ? 1.08 : 0.9,
       heartGuard: focused ? 1 : 0,
       heartPenalty: 0,
-      feedback: focused ? "观心派：概念区分获得额外容错。" : "观心派：本题不是概念主场。",
+      feedback: focused ? `${styleName}：概念区分获得额外容错。` : `${styleName}：本题不是概念主场。`,
     };
   }
 
@@ -2761,7 +3021,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
       rewardMultiplier: chainActive ? 2 : 1.15,
       heartGuard: 0,
       heartPenalty: context.isCorrect ? 0 : 1,
-      feedback: chainActive ? "突击派：连破倍率生效。" : "突击派：首题先建立连破。",
+      feedback: chainActive ? `${styleName}：连破倍率生效。` : `${styleName}：首题先建立连破。`,
     };
   }
 
@@ -2772,7 +3032,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
       rewardMultiplier: focused ? 2 : 0.8,
       heartGuard: focused ? 1 : 0,
       heartPenalty: 0,
-      feedback: focused ? "复盘派：心魔净化收益翻倍。" : "复盘派：新题收益降低。",
+      feedback: focused ? `${styleName}：心魔净化收益翻倍。` : `${styleName}：新题收益降低。`,
     };
   }
 
@@ -2782,7 +3042,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
       rewardMultiplier: 1.3,
       heartGuard: 0,
       heartPenalty: 0,
-      feedback: "速攻派：限时压力换取收益+30%。",
+      feedback: `${styleName}：限时压力换取收益+30%。`,
     };
   }
 
@@ -2792,7 +3052,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
       rewardMultiplier: 1.1,
       heartGuard: 1,
       heartPenalty: 0,
-      feedback: "深读派：短课沉淀带来稳定容错。",
+      feedback: `${styleName}：短课沉淀带来稳定容错。`,
     };
   }
 
@@ -2800,7 +3060,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
     const borrowed = pickChaosBorrowedStyle(question);
     return {
       ...getLearningStyleBattleEffect(borrowed, context),
-      feedback: `混沌派：本题借用${borrowed.name}效果。`,
+      feedback: `${styleName}：本题借用${borrowed.name}效果。`,
     };
   }
 
@@ -2809,7 +3069,7 @@ function getLearningStyleBattleEffect(style, context = {}) {
     rewardMultiplier: 1,
     heartGuard: 1,
     heartPenalty: 0,
-    feedback: "均衡派：稳定容错+1。",
+    feedback: `${styleName}：稳定容错+1。`,
   };
 }
 
@@ -2894,6 +3154,40 @@ function normalizeMaterials(materials = {}) {
   );
 }
 
+function scaleMaterials(materials = {}, multiplier = 1) {
+  const normalized = normalizeMaterials(materials);
+  const factor = Number.isFinite(Number(multiplier)) ? Number(multiplier) : 1;
+  if (factor === 1) return normalized;
+  return Object.fromEntries(
+    materialTypes.map((material) => [
+      material.id,
+      scaleMaterialValue(normalized[material.id], factor),
+    ]),
+  );
+}
+
+function scaleMaterialValue(value = 0, multiplier = 1) {
+  const amount = Math.max(0, Number(value || 0));
+  const factor = Number.isFinite(Number(multiplier)) ? Number(multiplier) : 1;
+  if (!amount || factor <= 0) return 0;
+  if (factor < 1) return Math.max(1, Math.floor(amount * factor));
+  return Math.max(0, Math.round(amount * factor));
+}
+
+function applyRewardMultiplier(value = 0, multiplier = 1) {
+  const factor = Number.isFinite(Number(multiplier)) ? Number(multiplier) : 1;
+  return Math.max(0, Math.round(Number(value || 0) * factor));
+}
+
+function appendAnswerTimeSample(samples = [], elapsedSeconds) {
+  const elapsed = Number(elapsedSeconds);
+  if (!Number.isFinite(elapsed) || elapsed <= 0) {
+    return Array.isArray(samples) ? [...samples] : [];
+  }
+  const normalized = Math.min(600, Math.round(elapsed * 10) / 10);
+  return [...(Array.isArray(samples) ? samples : []), normalized].slice(-80);
+}
+
 function addMaterials(current = {}, gains = {}) {
   const normalized = normalizeMaterials(current);
   const normalizedGains = normalizeMaterials(gains);
@@ -2917,6 +3211,80 @@ function hasMaterials(current = {}, cost = {}) {
   const normalized = normalizeMaterials(current);
   const normalizedCost = normalizeMaterials(cost);
   return materialTypes.every((material) => normalized[material.id] >= normalizedCost[material.id]);
+}
+
+function normalizeJournalCollection(collection = {}, options = {}) {
+  const allowedQuestionIds = options.questionIds instanceof Set ? options.questionIds : null;
+  const stickers = uniqueById(collection.stickers || [])
+    .map((sticker) => ({
+      id: String(sticker.id || sticker.questionId || ""),
+      questionId: String(sticker.questionId || sticker.id || ""),
+      title: String(sticker.title || "题眼贴纸"),
+      topic: String(sticker.topic || ""),
+      earnedAt: String(sticker.earnedAt || ""),
+    }))
+    .filter((sticker) => sticker.id && (!allowedQuestionIds || allowedQuestionIds.has(sticker.questionId)));
+  const bookmarks = uniqueById(collection.bookmarks || [])
+    .map((bookmark) => ({
+      id: String(bookmark.id || bookmark.title || ""),
+      title: String(bookmark.title || "手账书签"),
+      modeName: String(bookmark.modeName || ""),
+      earnedAt: String(bookmark.earnedAt || ""),
+    }))
+    .filter((bookmark) => bookmark.id);
+
+  return {
+    stickers,
+    bookmarks,
+    fragments: Math.max(0, Number(collection.fragments || 0)),
+  };
+}
+
+function addJournalAnswerCollectible(collection = {}, options = {}) {
+  const current = normalizeJournalCollection(collection);
+  if (!options.isCorrect || !options.question?.id) return current;
+  const question = options.question;
+  const sticker = {
+    id: String(question.id),
+    questionId: String(question.id),
+    title: `题眼贴纸：${question.lesson?.title || question.concept || question.topic || "当前题眼"}`,
+    topic: question.topic || "",
+    earnedAt: localDateKey(normalizeDate(options.now)),
+  };
+
+  return {
+    ...current,
+    stickers: uniqueById([...current.stickers, sticker]),
+  };
+}
+
+function addJournalRunCollectibles(collection = {}, options = {}) {
+  const current = normalizeJournalCollection(collection);
+  const run = options.run || {};
+  const build = getRogueliteBuild(run.buildId || "steady");
+  const mode = getRogueliteMode(run.modeId || "explore");
+  const bookmark = {
+    id: `${mode.id}:${build.id}`,
+    title: run.buildName || build.name,
+    modeName: run.modeName || mode.name,
+    earnedAt: localDateKey(normalizeDate(options.now)),
+  };
+
+  return {
+    stickers: current.stickers,
+    bookmarks: uniqueById([...current.bookmarks, bookmark]),
+    fragments: current.fragments + 1,
+  };
+}
+
+function uniqueById(items = []) {
+  const seen = new Set();
+  return (Array.isArray(items) ? items : []).filter((item) => {
+    const id = String(item?.id || item?.questionId || item?.title || "");
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
 }
 
 function getHeartPowerUpgradeCost(currentMaxHeartPower) {
@@ -2966,38 +3334,195 @@ function formatNodeRewardPreview(nodeConfig) {
   return parts.length ? parts.join(" · ") : "书页与心法";
 }
 
-function dailyChallenge(id, title, description, current, target, materials) {
+function dailyChallenge(id, title, description, current, target, materials, claimed = false) {
   const safeTarget = Math.max(1, Number(target || 1));
+  const safeCurrent = clamp(Number(current || 0), 0, safeTarget);
   return {
     id,
     title,
     description,
     progress: {
-      current: clamp(Number(current || 0), 0, safeTarget),
+      current: safeCurrent,
       target: safeTarget,
     },
     rewards: {
       materials: normalizeMaterials(materials),
     },
+    completed: safeCurrent >= safeTarget,
+    claimed: Boolean(claimed),
   };
 }
 
-function weeklyQuest(id, title, description, current, target, rewards) {
+function weeklyQuest(id, title, description, current, target, rewards, claimed = false) {
   const safeTarget = Math.max(1, Number(target || 1));
+  const safeCurrent = clamp(Number(current || 0), 0, safeTarget);
   return {
     id,
     title,
     description,
     progress: {
-      current: clamp(Number(current || 0), 0, safeTarget),
+      current: safeCurrent,
       target: safeTarget,
     },
     rewards,
+    completed: safeCurrent >= safeTarget,
+    claimed: Boolean(claimed),
   };
 }
 
-function getFatigueState(player = initialPlayerState()) {
-  const consecutiveRouteRuns = Number(player.consecutiveRouteRuns || 0);
+function normalizeQuestReward(rewards = {}) {
+  return {
+    materials: normalizeMaterials(rewards.materials || rewards),
+    title: rewards.title ? String(rewards.title) : "",
+  };
+}
+
+function getDailyQuestProgressForCycle(player = initialPlayerState(), cycle = createQuestCycle()) {
+  const progress = player.dailyQuestProgress || {};
+  if (progress.day !== cycle.daily) {
+    return {
+      day: cycle.daily,
+      studiedLessonIds: [],
+      correctQuestionIds: [],
+      resonanceTopicIds: [],
+      demonPurifications: 0,
+    };
+  }
+
+  return {
+    day: cycle.daily,
+    studiedLessonIds: unique(progress.studiedLessonIds || []),
+    correctQuestionIds: unique(progress.correctQuestionIds || []),
+    resonanceTopicIds: unique(progress.resonanceTopicIds || []),
+    demonPurifications: Number(progress.demonPurifications || 0),
+  };
+}
+
+function addDailyQuestProgress(player = initialPlayerState(), update = {}) {
+  const cycle = createQuestCycle({ now: update.now });
+  const progress = getDailyQuestProgressForCycle(player, cycle);
+  return {
+    day: cycle.daily,
+    studiedLessonIds: update.studiedLessonId
+      ? unique([...progress.studiedLessonIds, update.studiedLessonId])
+      : progress.studiedLessonIds,
+    correctQuestionIds: update.correctQuestionId
+      ? unique([...progress.correctQuestionIds, update.correctQuestionId])
+      : progress.correctQuestionIds,
+    resonanceTopicIds: update.resonanceTopicId
+      ? unique([...progress.resonanceTopicIds, update.resonanceTopicId])
+      : progress.resonanceTopicIds,
+    demonPurifications: Math.min(1, Number(progress.demonPurifications || 0) + Number(update.demonPurifications || 0)),
+  };
+}
+
+function getWeeklyQuestProgressForCycle(player = initialPlayerState(), cycle = createQuestCycle()) {
+  const progress = player.weeklyQuestProgress || {};
+  if (progress.week !== cycle.weekly) {
+    return {
+      week: cycle.weekly,
+      correctQuestionIds: [],
+      purifiedDemonIds: [],
+      topicCorrectCounts: {},
+    };
+  }
+
+  return {
+    week: cycle.weekly,
+    correctQuestionIds: unique(progress.correctQuestionIds || []),
+    purifiedDemonIds: unique(progress.purifiedDemonIds || []),
+    topicCorrectCounts: normalizeTopicCorrectCounts(progress.topicCorrectCounts),
+  };
+}
+
+function addWeeklyQuestProgress(player = initialPlayerState(), update = {}) {
+  const cycle = createQuestCycle({ now: update.now });
+  const progress = getWeeklyQuestProgressForCycle(player, cycle);
+  const correctQuestionId = String(update.correctQuestionId || "");
+  const purifiedDemonId = String(update.purifiedDemonId || "");
+  const topic = String(update.topic || "");
+  const correctAlreadyCounted = correctQuestionId ? progress.correctQuestionIds.includes(correctQuestionId) : true;
+  const correctQuestionIds = correctQuestionId
+    ? unique([...progress.correctQuestionIds, correctQuestionId])
+    : progress.correctQuestionIds;
+  const purifiedDemonIds = purifiedDemonId
+    ? unique([...progress.purifiedDemonIds, purifiedDemonId])
+    : progress.purifiedDemonIds;
+  const topicCorrectCounts = normalizeTopicCorrectCounts(progress.topicCorrectCounts);
+
+  if (correctQuestionId && topic && !correctAlreadyCounted) {
+    topicCorrectCounts[topic] = Number(topicCorrectCounts[topic] || 0) + 1;
+  }
+
+  return {
+    week: cycle.weekly,
+    correctQuestionIds,
+    purifiedDemonIds,
+    topicCorrectCounts,
+  };
+}
+
+function normalizeTopicCorrectCounts(counts = {}) {
+  return Object.fromEntries(
+    Object.entries(counts || {})
+      .map(([topic, value]) => [String(topic), Math.max(0, Number(value || 0))])
+      .filter(([topic, value]) => topic && value > 0),
+  );
+}
+
+function createQuestCycle(options = {}) {
+  const now = normalizeDate(options.now);
+  return {
+    daily: localDateKey(now),
+    weekly: isoWeekKey(now),
+  };
+}
+
+function normalizeDate(value) {
+  const date = value ? new Date(value) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+function localDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isoWeekKey(date) {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+  const weekYear = utcDate.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(weekYear, 0, 1));
+  const week = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+  return `${weekYear}-W${String(week).padStart(2, "0")}`;
+}
+
+function questClaimKey(questId, cycle) {
+  const period = String(questId || "").startsWith("weekly-") ? cycle.weekly : cycle.daily;
+  return `${period}:${questId}`;
+}
+
+function isQuestClaimed(claims = {}, questId = "", cycle = createQuestCycle()) {
+  return Boolean(claims[questClaimKey(questId, cycle)]);
+}
+
+export function restFromFatigue(player = initialPlayerState(), options = {}) {
+  return {
+    ...player,
+    consecutiveRouteRuns: 0,
+    lastFatigueRestDay: localDateKey(normalizeDate(options.now)),
+  };
+}
+
+function getFatigueState(player = initialPlayerState(), options = {}) {
+  const today = localDateKey(normalizeDate(options.now));
+  const routeRanToday = !player.lastRouteRunDay || player.lastRouteRunDay === today;
+  const consecutiveRouteRuns = !routeRanToday
+    ? 0
+    : Number(player.consecutiveRouteRuns || 0);
   if (consecutiveRouteRuns >= 3) {
     return {
       status: "rest-advised",
@@ -3320,29 +3845,6 @@ function normalizeConceptPath(value, topic) {
   return normalized;
 }
 
-function maskLawKeywords(question, difficulty = 1) {
-  const count = Math.min(3, Math.max(1, Number(difficulty || 1)));
-  const keywords = extractMechanicKeywords(question).slice(0, count);
-  const maskedText = keywords.reduce((text, keyword) => {
-    if (!keyword) return text;
-    const masked = keyword.length <= 2
-      ? "__"
-      : `${keyword.slice(0, 1)}${"_".repeat(Math.min(4, keyword.length - 1))}`;
-    return text.replace(keyword, masked);
-  }, question.stem);
-  if (maskedText !== question.stem) return maskedText;
-  return String(question.stem || "").replace(/关键词|保障|入学|义务教育/u, "__");
-}
-
-function extractMechanicKeywords(question) {
-  const candidates = [
-    ...(question.lesson?.keyPoint || "").split(/[、,，；;和与]/u),
-    ...(String(question.explanation || "").match(/应当|可以|不得|必须|禁止|免试|就近|政府保障|权利|义务/gu) || []),
-    ...(String(question.stem || "").match(/应当|可以|不得|必须|禁止|免试|就近|政府保障|权利|义务/gu) || []),
-  ];
-  return unique(candidates.map((item) => String(item).trim()).filter((item) => item.length >= 2));
-}
-
 function buildConceptMazeWarnings(question) {
   const hasConceptTrap = (question.errorPatterns || []).includes("concept-confusion") || String(question.type || "").includes("多");
   if (!hasConceptTrap) return [];
@@ -3369,7 +3871,7 @@ function getPrecisionMemoryHint(question, player) {
 }
 
 function pickChaosMechanic(question = {}) {
-  const mechanics = ["law-fog", "concept-maze", "time-hourglass", "ethics-scale", "strategy-chain", "precision-memory"];
+  const mechanics = ["law-review", "concept-maze", "time-hourglass", "ethics-scale", "strategy-chain", "precision-memory"];
   const seed = String(question.id || question.stem || "").split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
   return mechanics[seed % mechanics.length];
 }

@@ -8,27 +8,39 @@ const cssSource = readFileSync("styles.css", "utf8");
 test("world screen renders the modern text-game stage contract", () => {
   assert.match(appSource, /renderStartDesk/u);
   assert.match(appSource, /start-desk/u);
-  assert.match(appSource, /今日推荐/u);
-  assert.match(appSource, /开始一局/u);
+  assert.match(appSource, /今日小目标/u);
+  assert.match(appSource, /开一页题眼手账/u);
+  assert.match(appSource, /本页奖励/u);
+  assert.match(appSource, /开一页题眼手账/u);
   assert.match(appSource, /换目标/u);
-  assert.match(appSource, /本局目标/u);
-  assert.match(appSource, /下一步建议/u);
+  assert.match(appSource, /今日小目标/u);
+  assert.match(appSource, /下一页建议/u);
   assert.doesNotMatch(appSource, /章节提示/u);
   assert.doesNotMatch(appSource, /备考路线/u);
   assert.match(appSource, /scene = resolveInitialScene\(\) \|\| saved\.scene \|\| "world"/u);
 });
 
-test("visual shell CSS matches the mobile-first dark text-game design", () => {
-  assert.match(cssSource, /--ui-bg:\s*#111317/u);
+test("visual shell CSS matches the mobile-first study journal design", () => {
+  assert.match(cssSource, /--ui-bg:\s*#f6efe3/u);
+  assert.match(cssSource, /--ui-paper:\s*#fffaf0/u);
   assert.match(cssSource, /--ui-jade:\s*#53c6a2/u);
+  assert.match(cssSource, /--ui-coral:\s*#e87f6d/u);
   assert.match(cssSource, /\.rpg-shell\s*\{[^}]*grid-template-areas:\s*"hud hud"[\s\S]*"stage quest"/u);
   assert.match(cssSource, /\.rpg-shell\s*\{[^}]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/u);
   assert.match(cssSource, /\.hud-stats\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/u);
-  assert.match(cssSource, /@media \(max-width:\s*760px\)[\s\S]*grid-template-rows:\s*136px auto auto/u);
+  assert.match(cssSource, /@media \(max-width:\s*760px\)[\s\S]*grid-template-rows:\s*auto auto auto/u);
   assert.doesNotMatch(cssSource, /\.hud-stat:nth-child/u);
   assert.match(cssSource, /\.start-desk/u);
+  assert.match(cssSource, /\.journal-sticker/u);
+  assert.match(cssSource, /\.journal-summary/u);
   assert.match(cssSource, /\.mode-card/u);
   assert.match(cssSource, /\.build-card/u);
+  assert.match(cssSource, /\.quest-reward-card\s*\{[\s\S]*gap:\s*14px/u);
+  assert.match(cssSource, /\.quest-reward-card\s+\.text-meter,\s*\.quest-reward-card\s+\.meter\s*\{[\s\S]*margin:\s*4px 0/u);
+  assert.match(cssSource, /\.quest-reward-card\s+\.meter\s*\{[\s\S]*margin:\s*4px 0/u);
+  assert.match(cssSource, /\.hud-button\.danger,\s*\.danger\s*\{[\s\S]*color:\s*#8f2233/u);
+  assert.match(cssSource, /\.hud-button\.danger,\s*\.danger\s*\{[\s\S]*background:\s*rgba\(225,\s*90,\s*111,\s*0\.12\)/u);
+  assert.doesNotMatch(cssSource, /color:\s*#ffd8de/u);
   assert.match(cssSource, /\.text-window \.question-card\s*\{[\s\S]*display:\s*none/u);
 });
 
@@ -51,6 +63,11 @@ test("mobile shell keeps the page scrollable below the design screenshot height"
 
   assert.match(mobileBlock, /body\s*\{[^}]*min-height:\s*100dvh/u);
   assert.match(mobileBlock, /\.rpg-shell\s*\{[^}]*min-height:\s*100dvh/u);
+  assert.match(mobileBlock, /\.rpg-shell\s*\{[^}]*grid-template-rows:\s*auto auto auto/u);
+  assert.match(mobileBlock, /\.hud-actions\s*\{[\s\S]*display:\s*flex/u);
+  assert.match(mobileBlock, /\.hud-actions\s+\.hud-button\s*\{[\s\S]*min-height:\s*44px/u);
+  assert.doesNotMatch(mobileBlock, /\.hud-actions\s*\{[^}]*display:\s*none/u);
+  assert.doesNotMatch(mobileBlock, /\.rpg-shell\s*\{[^}]*grid-template-rows:\s*136px/u);
   assert.doesNotMatch(mobileBlock, /\.rpg-shell\s*\{[^}]*height:\s*844px/u);
   assert.doesNotMatch(mobileBlock, /\.rpg-shell\s*\{[^}]*overflow:\s*hidden/u);
 });

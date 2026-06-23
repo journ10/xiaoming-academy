@@ -1,11 +1,11 @@
 export const chapterMechanicsByTopic = {
-  "教育法律法规与政策制度": "law-fog",
+  "教育法律法规与政策制度": "law-review",
   "教育学原理、课程与教学": "time-hourglass",
   "学习心理与认知机制": "concept-maze",
   "学生身心发展与个体差异": "precision-memory",
   "德育、班级管理与家校协同": "strategy-chain",
   "教师职业素养与专业规范": "ethics-scale",
-  "教育法规": "law-fog",
+  "教育法规": "law-review",
   "教育心理学": "concept-maze",
   "教学设计": "time-hourglass",
   "教师职业道德": "ethics-scale",

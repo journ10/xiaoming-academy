@@ -2,13 +2,34 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+function functionBody(source, name) {
+  const start = source.indexOf(`function ${name}(`);
+  assert.notEqual(start, -1, `Missing function ${name}`);
+  const next = source.indexOf("\nfunction ", start + 1);
+  return source.slice(start, next === -1 ? source.length : next);
+}
+
 test("static entry loads only the pure text game runtime", () => {
   const index = readFileSync("index.html", "utf8");
+  const app = readFileSync("app.js", "utf8");
+  const core = readFileSync("core.js", "utf8");
+  const cacheVersion = "study-journal-20260623p";
 
-  assert.match(index, /<script type="module" src="\.\/app\.js\?v=[^"]+"><\/script>/);
-  assert.match(index, /href="\.\/styles\.css(?:\?v=[^"]+)?"/);
+  assert.match(index, new RegExp(`<script type="module" src="\\./app\\.js\\?v=${cacheVersion}"></script>`));
+  assert.match(index, new RegExp(`href="\\./styles\\.css\\?v=${cacheVersion}"`));
+  assert.match(app, new RegExp(`from "\\./core\\.js\\?v=${cacheVersion}"`));
+  assert.match(core, new RegExp(`from "\\./src/content-rules\\.js\\?v=${cacheVersion}"`));
+  assert.doesNotMatch(`${index}\n${app}\n${core}`, /study-journal-20260623a|study-journal-20260623b|study-journal-20260623c|study-journal-20260623d|study-journal-20260623e|study-journal-20260623f|study-journal-20260623g|study-journal-20260623h|study-journal-20260623i|study-journal-20260623j|study-journal-20260623k|study-journal-20260623l|study-journal-20260623m|study-journal-20260623n|study-journal-20260623o/);
   assert.doesNotMatch(index, /styles\/tokens\.css|styles\/shell\.css|styles\/components\.css/);
   assert.doesNotMatch(index, /<img\b|assets\/generated|docs\/mockups/);
+});
+
+test("static brand copy matches the study journal loop", () => {
+  const index = readFileSync("index.html", "utf8");
+
+  assert.match(index, /<title>小明书院：题眼手账<\/title>/u);
+  assert.match(index, /题眼手账 · 文字题阵/u);
+  assert.doesNotMatch(index, /秘卷巡游/u);
 });
 
 test("text runtime keeps generated image assets out of the playable path", () => {
@@ -44,7 +65,7 @@ test("runtime eventizes story instead of exposing it as a primary route", () => 
   assert.doesNotMatch(app, /\["story",\s*"剧情"\]/);
   assert.doesNotMatch(app, /章节提示/);
   assert.match(app, /runEventBrief/);
-  assert.match(app, /今日推荐/);
+  assert.match(app, /今日小目标/);
   assert.doesNotMatch(core, /assets\/generated\/characters/);
   assert.match(core, /speakerMark/);
 }
@@ -70,8 +91,9 @@ test("training and dashboard expose roguelite build context and win rates", () =
   assert.match(app, /selectedBuildId/);
   assert.match(app, /renderRunBuildSummary/);
   assert.match(app, /本局流派/);
-  assert.match(app, /styleWinRates/);
+  assert.match(app, /buildWinRates/);
   assert.match(app, /流派胜率/);
+  assert.doesNotMatch(app, /dashboard\.styleWinRates/);
 });
 
 test("runtime surfaces chapter mechanic prompts during training and battle", () => {
@@ -82,7 +104,8 @@ test("runtime surfaces chapter mechanic prompts during training and battle", () 
   assert.match(app, /题阵机制/);
   assert.match(app, /buildChapterMechanicState/);
   assert.match(app, /renderChapterMechanicState/);
-  assert.match(app, /mechanicState\.displayStem/);
+  assert.match(functionBody(app, "renderBattleQuestionCard"), /question\.stem/);
+  assert.doesNotMatch(app, /mechanicState\.displayStem/);
   assert.match(app, /timeLimitSeconds/);
 });
 
@@ -103,7 +126,7 @@ test("runtime exposes start desk, mode select, and build select instead of a rou
   assert.match(app, /function renderStartDesk/);
   assert.match(app, /function renderModeSelectStage/);
   assert.match(app, /function renderBuildSelectStage/);
-  assert.match(app, /开始一局/);
+  assert.match(app, /开一页题眼手账/);
   assert.match(app, /换目标/);
   assert.match(app, /探索新题/);
   assert.match(app, /净化心魔/);
@@ -112,6 +135,17 @@ test("runtime exposes start desk, mode select, and build select instead of a rou
   assert.match(app, /突击/);
   assert.match(app, /复盘/);
   assert.doesNotMatch(app, /function chapterRouteNode\(/);
+  assert.doesNotMatch(app, /renderStoryStage|startIntro|startChapterStory|scene = "story"|getIntroDialogue|综合知识/u);
+});
+
+test("start desk suggestion does not ask for demons when none exist", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /function formatStartDeskSuggestion\(/);
+  assert.match(functionBody(app, "formatStartDeskSuggestion"), /Number\(topic\.demonCount \|\| 0\) > 0/);
+  assert.match(functionBody(app, "formatStartDeskSuggestion"), /整理 \$\{topic\.title\} 心魔/);
+  assert.match(functionBody(app, "formatStartDeskSuggestion"), /补强 \$\{topic\.title\} 题眼/);
+  assert.match(app, /formatStartDeskSuggestion\(dashboard\)/);
 });
 
 test("runtime loads the built-in PDF question bank instead of sample data or imported bank state", () => {
@@ -152,7 +186,7 @@ test("quest panel renders the current roguelite objective instead of a full doss
   const app = readFileSync("app.js", "utf8");
   const styles = readFileSync("styles.css", "utf8");
 
-  assert.match(app, /本局目标/);
+  assert.match(app, /今日小目标/);
   assert.match(app, /run\.objective/);
   assert.match(app, /createRunRecommendation/);
   assert.match(styles, /\.objective-panel/);
@@ -195,9 +229,26 @@ test("daily UI surfaces weekly quests and fatigue warnings", () => {
   const app = readFileSync("app.js", "utf8");
 
   assert.match(app, /createDailyQuestState/);
+  assert.match(app, /textButton\("今日清单", \(\) => goScene\("daily"\)/);
   assert.match(app, /周课/);
   assert.match(app, /fatigue/);
   assert.match(app, /休息提醒/);
+  assert.match(app, /claimQuestReward/);
+  assert.match(app, /领取奖励/);
+  assert.match(app, /已领取/);
+  assert.match(app, /now: new Date\(\)/);
+  assert.match(app, /restFromFatigue/);
+  assert.match(app, /休息一下/);
+  assert.match(app, /resetScrollPosition/);
+  assert.doesNotMatch(app, /连续破阵|清零连续破阵/);
+  assert.match(app, /连续手账页|手账节奏/);
+});
+
+test("training routes reset mobile scroll before showing lessons or returning to battle", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(functionBody(app, "startTraining"), /render\(\);\s*resetScrollPosition\(\);/);
+  assert.match(functionBody(app, "enterBattleAfterTraining"), /render\(\);\s*resetScrollPosition\(\);/);
 });
 
 test("answer-recall battles render answer choices without duplicated placeholder labels", () => {
@@ -211,24 +262,55 @@ test("answer-recall battles render answer choices without duplicated placeholder
   assert.doesNotMatch(app, /textButton\(`\$\{option\.key\}\. \$\{option\.text\}`/);
 });
 
-test("battle UI removes risk stance choices and keeps observation as the only hint action", () => {
+test("battle UI exposes per-question break move choices", () => {
   const app = readFileSync("app.js", "utf8");
 
   assert.match(app, /function revealObservationHint\(/);
   assert.match(app, /function getBattleStanceId\(/);
-  assert.match(app, /textButton\("观照提示", revealObservationHint/);
-  assert.match(app, /observationHintUsed \? "observe" : "steady"/);
-  assert.match(app, /观照提示/);
-  assert.match(app, /提交答案/);
-  assert.match(app, /先看观照提示，再选择答案。/);
-  assert.match(app, /canSubmit \? "提交答案" : "先选择答案"/);
+  assert.match(app, /let selectedBreakMoveId = "steady"/);
+  assert.match(app, /function renderBreakMoveChoices\(/);
+  assert.match(app, /破招式/);
+  assert.match(app, /稳破/);
+  assert.match(app, /强攻/);
+  assert.match(app, /观照/);
+  assert.match(app, /textButton\("低收益看答案", revealObservationHint/);
+  assert.match(app, /selectedBreakMoveId = "observe"/);
+  assert.match(app, /return selectedBreakMoveId/);
+  assert.match(app, /低收益看答案/);
+  assert.match(app, /释放破招/);
+  assert.match(app, /不确定时可以低收益看答案，再选择答案。/);
+  assert.match(app, /canSubmit \? "释放破招" : "先选择答案"/);
   assert.match(app, /renderBattleSupportPanel\(\{ node, question, mechanicState \}\)/);
   assert.match(app, /renderBattleQuestionCard\(\{ question, mechanicState, options \}\)/);
-  assert.doesNotMatch(app, /破招选择/);
-  assert.doesNotMatch(app, /释放破招/);
-  assert.doesNotMatch(app, /稳破/);
-  assert.doesNotMatch(app, /强攻/);
-  assert.doesNotMatch(app, /stances\.map/);
+  assert.doesNotMatch(app, /战斗招式/);
+});
+
+test("settled battle state no longer advertises answer reveal", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /function formatBattleSettleState\(/);
+  assert.match(functionBody(app, "formatHudLessonState"), /if \(submittedResult\) return formatBattleSettleState\(\);/);
+  assert.match(functionBody(app, "renderBattleStatusBar"), /const hintState = submittedResult/);
+  assert.match(functionBody(app, "renderBattleStatusBar"), /battleStatusChip\("提示", hintState\.label, hintState\.modifier\)/);
+  assert.match(functionBody(app, "formatBattleSettleState"), /已点亮/);
+  assert.match(functionBody(app, "formatBattleSettleState"), /已观照/);
+  assert.match(functionBody(app, "formatBattleSettleState"), /已结算/);
+});
+
+test("hud and side panel share answered-run progress wording", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /function formatRunAnsweredProgress\(/);
+  assert.match(app, /hudStat\("本局", formatHudRunProgress\(\)\)/);
+  assert.match(app, /return formatRunAnsweredProgress\(run\)/);
+  assert.match(app, /questLine\("进度", formatRunAnsweredProgress\(run\)\)/);
+});
+
+test("battle feedback keeps journal page progress on the full run length", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(functionBody(app, "renderBattleFeedback"), /const pageProgress = `\$\{run\.correctCount \|\| 0\}\/\$\{Math\.max\(1, run\.nodes\?\.length \|\| run\.answeredCount \|\| 5\)\}`/);
+  assert.doesNotMatch(functionBody(app, "renderBattleFeedback"), /run\.answeredCount \|\| run\.nodes\?\.length/);
 });
 
 test("battle UI uses a dedicated answer desk layout instead of stacked text panels", () => {
@@ -325,6 +407,7 @@ test("observation helper surfaces answer explanations during battle", () => {
   assert.match(app, /buildObservationHint\(question\)/);
   assert.match(app, /对应答案/);
   assert.match(app, /依据/);
+  assert.match(app, /低收益看答案/);
   assert.match(core, /stemCue:\s*`题干线索：/);
   assert.doesNotMatch(app, /selectedStanceId === "observe" \? question\.lesson\.keyPoint/);
   assert.doesNotMatch(app, /panel\("破招选择"/);
@@ -338,7 +421,10 @@ test("battle feedback and review list surface typed demon diagnosis", () => {
   assert.match(app, /demon\.diagnosis/);
   assert.match(app, /demon\.remedy/);
   assert.match(app, /错因/);
-  assert.match(app, /净化建议/);
+  assert.match(app, /整理建议/);
+  assert.match(app, /错因收录/);
+  assert.match(app, /错因心结已收录待整理/);
+  assert.doesNotMatch(app, /错因心结已整理/);
   assert.match(app, /renderErrorDiagnosisPanel/);
   assert.match(app, /errorDiagnosis\.primary/);
   assert.match(app, /直接净化/);
@@ -349,16 +435,81 @@ test("battle feedback and review list surface typed demon diagnosis", () => {
 test("battle and report surface roguelite objective and next-run recommendations", () => {
   const app = readFileSync("app.js", "utf8");
 
-  assert.match(app, /本局目标/);
+  assert.match(app, /今日小目标/);
   assert.match(app, /encounterIndex/);
   assert.match(app, /createRogueliteRunReport/);
-  assert.match(app, /本局报告/);
-  assert.match(app, /下一局建议/);
+  assert.match(app, /今日手账页/);
+  assert.match(app, /panel\(journal\.title/);
+  assert.doesNotMatch(app, /panel\("今日手账页完成"/);
+  assert.match(app, /题眼贴纸/);
+  assert.match(app, /countsAsLit/);
+  assert.match(app, /观照题眼/);
+  assert.match(app, /formatJournalCollection/);
+  assert.match(app, /手账收藏/);
+  assert.match(app, /journalCollection/);
+  assert.match(app, /秘卷碎片/);
+  assert.match(app, /已收进心魔回廊/);
+  assert.match(app, /下一页建议/);
   assert.match(app, /continueWithNextAction/);
+});
+
+test("report next actions can route back to short lesson review", () => {
+  const app = readFileSync("app.js", "utf8");
+  const body = functionBody(app, "continueWithNextAction");
+
+  assert.match(body, /if \(action\.scene === "training"\)/);
+  assert.match(body, /scene = "training"/);
+  assert.match(body, /submittedResult = null/);
+  assert.match(body, /resetScrollPosition\(\)/);
+});
+
+test("quest side panel reflects report and short-lesson review states", () => {
+  const app = readFileSync("app.js", "utf8");
+  const stateBody = functionBody(app, "getQuestPanelStageState");
+  const panelBody = functionBody(app, "renderQuestPanel");
+  const reportTextBody = functionBody(app, "formatReportPanelNextText");
+
+  assert.match(panelBody, /const panelState = getQuestPanelStageState\(/);
+  assert.match(panelBody, /panelState\.title/);
+  assert.match(panelBody, /panelState\.prompt/);
+  assert.match(panelBody, /panelState\.nextLabel/);
+  assert.match(stateBody, /scene === "report"/);
+  assert.match(stateBody, /学习报告/u);
+  assert.match(stateBody, /formatReportPanelNextText\(report\)/);
+  assert.match(reportTextBody, /reportData\?\.nextActions/u);
+  assert.match(reportTextBody, /action\.label/u);
+  assert.doesNotMatch(stateBody, /按报告建议选择回看短课、重新点亮或整理心魔/u);
+  assert.match(stateBody, /scene === "training" && run\.state === "report_ready"/);
+  assert.match(stateBody, /短课复盘/u);
+  assert.match(stateBody, /回看题眼短课后，重新正式点亮这一页/u);
+  assert.doesNotMatch(stateBody, /完成本页后查看学习报告，系统会给出下一页建议。/u);
+  assert.match(panelBody, /全局画像/u);
+  assert.doesNotMatch(panelBody, /错题画像[\s\S]{0,120}当前/u);
+});
+
+test("chapter mechanic panel shows borrowed mechanic names instead of internal ids", () => {
+  const app = readFileSync("app.js", "utf8");
+  const body = functionBody(app, "renderChapterMechanicState");
+
+  assert.match(body, /borrowedMechanicName/u);
+  assert.doesNotMatch(body, /万象混沌借用：\$\{mechanicState\.borrowedMechanic\}/u);
+});
+
+test("runtime removes old law fog mechanic internals", () => {
+  const core = readFileSync("core.js", "utf8");
+  const contentRules = readFileSync("src/content-rules.js", "utf8");
+  const oldLawMechanic = ["law", "fog"].join("-");
+  const oldFogLevel = ["fog", "Level"].join("");
+  const oldLawName = String.fromCharCode(27861, 26465, 36855, 38654);
+
+  assert.doesNotMatch(`${core}\n${contentRules}`, new RegExp(`${oldLawMechanic}|${oldFogLevel}|${oldLawName}`, "u"));
+  assert.match(`${core}\n${contentRules}`, /law-review/u);
+  assert.match(core, /法规审题/u);
 });
 
 test("internal roguelite screens do not leak old route-map actions", () => {
   const app = readFileSync("app.js", "utf8");
+  const styles = readFileSync("styles.css", "utf8");
 
   for (const phrase of [
     "回地图",
@@ -375,4 +526,6 @@ test("internal roguelite screens do not leak old route-map actions", () => {
   assert.match(app, /回开局台/u);
   assert.match(app, /题眼短课/u);
   assert.match(app, /题阵机制/u);
+  assert.doesNotMatch(app, /renderBottomNav/u);
+  assert.doesNotMatch(styles, /bottom-nav/u);
 });

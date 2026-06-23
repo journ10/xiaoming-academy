@@ -7,6 +7,7 @@ import {
   buildObservationHint,
   buildKnowledgeGraphPreview,
   chapterMechanicDefinitions,
+  claimDailyQuestReward,
   createDailyQuestState,
   createLearningDashboard,
   createMindDemonRun,
@@ -40,6 +41,7 @@ import {
   prunePlayerForQuestions,
   rogueliteBuildDefinitions,
   rogueliteRunModes,
+  restFromFatigue,
   selectRouteQuestions,
   setLearningStyle,
   studyNode,
@@ -462,13 +464,19 @@ test("learning styles affect battle rewards and dashboard win-rate stats", () =>
     styleStats: {
       law: { attempts: 3, correct: 2 },
       balanced: { attempts: 1, correct: 1 },
+      "assault-flow": { attempts: 2, correct: 1 },
+      review: { attempts: 0, correct: 0 },
     },
   });
 
   assert.ok(law.spiritPagesGain > balanced.spiritPagesGain);
   assert.equal(law.player.styleStats.law.attempts, 1);
   assert.equal(law.player.styleStats.law.correct, 1);
-  assert.equal(dashboard.styleWinRates.find((style) => style.id === "law").winRate, 66.7);
+  assert.deepEqual(dashboard.buildWinRates.map((build) => build.id), ["steady", "assault", "review"]);
+  assert.deepEqual(dashboard.buildWinRates.map((build) => build.name), ["稳修", "突击", "复盘"]);
+  assert.equal(dashboard.buildWinRates.find((build) => build.id === "steady").winRate, 100);
+  assert.equal(dashboard.buildWinRates.find((build) => build.id === "assault").winRate, 50);
+  assert.equal(dashboard.buildWinRates.some((build) => build.id === "law"), false);
 });
 
 test("correct battle answers grow the player while wrong answers only create study debt", () => {
@@ -591,6 +599,52 @@ test("prepareQuestions turns PDF explanations into required pre-battle lesson ca
   assert.equal(question.lesson.studyPrompt.length > 0, true);
 });
 
+test("prepareQuestions cleans PDF soft line breaks inside short lesson explanations", () => {
+  const [question] = prepareQuestions([{
+    id: "soft-break-lesson",
+    year: "2026",
+    type: "单项选择",
+    topic: "学生身心发展与个体差异",
+    stem: "教师进行教育时应先了解学生的身心发展特点。",
+    options: [
+      { key: "A", text: "忽视个体差异" },
+      { key: "B", text: "了解学生特点" },
+      { key: "C", text: "只看考试成绩" },
+      { key: "D", text: "减少教育活动" },
+    ],
+    answer: "B",
+    explanation: "教师要先了解学\n生的身心发展特点。\n（1）尊重学生差异；\n（2）选择适合的教育方式。",
+  }]);
+
+  assert.match(question.lesson.explanation, /了解学生的身心发展特点/u);
+  assert.doesNotMatch(question.lesson.explanation, /了解学\s+生/u);
+  assert.match(question.lesson.explanation, /特点。\s+（1）尊重学生差异/u);
+});
+
+test("prepareQuestions cleans common playable lesson OCR spacing noise", () => {
+  const [question] = prepareQuestions([{
+    id: "ocr-spacing-lesson",
+    year: "2026",
+    type: "单项选择",
+    topic: "教师职业素养与专业规范",
+    stem: "教师应当履行教育教学职责。",
+    options: [
+      { key: "A", text: "专业人员" },
+      { key: "B", text: "一般人员" },
+      { key: "C", text: "临时人员" },
+      { key: "D", text: "辅助人员" },
+    ],
+    answer: "A",
+    explanation: "教师是履行教育教学职责的专业入员。教师在课前根据学生 象的特点设计课程，并减少对环 的依赖。",
+  }]);
+
+  assert.match(question.lesson.explanation, /专业人员/u);
+  assert.match(question.lesson.explanation, /学生对象的特点/u);
+  assert.match(question.lesson.explanation, /对环境的依赖/u);
+  assert.doesNotMatch(question.lesson.explanation, /专业入员|学生\s+象|学生象|对环\s*的依赖/u);
+  assert.doesNotMatch(question.lesson.explanation, /[\u3400-\u9fff\uf900-\ufaff][ \t\u00a0]+[\u3400-\u9fff\uf900-\ufaff]/u);
+});
+
 test("observation hint links the stem clue to the answer option before explanation", () => {
   const [question] = prepareQuestions([{
     id: "moral-fable",
@@ -642,7 +696,7 @@ test("prepared questions include concept and error-pattern metadata", () => {
 
   assert.match(question.concept, /教育法规/);
   assert.ok(question.errorPatterns.includes("reading-mistake"));
-  assert.equal(question.chapterMechanic, "law-fog");
+  assert.equal(question.chapterMechanic, "law-review");
 });
 
 test("knowledge graph preview renders concept mastery, demons, and locked dependencies", () => {
@@ -922,8 +976,11 @@ test("roguelite recommendation chooses exploration for fresh players and purific
 
   assert.equal(fresh.modeId, "explore");
   assert.equal(fresh.buildId, "steady");
-  assert.match(fresh.reason, /新题|探索|点亮/);
-  assert.equal(fresh.primaryAction, "开始一局");
+  assert.match(fresh.reason, /新题眼|手账页|5 题/);
+  assert.equal(fresh.title, "今日小目标：点亮题眼");
+  assert.equal(fresh.targetText, "今天点亮 5 个题眼");
+  assert.equal(fresh.primaryAction, "开一页题眼手账");
+  assert.match(fresh.rewardText, /题眼贴纸|书签/);
 
   const demonPlayer = {
     ...initialPlayerState(),
@@ -968,7 +1025,8 @@ test("roguelite runs build exploration, purification, and sprint objectives", ()
   assert.equal(explore.modeId, "explore");
   assert.equal(explore.buildId, "steady");
   assert.equal(explore.nodes.length, 5);
-  assert.equal(explore.objective.targetNewConcepts, 1);
+  assert.equal(explore.objective.targetQuestionCount, 5);
+  assert.equal(explore.objective.targetCorrectCount, 3);
   assert.ok(explore.nodes.every((node, index) => node.encounterIndex === index + 1));
 
   const purify = createRogueliteRun(prepared, demonPlayer, { modeId: "purify", buildId: "review", length: 5 });
@@ -1011,15 +1069,269 @@ test("roguelite report summarizes result and gives next run actions", () => {
   assert.equal(report.buildId, "steady");
   assert.equal(report.correctCount, 3);
   assert.equal(report.newDemonCount, 1);
+  assert.equal(report.journalSummary.title, "今日手账页完成");
+  assert.equal(report.journalSummary.litKeyPoints, 3);
+  assert.equal(report.journalSummary.totalKeyPoints, 5);
+  assert.equal(report.journalSummary.organizedDemons, 0);
+  assert.equal(report.journalSummary.pendingDemons, 1);
+  assert.equal(report.journalSummary.bookmark, "稳修");
+  assert.match(report.journalSummary.nextSuggestion, /继续整理|心魔|概念混淆/u);
   assert.match(report.primaryMistake, /概念混淆|教育心理学/);
   assert.ok(report.nextActions.some((action) => action.modeId === "purify"));
   assert.ok(report.nextActions.every((action) => action.label && action.reason));
 });
 
+test("journal collectibles persist stickers, bookmarks, and fragments", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  let player = initialPlayerState();
+  let run = createRogueliteRun(prepared, player, { modeId: "explore", buildId: "steady", length: 1 });
+  const question = prepared.find((item) => item.id === run.nodes[0].questionId);
+
+  const result = applyTrialAnswer(player, run, {
+    nodeId: run.nodes[0].id,
+    question,
+    selectedAnswer: question.answer,
+    stanceId: "steady",
+    bankQuestions: prepared,
+    now: new Date("2026-06-23T09:00:00+08:00"),
+  });
+
+  assert.equal(result.run.completed, true);
+  assert.equal(result.player.journalCollection.stickers.length, 1);
+  assert.equal(result.player.journalCollection.stickers[0].questionId, question.id);
+  assert.match(result.player.journalCollection.stickers[0].title, /题眼|义务教育|政府保障/u);
+  assert.equal(result.player.journalCollection.bookmarks.length, 1);
+  assert.equal(result.player.journalCollection.bookmarks[0].title, "稳修");
+  assert.equal(result.player.journalCollection.fragments, 1);
+});
+
+test("observed correct answers do not count as lit stickers or quest progress", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  const now = new Date("2026-06-23T09:00:00+08:00");
+  const player = {
+    ...initialPlayerState(),
+    mastery: {
+      [question.topic]: 49,
+    },
+  };
+  const run = createRogueliteRun([question], player, { modeId: "explore", buildId: "steady", length: 1 });
+  const result = applyTrialAnswer(player, run, {
+    nodeId: run.nodes[0].id,
+    question,
+    selectedAnswer: question.answer,
+    stanceId: "observe",
+    bankQuestions: [question],
+    now,
+  });
+  const report = createRogueliteRunReport(result.run, result.player, [question]);
+
+  assert.equal(result.isCorrect, true);
+  assert.equal(result.countsAsLit, false);
+  assert.equal(result.run.answeredCount, 1);
+  assert.equal(result.run.correctCount, 0);
+  assert.equal(result.run.wrongCount, 0);
+  assert.equal(result.growthXpGain, 0);
+  assert.deepEqual(result.materialsGain, { shuye: 0, moyu: 0 });
+  assert.equal(result.heartDelta, 0);
+  assert.equal(result.energyDelta, 0);
+  assert.equal(result.stanceMasteryGain, 0);
+  assert.equal(result.bondGains.qinglan, 0);
+  assert.equal(result.player.styleStats.balanced.attempts, 1);
+  assert.equal(result.player.styleStats.balanced.correct, 0);
+  assert.deepEqual(result.player.correctQuestionIds, []);
+  assert.deepEqual(result.player.dailyQuestProgress.correctQuestionIds, []);
+  assert.deepEqual(result.player.dailyQuestProgress.resonanceTopicIds, []);
+  assert.deepEqual(result.player.weeklyQuestProgress.correctQuestionIds, []);
+  assert.deepEqual(result.player.journalCollection.stickers, []);
+  assert.deepEqual(result.player.journalCollection.bookmarks, []);
+  assert.equal(result.player.journalCollection.fragments, 0);
+  assert.equal(report.journalSummary.litKeyPoints, 0);
+  assert.equal(report.journalSummary.totalKeyPoints, 1);
+});
+
+test("observed-only journal pages recommend review before opening new questions", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  let player = initialPlayerState();
+  let run = createRogueliteRun(prepared, player, { modeId: "explore", buildId: "steady", length: 5 });
+
+  for (const node of run.nodes) {
+    const question = prepared.find((item) => item.id === node.questionId);
+    const result = applyTrialAnswer(player, run, {
+      nodeId: node.id,
+      question,
+      selectedAnswer: question.answer,
+      stanceId: "observe",
+      bankQuestions: prepared,
+      now: new Date("2026-06-23T09:00:00+08:00"),
+    });
+    player = result.player;
+    run = result.run;
+  }
+
+  const report = createRogueliteRunReport(run, player, prepared);
+
+  assert.equal(run.completed, true);
+  assert.equal(run.correctCount, 0);
+  assert.equal(report.journalSummary.title, "今日手账页待复盘");
+  assert.equal(report.journalSummary.litKeyPoints, 0);
+  assert.equal(report.journalSummary.totalKeyPoints, 5);
+  assert.equal(report.journalSummary.bookmark, "观照记录");
+  assert.match(report.journalSummary.nextSuggestion, /本页已点亮 0\/5/u);
+  assert.match(report.journalSummary.nextSuggestion, /书签目标 0\/3/u);
+  assert.doesNotMatch(report.journalSummary.nextSuggestion, /本页只点亮 0\/3/u);
+  assert.equal(report.nextActions[0].label, "回看短课");
+  assert.equal(report.nextActions[0].scene, "training");
+  assert.match(report.nextActions[0].reason, /距离书签目标还差 3 个/u);
+  assert.notEqual(report.nextActions[0].label, "探索新题");
+  assert.notEqual(report.nextActions[0].label, "综合冲刺");
+});
+
+test("historical demons use historical cleanup wording in report next actions", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  let player = initialPlayerState();
+  let run = createRogueliteRun(prepared, player, { modeId: "explore", buildId: "steady", length: 5 });
+
+  for (const node of run.nodes) {
+    const question = prepared.find((item) => item.id === node.questionId);
+    const result = applyTrialAnswer(player, run, {
+      nodeId: node.id,
+      question,
+      selectedAnswer: question.answer,
+      stanceId: "observe",
+      bankQuestions: prepared,
+      now: new Date("2026-06-23T09:00:00+08:00"),
+    });
+    player = result.player;
+    run = result.run;
+  }
+
+  player = {
+    ...player,
+    mindDemons: {
+      "legacy-law": {
+        id: "legacy-law",
+        questionId: "legacy-law",
+        topic: "教育法规",
+        errorType: "审题失误",
+        pressure: 2,
+        status: "born",
+      },
+    },
+  };
+
+  const report = createRogueliteRunReport(run, player, prepared);
+  const purifyAction = report.nextActions.find((action) => action.label === "继续净化");
+
+  assert.equal(report.primaryMistake, "本局没有新增明显错因");
+  assert.equal(report.journalSummary.pendingDemons, 0);
+  assert.ok(purifyAction);
+  assert.match(purifyAction.reason, /仍有历史心魔待整理/u);
+  assert.doesNotMatch(purifyAction.reason, /本局出现错因/u);
+});
+
+test("run bookmarks and fragments require the page correct target", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  let player = initialPlayerState();
+  let run = createRogueliteRun(prepared, player, { modeId: "explore", buildId: "steady", length: 5 });
+
+  run.nodes.forEach((node, index) => {
+    const question = prepared.find((item) => item.id === node.questionId);
+    const result = applyTrialAnswer(player, run, {
+      nodeId: node.id,
+      question,
+      selectedAnswer: question.answer,
+      stanceId: index === 0 ? "steady" : "observe",
+      bankQuestions: prepared,
+      now: new Date("2026-06-23T09:00:00+08:00"),
+    });
+    player = result.player;
+    run = result.run;
+  });
+
+  const report = createRogueliteRunReport(run, player, prepared);
+
+  assert.equal(run.completed, true);
+  assert.equal(run.correctCount, 1);
+  assert.equal(player.journalCollection.stickers.length, 1);
+  assert.deepEqual(player.journalCollection.bookmarks, []);
+  assert.equal(player.journalCollection.fragments, 0);
+  assert.equal(report.journalSummary.bookmark, "未获得");
+  assert.equal(report.nextActions[0].label, "回看短课");
+});
+
+test("roguelite journal summary title follows failed and review-needed results", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const run = createRogueliteRun(prepared, initialPlayerState(), { modeId: "explore", buildId: "steady", length: 5 });
+  const failedRun = {
+    ...run,
+    state: "report_ready",
+    answeredCount: 5,
+    correctCount: 2,
+    wrongCount: 3,
+    completed: true,
+    failed: true,
+    events: [
+      { isCorrect: false, topic: "教育心理学", demonType: "概念混淆" },
+    ],
+  };
+  const reviewRun = {
+    ...failedRun,
+    failed: false,
+  };
+  const unpurifiedReviewRun = {
+    ...run,
+    modeId: "purify",
+    modeName: "净化心魔",
+    buildId: "review",
+    buildName: "复盘",
+    state: "report_ready",
+    answeredCount: 5,
+    correctCount: 5,
+    wrongCount: 0,
+    completed: true,
+    purifiedDemonIds: [],
+    events: [],
+  };
+
+  const failedReport = createRogueliteRunReport(failedRun, initialPlayerState(), prepared);
+  const reviewReport = createRogueliteRunReport(reviewRun, initialPlayerState(), prepared);
+  const unpurifiedReviewReport = createRogueliteRunReport(unpurifiedReviewRun, initialPlayerState(), prepared);
+
+  assert.equal(failedReport.resultLabel, "题阵中断");
+  assert.equal(failedReport.journalSummary.title, "题阵中断");
+  assert.equal(reviewReport.resultLabel, "今日手账页待复盘");
+  assert.equal(reviewReport.journalSummary.title, "今日手账页待复盘");
+  assert.equal(unpurifiedReviewReport.resultLabel, "今日手账页待整理");
+  assert.equal(unpurifiedReviewReport.journalSummary.title, "今日手账页待整理");
+});
+
+test("interrupted roguelite journal reports keep the full page total", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const run = createRogueliteRun(prepared, initialPlayerState(), { modeId: "explore", buildId: "steady", length: 5 });
+  const interruptedRun = {
+    ...run,
+    state: "report_ready",
+    answeredCount: 2,
+    correctCount: 1,
+    wrongCount: 1,
+    completed: true,
+    failed: true,
+    events: [
+      { isCorrect: true, topic: "教育法规" },
+      { isCorrect: false, topic: "教育心理学", demonType: "概念混淆" },
+    ],
+  };
+  const report = createRogueliteRunReport(interruptedRun, initialPlayerState(), prepared);
+
+  assert.equal(report.journalSummary.title, "题阵中断");
+  assert.equal(report.journalSummary.litKeyPoints, 1);
+  assert.equal(report.journalSummary.totalKeyPoints, 5);
+});
+
 test("chapter mechanics are attached to route nodes and alter battle feedback", () => {
   const [lawQuestion] = prepareQuestions([{
     ...rawQuestions[0],
-    chapterMechanic: "law-fog",
+    chapterMechanic: "law-review",
     difficulty: 1,
   }]);
   const [neutralQuestion] = prepareQuestions([{
@@ -1044,17 +1356,17 @@ test("chapter mechanics are attached to route nodes and alter battle feedback", 
     stanceId: "steady",
   });
 
-  assert.equal(chapterMechanicDefinitions["law-fog"].name, "法条迷雾");
-  assert.equal(lawRun.nodes[0].chapterMechanic, "law-fog");
-  assert.equal(lawRun.nodes[0].mechanicName, "法条迷雾");
-  assert.match(lawRun.nodes[0].mechanicPrompt, /关键词|法条/);
-  assert.match(law.learningCheck, /法条迷雾/);
+  assert.equal(chapterMechanicDefinitions["law-review"].name, "法规审题");
+  assert.equal(lawRun.nodes[0].chapterMechanic, "law-review");
+  assert.equal(lawRun.nodes[0].mechanicName, "法规审题");
+  assert.match(lawRun.nodes[0].mechanicPrompt, /主体|义务词|责任后果/);
+  assert.match(law.learningCheck, /法规审题/);
   assert.ok(law.heartDelta < neutral.heartDelta);
 });
 
 test("chapter mechanic state materializes the seven designed chapter rules", () => {
   const [lawQuestion, conceptQuestion, timeQuestion, ethicsQuestion, strategyQuestion, memoryQuestion, chaosQuestion] = prepareQuestions([
-    { ...rawQuestions[0], id: "law-mechanic", chapterMechanic: "law-fog", difficulty: 3 },
+    { ...rawQuestions[0], id: "law-mechanic", chapterMechanic: "law-review", difficulty: 3 },
     { ...rawQuestions[2], id: "concept-mechanic", chapterMechanic: "concept-maze", errorPatterns: ["concept-confusion"] },
     { ...rawQuestions[2], id: "time-mechanic", chapterMechanic: "time-hourglass", difficulty: 2 },
     { ...rawQuestions[3], id: "ethics-mechanic", chapterMechanic: "ethics-scale" },
@@ -1075,8 +1387,9 @@ test("chapter mechanic state materializes the seven designed chapter rules", () 
   const memoryState = buildChapterMechanicState(memoryQuestion, initialPlayerState());
   const chaosState = buildChapterMechanicState(chaosQuestion, initialPlayerState());
 
-  assert.match(lawState.displayStem, /__|＿|□/);
-  assert.equal(studiedLawState.displayStem, lawQuestion.stem);
+  assert.equal(lawState.displayStem, undefined);
+  assert.equal(studiedLawState.displayStem, undefined);
+  assert.match(lawState.prompt, /主体|义务词|责任后果/);
   assert.ok(conceptState.optionWarnings.length > 0);
   assert.equal(timeState.timeLimitSeconds, 45);
   assert.equal(timeState.recoverAddsSeconds, 15);
@@ -1085,6 +1398,8 @@ test("chapter mechanic state materializes the seven designed chapter rules", () 
   assert.equal(memoryState.exactAnswerRequired, true);
   assert.equal(memoryState.attemptsAllowed, 1);
   assert.equal(chaosState.borrowedMechanic !== "chaos-mix", true);
+  assert.equal(chaosState.borrowedMechanicName, chapterMechanicDefinitions[chaosState.borrowedMechanic].name);
+  assert.doesNotMatch(chaosState.borrowedMechanicName, /^[a-z-]+$/);
 });
 
 test("study is a training path that improves battle feedback without blocking battle", () => {
@@ -1152,6 +1467,24 @@ test("assault correct answers hit harder and pay more spirit pages than steady a
   assert.ok(assault.damage > steady.damage);
   assert.ok(assault.spiritPagesGain > steady.spiritPagesGain);
   assert.equal(assault.player.stanceStats.assault, 1);
+});
+
+test("roguelite build battle feedback uses the selected visible build name", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  const run = createRogueliteRun([question], initialPlayerState(), { length: 1, buildId: "steady" });
+  const studied = studyNode(initialPlayerState(), run, run.nodes[0].id, { bankQuestions: [question] });
+  const result = applyTrialAnswer(initialPlayerState(), run, {
+    nodeId: run.nodes[0].id,
+    question,
+    selectedAnswer: "B",
+    stanceId: "steady",
+  });
+
+  assert.equal(run.buildName, "稳修");
+  assert.match(studied.rewards.styleFeedback, /稳修/u);
+  assert.doesNotMatch(studied.rewards.styleFeedback, /均衡派/u);
+  assert.match(result.styleFeedback, /稳修/u);
+  assert.doesNotMatch(result.styleFeedback, /均衡派/u);
 });
 
 test("assault mistakes cost extra heart power and create stronger mind demon pressure", () => {
@@ -1320,6 +1653,65 @@ test("mind demon corridor purifies an old wrong question after two correct revie
   assert.equal(secondReview.player.dailyQuestProgress.demonPurifications, 1);
 });
 
+test("study and correct answers add only same-day daily quest progress", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const monday = new Date("2026-06-22T09:00:00+08:00");
+  const tuesday = new Date("2026-06-23T09:00:00+08:00");
+  let player = initialPlayerState();
+  let studyRun = createRogueliteRun(prepared, player, { modeId: "explore", buildId: "steady", length: 3 });
+
+  for (const node of studyRun.nodes) {
+    const result = studyNode(player, studyRun, node.id, { bankQuestions: prepared, now: monday });
+    player = result.player;
+    studyRun = result.run;
+  }
+
+  assert.equal(createDailyQuestState(prepared, player, { now: monday }).daily.find((quest) => quest.id === "daily-study").completed, true);
+  assert.equal(createDailyQuestState(prepared, player, { now: tuesday }).daily.find((quest) => quest.id === "daily-study").completed, false);
+
+  let battleRun = createRogueliteRun(prepared, player, { modeId: "explore", buildId: "steady", length: 5 });
+  for (const node of battleRun.nodes) {
+    const question = prepared.find((item) => item.id === node.questionId);
+    const result = applyTrialAnswer(player, battleRun, {
+      nodeId: node.id,
+      question,
+      selectedAnswer: question.answer,
+      stanceId: "steady",
+      bankQuestions: prepared,
+      now: monday,
+    });
+    player = result.player;
+    battleRun = result.run;
+  }
+
+  assert.equal(createDailyQuestState(prepared, player, { now: monday }).daily.find((quest) => quest.id === "daily-battle").completed, true);
+  assert.equal(createDailyQuestState(prepared, player, { now: tuesday }).daily.find((quest) => quest.id === "daily-battle").completed, false);
+});
+
+test("correct answers write daily resonance and weekly quest progress", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  const now = new Date("2026-06-23T09:00:00+08:00");
+  const player = {
+    ...initialPlayerState(),
+    mastery: {
+      [question.topic]: 49,
+    },
+  };
+  const run = createRogueliteRun([question], player, { modeId: "explore", buildId: "steady", length: 1 });
+  const result = applyTrialAnswer(player, run, {
+    nodeId: run.nodes[0].id,
+    question,
+    selectedAnswer: question.answer,
+    stanceId: "steady",
+    bankQuestions: [question],
+    now,
+  });
+
+  assert.deepEqual(result.player.dailyQuestProgress.resonanceTopicIds, [question.topic]);
+  assert.deepEqual(result.player.weeklyQuestProgress.correctQuestionIds, [question.id]);
+  assert.equal(result.player.weeklyQuestProgress.topicCorrectCounts[question.topic], 1);
+});
+
 test("run report summarizes stance choices, resources, and next training target", () => {
   const prepared = prepareQuestions(rawQuestions);
   const startedRun = createRouteRun(prepared, { length: 5 });
@@ -1345,7 +1737,7 @@ test("run report summarizes stance choices, resources, and next training target"
 
   const report = createRunReport(run, player);
 
-  assert.equal(report.correctRate, 80);
+  assert.equal(report.correctRate, 60);
   assert.equal(report.answeredCount, 5);
   assert.equal(report.stanceStats.assault, 2);
   assert.ok(report.spiritPagesGain > 0);
@@ -1376,22 +1768,40 @@ test("learning dashboard summarizes progress, error patterns, and review checkli
 
   assert.equal(dashboard.questionProgress.studiedCount, 2);
   assert.equal(dashboard.questionProgress.correctCount, 1);
+  assert.equal(dashboard.topicTouchStats.touchedCount > 0, true);
+  assert.equal(dashboard.topicTouchStats.totalCount, dashboard.chapterStats.totalCount);
   assert.equal(dashboard.demonStats.activeCount, 1);
   assert.equal(dashboard.demonStats.purifiedCount, 1);
   assert.equal(dashboard.errorPatternStats[0].errorPattern, "concept-confusion");
   assert.match(dashboard.reviewItems[0].text, /教育心理学|镜像心魔/);
 });
 
-test("daily quest state includes weekly quests, fatigue warning, and dashboard trend bars", () => {
+test("learning dashboard suggestion titles use learning domains instead of old chapter labels", () => {
   const prepared = prepareQuestions(rawQuestions);
+  const dashboard = createLearningDashboard(prepared, initialPlayerState());
+
+  assert.ok(dashboard.weakestTopic);
+  assert.equal(dashboard.weakestTopic.title, dashboard.weakestTopic.topic);
+  assert.doesNotMatch(dashboard.weakestTopic.title, /第[一二三四五六七八九十]+章|营|花窗/u);
+});
+
+test("daily quest state supports claiming completed rewards and fatigue warning", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const now = new Date("2026-06-23T09:00:00+08:00");
   const player = {
     ...initialPlayerState(),
     consecutiveRouteRuns: 3,
-    correctQuestionIds: [prepared[0].id, prepared[1].id],
+    correctQuestionIds: prepared.slice(0, 5).map((question) => question.id),
     purifiedDemonIds: [prepared[2].id],
+    dailyQuestProgress: {
+      day: "2026-06-23",
+      correctQuestionIds: prepared.slice(0, 5).map((question) => question.id),
+      studiedLessonIds: [],
+      demonPurifications: 1,
+    },
     answerTimeSamples: [58, 46, 39],
   };
-  const questState = createDailyQuestState(prepared, player);
+  const questState = createDailyQuestState(prepared, player, { now });
   const dashboard = createLearningDashboard(prepared, player);
 
   assert.equal(questState.daily.length, 4);
@@ -1405,6 +1815,156 @@ test("daily quest state includes weekly quests, fatigue warning, and dashboard t
   assert.match(dashboard.topicCoverageBars[0].bar, /█|░/);
   assert.equal(dashboard.averageTimeTrend.averageSeconds, 47.7);
   assert.match(dashboard.averageTimeTrend.label, /变快|稳定|放慢/);
+  const questCopy = [...questState.daily, ...questState.weekly]
+    .map((quest) => `${quest.title} ${quest.description} ${quest.rewards?.title || ""}`)
+    .join(" ");
+  assert.doesNotMatch(questCopy, /净墨|破阵|巡检者|行者|心法共鸣|知识巡检|主题挑战/u);
+  assert.match(questCopy, /贴纸|书签|手账|徽章|收藏册/u);
+
+  const claimed = claimDailyQuestReward(prepared, player, "daily-battle", { now });
+  const claimedAgain = createDailyQuestState(prepared, claimed.player, { now }).daily.find((quest) => quest.id === "daily-battle");
+  assert.equal(claimed.quest.completed, true);
+  assert.equal(claimed.quest.claimed, false);
+  assert.equal(claimed.reward.materials.shuye, 4);
+  assert.equal(claimed.player.materials.shuye, player.materials.shuye + 4);
+  assert.equal(claimedAgain.claimed, true);
+});
+
+test("daily and weekly quest claims reset on their next cycle", () => {
+  const prepared = prepareQuestions(Array.from({ length: 10 }, (_, index) => ({
+    ...rawQuestions[index % rawQuestions.length],
+    id: `cycle-${index + 1}`,
+    stem: `${rawQuestions[index % rawQuestions.length].stem} ${index + 1}`,
+  })));
+  const player = {
+    ...initialPlayerState(),
+    correctQuestionIds: prepared.slice(0, 10).map((question) => question.id),
+    weeklyQuestProgress: {
+      week: "2026-W26",
+      correctQuestionIds: prepared.slice(0, 10).map((question) => question.id),
+      purifiedDemonIds: [],
+      topicCorrectCounts: {},
+    },
+    dailyQuestProgress: {
+      day: "2026-06-22",
+      correctQuestionIds: prepared.slice(0, 5).map((question) => question.id),
+      studiedLessonIds: [],
+      demonPurifications: 0,
+    },
+  };
+
+  const monday = new Date("2026-06-22T09:00:00+08:00");
+  const tuesday = new Date("2026-06-23T09:00:00+08:00");
+  const nextMonday = new Date("2026-06-29T09:00:00+08:00");
+  const dailyClaimed = claimDailyQuestReward(prepared, player, "daily-battle", { now: monday }).player;
+  const weeklyClaimed = claimDailyQuestReward(prepared, dailyClaimed, "weekly-graph", { now: monday }).player;
+
+  assert.equal(createDailyQuestState(prepared, weeklyClaimed, { now: monday }).daily.find((quest) => quest.id === "daily-battle").claimed, true);
+  assert.equal(createDailyQuestState(prepared, weeklyClaimed, { now: monday }).weekly.find((quest) => quest.id === "weekly-graph").claimed, true);
+  assert.equal(createDailyQuestState(prepared, weeklyClaimed, { now: tuesday }).daily.find((quest) => quest.id === "daily-battle").claimed, false);
+  assert.equal(createDailyQuestState(prepared, weeklyClaimed, { now: tuesday }).daily.find((quest) => quest.id === "daily-battle").completed, false);
+  assert.equal(createDailyQuestState(prepared, weeklyClaimed, { now: tuesday }).weekly.find((quest) => quest.id === "weekly-graph").claimed, true);
+  assert.equal(createDailyQuestState(prepared, weeklyClaimed, { now: nextMonday }).weekly.find((quest) => quest.id === "weekly-graph").claimed, false);
+});
+
+test("daily quests ignore cumulative progress from earlier days", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const yesterdayProgress = {
+    day: "2026-06-22",
+    studiedLessonIds: prepared.slice(0, 3).map((question) => question.lesson.id),
+    correctQuestionIds: prepared.slice(0, 5).map((question) => question.id),
+    demonPurifications: 1,
+  };
+  const player = {
+    ...initialPlayerState(),
+    studiedLessonIds: yesterdayProgress.studiedLessonIds,
+    correctQuestionIds: yesterdayProgress.correctQuestionIds,
+    dailyQuestProgress: yesterdayProgress,
+    mindDemons: {
+      [prepared[0].id]: {
+        id: prepared[0].id,
+        questionId: prepared[0].id,
+        topic: prepared[0].topic,
+        pressure: 2,
+      },
+    },
+  };
+  const tuesdayState = createDailyQuestState(prepared, player, { now: new Date("2026-06-23T09:00:00+08:00") });
+
+  assert.equal(tuesdayState.daily.find((quest) => quest.id === "daily-study").progress.current, 0);
+  assert.equal(tuesdayState.daily.find((quest) => quest.id === "daily-study").completed, false);
+  assert.equal(tuesdayState.daily.find((quest) => quest.id === "daily-battle").progress.current, 0);
+  assert.equal(tuesdayState.daily.find((quest) => quest.id === "daily-battle").completed, false);
+  assert.equal(tuesdayState.daily.find((quest) => quest.id === "daily-demon").progress.current, 0);
+  assert.equal(tuesdayState.daily.find((quest) => quest.id === "daily-demon").completed, false);
+});
+
+test("daily resonance uses same-day resonance progress instead of cumulative mastery", () => {
+  const prepared = prepareQuestions(rawQuestions);
+  const player = {
+    ...initialPlayerState(),
+    mastery: {
+      [prepared[0].topic]: 80,
+      [prepared[1].topic]: 72,
+    },
+    dailyQuestProgress: {
+      day: "2026-06-22",
+      studiedLessonIds: [],
+      correctQuestionIds: [],
+      resonanceTopicIds: [prepared[0].topic, prepared[1].topic],
+      demonPurifications: 0,
+    },
+  };
+  const tuesdayState = createDailyQuestState(prepared, player, { now: new Date("2026-06-23T09:00:00+08:00") });
+  const sameDayPlayer = {
+    ...player,
+    dailyQuestProgress: {
+      ...player.dailyQuestProgress,
+      day: "2026-06-23",
+    },
+  };
+  const sameDayState = createDailyQuestState(prepared, sameDayPlayer, { now: new Date("2026-06-23T09:00:00+08:00") });
+
+  assert.equal(tuesdayState.daily.find((quest) => quest.id === "daily-resonance").progress.current, 0);
+  assert.equal(tuesdayState.daily.find((quest) => quest.id === "daily-resonance").completed, false);
+  assert.equal(sameDayState.daily.find((quest) => quest.id === "daily-resonance").progress.current, 2);
+  assert.equal(sameDayState.daily.find((quest) => quest.id === "daily-resonance").completed, true);
+});
+
+test("weekly quests use same-week progress instead of cumulative totals", () => {
+  const prepared = prepareQuestions(Array.from({ length: 20 }, (_, index) => ({
+    ...rawQuestions[0],
+    id: `weekly-${index + 1}`,
+    stem: `${rawQuestions[0].stem} ${index + 1}`,
+  })));
+  const player = {
+    ...initialPlayerState(),
+    correctQuestionIds: prepared.map((question) => question.id),
+    purifiedDemonIds: prepared.slice(0, 5).map((question) => question.id),
+    weeklyQuestProgress: {
+      week: "2026-W26",
+      correctQuestionIds: prepared.slice(0, 10).map((question) => question.id),
+      purifiedDemonIds: prepared.slice(0, 5).map((question) => question.id),
+      topicCorrectCounts: {
+        [prepared[0].topic]: 20,
+      },
+    },
+  };
+  const currentWeek = createDailyQuestState(prepared, player, { now: new Date("2026-06-22T09:00:00+08:00") }).weekly;
+  const nextWeek = createDailyQuestState(prepared, player, { now: new Date("2026-06-29T09:00:00+08:00") }).weekly;
+
+  assert.equal(currentWeek.find((quest) => quest.id === "weekly-graph").progress.current, 10);
+  assert.equal(currentWeek.find((quest) => quest.id === "weekly-graph").completed, true);
+  assert.equal(currentWeek.find((quest) => quest.id === "weekly-demon-sweep").progress.current, 5);
+  assert.equal(currentWeek.find((quest) => quest.id === "weekly-demon-sweep").completed, true);
+  assert.equal(currentWeek.find((quest) => quest.id === "weekly-topic").progress.current, 20);
+  assert.equal(currentWeek.find((quest) => quest.id === "weekly-topic").completed, true);
+  assert.equal(nextWeek.find((quest) => quest.id === "weekly-graph").progress.current, 0);
+  assert.equal(nextWeek.find((quest) => quest.id === "weekly-graph").completed, false);
+  assert.equal(nextWeek.find((quest) => quest.id === "weekly-demon-sweep").progress.current, 0);
+  assert.equal(nextWeek.find((quest) => quest.id === "weekly-demon-sweep").completed, false);
+  assert.equal(nextWeek.find((quest) => quest.id === "weekly-topic").progress.current, 0);
+  assert.equal(nextWeek.find((quest) => quest.id === "weekly-topic").completed, false);
 });
 
 test("daily demon quest is not completed by default when no demons exist", () => {
@@ -1414,6 +1974,94 @@ test("daily demon quest is not completed by default when no demons exist", () =>
 
   assert.equal(demonQuest.progress.current, 0);
   assert.equal(demonQuest.progress.target, 1);
+});
+
+test("completed roguelite runs advance fatigue counters", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  const run = createRogueliteRun([question], initialPlayerState(), { modeId: "explore", buildId: "steady", length: 1 });
+  const result = applyTrialAnswer(initialPlayerState(), run, {
+    nodeId: run.nodes[0].id,
+    question,
+    selectedAnswer: question.answer,
+    stanceId: "steady",
+    now: new Date("2026-06-23T09:00:00+08:00"),
+  });
+
+  assert.equal(result.run.completed, true);
+  assert.equal(result.player.consecutiveRouteRuns, 1);
+  assert.equal(result.player.lastRouteRunDay, "2026-06-23");
+  assert.equal(createDailyQuestState([question], result.player).fatigue.consecutiveRouteRuns, 1);
+});
+
+test("fatigue recovers after resting or on a new day", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  const tiredPlayer = {
+    ...initialPlayerState(),
+    consecutiveRouteRuns: 3,
+    lastRouteRunDay: "2026-06-23",
+  };
+
+  assert.equal(createDailyQuestState([question], tiredPlayer, { now: new Date("2026-06-23T22:00:00+08:00") }).fatigue.rewardMultiplier, 0.7);
+  assert.equal(createDailyQuestState([question], tiredPlayer, { now: new Date("2026-06-24T09:00:00+08:00") }).fatigue.rewardMultiplier, 1);
+  assert.equal(createDailyQuestState([question], tiredPlayer, { now: new Date("2026-06-24T09:00:00+08:00") }).fatigue.consecutiveRouteRuns, 0);
+
+  const rested = restFromFatigue(tiredPlayer, { now: new Date("2026-06-23T22:05:00+08:00") });
+  assert.equal(rested.consecutiveRouteRuns, 0);
+  assert.equal(rested.lastFatigueRestDay, "2026-06-23");
+  assert.equal(createDailyQuestState([question], rested, { now: new Date("2026-06-23T22:06:00+08:00") }).fatigue.rewardMultiplier, 1);
+});
+
+test("fatigue starts counting again after same-day rest", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  let player = restFromFatigue({
+    ...initialPlayerState(),
+    consecutiveRouteRuns: 3,
+    lastRouteRunDay: "2026-06-23",
+  }, { now: new Date("2026-06-23T22:05:00+08:00") });
+
+  for (let index = 0; index < 4; index += 1) {
+    const run = createRogueliteRun([question], player, { modeId: "explore", buildId: "steady", length: 1 });
+    const result = applyTrialAnswer(player, run, {
+      nodeId: run.nodes[0].id,
+      question,
+      selectedAnswer: question.answer,
+      stanceId: "steady",
+      now: new Date(`2026-06-23T22:${10 + index}:00+08:00`),
+    });
+    player = result.player;
+  }
+
+  assert.equal(player.consecutiveRouteRuns, 4);
+  assert.equal(createDailyQuestState([question], player, { now: new Date("2026-06-23T22:20:00+08:00") }).fatigue.rewardMultiplier, 0.7);
+});
+
+test("fatigue multiplier reduces battle rewards and answer times are recorded", () => {
+  const [question] = prepareQuestions(rawQuestions);
+  const restedRun = createRogueliteRun([question], initialPlayerState(), { modeId: "explore", buildId: "steady", length: 1 });
+  const tiredPlayer = { ...initialPlayerState(), consecutiveRouteRuns: 3, lastRouteRunDay: "2026-06-23" };
+  const tiredRun = createRogueliteRun([question], tiredPlayer, { modeId: "explore", buildId: "steady", length: 1 });
+  const rested = applyTrialAnswer(initialPlayerState(), restedRun, {
+    nodeId: restedRun.nodes[0].id,
+    question,
+    selectedAnswer: question.answer,
+    stanceId: "steady",
+    elapsedSeconds: 42,
+  });
+  const tired = applyTrialAnswer(tiredPlayer, tiredRun, {
+    nodeId: tiredRun.nodes[0].id,
+    question,
+    selectedAnswer: question.answer,
+    stanceId: "steady",
+    elapsedSeconds: 37.6,
+    now: new Date("2026-06-23T10:00:00+08:00"),
+  });
+
+  assert.equal(rested.player.answerTimeSamples.at(-1), 42);
+  assert.equal(tired.player.answerTimeSamples.at(-1), 37.6);
+  assert.ok(tired.spiritPagesGain < rested.spiritPagesGain);
+  assert.ok(tired.growthXpGain < rested.growthXpGain);
+  assert.equal(rested.materialsGain.shuye, 1);
+  assert.equal(tired.materialsGain.shuye, 1);
 });
 
 test("heart methods turn topic mastery into stance bonuses", () => {
