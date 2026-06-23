@@ -183,12 +183,27 @@ async function fetchQuestionBankPayload(url) {
   if (!response.body) {
     throw new Error("卷宗数据流暂时无法读取。");
   }
-  const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
-  return new Response(stream).json();
+  try {
+    const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
+    return await new Response(stream).json();
+  } catch {
+    throw new Error("卷宗压缩包暂时无法展开。");
+  }
 }
 
 function supportsCompressedQuestionBank() {
-  return typeof DecompressionStream === "function" && typeof Response === "function";
+  if (
+    typeof DecompressionStream !== "function" ||
+    typeof ReadableStream !== "function" ||
+    typeof Response !== "function"
+  ) {
+    return false;
+  }
+  try {
+    return Boolean(new DecompressionStream("gzip"));
+  } catch {
+    return false;
+  }
 }
 
 function isCompressedQuestionBankUrl(url) {
