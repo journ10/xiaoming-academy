@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import zlib from "node:zlib";
 import {
   browserRuntimeQuestionBankSourceType,
   parseQuestionImport,
@@ -84,6 +85,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     readJson(classificationAuditPath),
   );
 
-  fs.writeFileSync(outputPath, `${JSON.stringify(payload)}\n`);
+  const payloadText = `${JSON.stringify(payload)}\n`;
+  const compressedOutputPath = `${outputPath}.gz`;
+  fs.writeFileSync(outputPath, payloadText);
+  fs.writeFileSync(compressedOutputPath, zlib.gzipSync(payloadText, { level: 9 }));
   console.log(`Wrote ${payload.questions.length} runtime questions to ${outputPath}`);
+  console.log(`Wrote compressed runtime question bank to ${compressedOutputPath}`);
 }
