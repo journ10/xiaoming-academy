@@ -9,7 +9,6 @@ import {
 const DEFAULT_QUESTION_BANK = "data/questions.from-pdf.json";
 const DEFAULT_CLASSIFICATION_AUDIT = "data/question-classification.audit.json";
 const DEFAULT_OUTPUT = "data/questions.runtime.json";
-const DEFAULT_COMPRESSED_OUTPUT = `${DEFAULT_OUTPUT}.gz`;
 
 const runtimeQuestionSchema = [
   "id",
@@ -87,7 +86,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   );
 
   const payloadText = `${JSON.stringify(payload)}\n`;
-  const compressedOutputPath = outputPath === DEFAULT_OUTPUT ? DEFAULT_COMPRESSED_OUTPUT : `${outputPath}.gz`;
+  const compressedOutputPath = `${outputPath}.gz`;
   fs.writeFileSync(outputPath, payloadText);
   fs.writeFileSync(compressedOutputPath, zlib.gzipSync(payloadText, { level: 9 }));
   console.log(`Wrote ${payload.questions.length} runtime questions to ${outputPath}`);
