@@ -29,6 +29,10 @@ import {
 
 const storageKey = "xiaoming-academy-text-game-v1";
 const questionBankVersion = "study-journal-20260623q";
+const compressedQuestionBankUrls = [
+  versionedDataUrl("./data/questions.runtime.json.gz"),
+  versionedDataUrl("/xiaoming-academy/data/questions.runtime.json.gz"),
+];
 const questionBankUrls = [
   versionedDataUrl("./data/questions.runtime.json"),
   versionedDataUrl("/xiaoming-academy/data/questions.runtime.json"),
@@ -147,13 +151,12 @@ async function loadBuiltInQuestionBank() {
 
 async function loadRuntimeQuestionBank() {
   let lastError = null;
-  for (const url of questionBankUrls) {
+  const runtimeBankUrls = supportsCompressedQuestionBank()
+    ? [...compressedQuestionBankUrls, ...questionBankUrls]
+    : questionBankUrls;
+  for (const url of runtimeBankUrls) {
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("卷宗入口暂时没有回应。");
-      }
-      const payload = await response.json();
+      const payload = await fetchQuestionBankPayload(url);
       const parsedQuestions = parseQuestionImport(payload);
       if (!parsedQuestions.length) {
         throw new Error("卷宗里还没有可练内容");
@@ -167,6 +170,25 @@ async function loadRuntimeQuestionBank() {
   }
 
   throw new Error(lastError?.message || "秘卷暂时无法展开，请稍后再试。");
+}
+
+async function fetchQuestionBankPayload(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("卷宗入口暂时没有回应。");
+  }
+  if (!url.includes(".json.gz")) {
+    return response.json();
+  }
+  const stream = response.body?.pipeThrough(new DecompressionStream("gzip"));
+  if (!stream) {
+    throw new Error("卷宗压缩包暂时无法展开。");
+  }
+  return new Response(stream).json();
+}
+
+function supportsCompressedQuestionBank() {
+  return typeof DecompressionStream === "function" && typeof Response === "function";
 }
 
 async function loadFullQuestionBankFallback(runtimeError) {

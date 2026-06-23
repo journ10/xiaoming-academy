@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import zlib from "node:zlib";
 import {
   buildExamManifestFromQuestionPages,
   getTotalExpectedQuestionSlots,
@@ -363,6 +364,7 @@ test("built-in PDF bank reports source slots separately from playable questions"
 test("browser runtime question bank is compact and already classified", () => {
   const fullPayloadText = readFileSync("data/questions.from-pdf.json", "utf8");
   const runtimePayloadText = readFileSync("data/questions.runtime.json", "utf8");
+  const compressedRuntimePayload = readFileSync("data/questions.runtime.json.gz");
   const runtimePayload = JSON.parse(runtimePayloadText);
   const parsedRuntime = parseQuestionImport(runtimePayload);
   const firstQuestion = parsedRuntime[0];
@@ -372,6 +374,8 @@ test("browser runtime question bank is compact and already classified", () => {
   assert.equal(runtimePayload.runtime?.encoding, "schema-array");
   assert.equal(runtimePayload.questions.length, JSON.parse(fullPayloadText).questions.length);
   assert.ok(runtimePayloadText.length < fullPayloadText.length * 0.65);
+  assert.equal(zlib.gunzipSync(compressedRuntimePayload).toString("utf8"), runtimePayloadText);
+  assert.ok(compressedRuntimePayload.length < runtimePayloadText.length * 0.35);
   assert.equal(firstQuestion.gameplayStatus, "mainline");
   assert.ok(firstQuestion.lesson?.id);
   assert.ok(firstQuestion.lesson?.studyPrompt);

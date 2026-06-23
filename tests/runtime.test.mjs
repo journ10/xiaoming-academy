@@ -162,10 +162,14 @@ test("runtime retries the PDF question bank from deployment-safe paths", () => {
   const app = readFileSync("app.js", "utf8");
 
   assert.match(app, /questionBankUrls/);
+  assert.match(app, /compressedQuestionBankUrls/);
+  assert.match(app, /\.\/data\/questions\.runtime\.json\.gz/);
+  assert.match(app, /\/xiaoming-academy\/data\/questions\.runtime\.json\.gz/);
   assert.match(app, /\.\/data\/questions\.runtime\.json/);
   assert.match(app, /\/xiaoming-academy\/data\/questions\.runtime\.json/);
   assert.match(app, /questionBankVersion/);
-  assert.match(app, /for \(const url of questionBankUrls\)/);
+  assert.match(app, /supportsCompressedQuestionBank/);
+  assert.match(app, /for \(const url of runtimeBankUrls\)/);
   assert.match(app, /lastError/);
 });
 
@@ -175,6 +179,7 @@ test("pages deployment publishes the runtime PDF question bank", () => {
   assert.match(workflow, /--exclude 'data\/'/);
   assert.match(workflow, /mkdir -p _site\/data/);
   assert.match(workflow, /cp data\/questions\.runtime\.json _site\/data\/questions\.runtime\.json/);
+  assert.match(workflow, /cp data\/questions\.runtime\.json\.gz _site\/data\/questions\.runtime\.json\.gz/);
   assert.doesNotMatch(workflow, /cp data\/question-classification\.audit\.json _site\/data\/question-classification\.audit\.json/);
 });
 

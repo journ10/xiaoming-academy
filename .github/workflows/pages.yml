@@ -66,6 +66,7 @@ jobs:
             ./ _site/
           mkdir -p _site/data
           cp data/questions.runtime.json _site/data/questions.runtime.json
+          cp data/questions.runtime.json.gz _site/data/questions.runtime.json.gz
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
