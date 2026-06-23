@@ -180,10 +180,10 @@ async function fetchQuestionBankPayload(url) {
   if (!isCompressedQuestionBankUrl(url)) {
     return response.json();
   }
-  const stream = response.body?.pipeThrough(new DecompressionStream("gzip"));
-  if (!stream) {
+  if (!response.body) {
     throw new Error("卷宗数据流暂时无法读取。");
   }
+  const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
   return new Response(stream).json();
 }
 
