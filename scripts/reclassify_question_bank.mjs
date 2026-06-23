@@ -143,6 +143,7 @@ const ABILITY_RULES = [
   ability("structured_response", "论述/表达组织", /论述|简述|分析|说明理由|谈谈|结合材料/u),
   ability("timed_material_analysis", "材料信息提取", /案例分析题|材料|片段|阅读.*材料|教学片段/u),
 ];
+const KNOWN_DIRTY_CONTENT_PATTERN = /米成年人|抚养义务7|照管制度化|职贵|太双避冲突|对环\s*的依赖|对环的依赖|X45/u;
 
 function rule(source, weight, pattern) {
   return { source, weight, pattern };
@@ -268,6 +269,7 @@ function qualityStatus(question, classification) {
   if (!stem || stem.length < 8 || /^略/.test(stem)) reasons.push("weak_or_missing_stem");
   if (/题干暂时未收集|欢迎补充|关注公|吴注|OCR 待复核/u.test(stem)) reasons.push("stem_has_ocr_noise");
   if (/选项 OCR 待复核|OCR 待复核|关注公|吴注/u.test(optionText)) reasons.push("option_has_ocr_noise");
+  if (KNOWN_DIRTY_CONTENT_PATTERN.test([stem, optionText, explanation].join("\n"))) reasons.push("content_ocr_noise");
   if (!explanation || explanation === "略。" || explanation.length < 6) reasons.push("weak_explanation");
   if (classification.confidence === "low") reasons.push("low_classification_confidence");
 

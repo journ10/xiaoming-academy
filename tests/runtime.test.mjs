@@ -13,13 +13,13 @@ test("static entry loads only the pure text game runtime", () => {
   const index = readFileSync("index.html", "utf8");
   const app = readFileSync("app.js", "utf8");
   const core = readFileSync("core.js", "utf8");
-  const cacheVersion = "study-journal-20260623p";
+  const cacheVersion = "study-journal-20260623q";
 
   assert.match(index, new RegExp(`<script type="module" src="\\./app\\.js\\?v=${cacheVersion}"></script>`));
   assert.match(index, new RegExp(`href="\\./styles\\.css\\?v=${cacheVersion}"`));
   assert.match(app, new RegExp(`from "\\./core\\.js\\?v=${cacheVersion}"`));
   assert.match(core, new RegExp(`from "\\./src/content-rules\\.js\\?v=${cacheVersion}"`));
-  assert.doesNotMatch(`${index}\n${app}\n${core}`, /study-journal-20260623a|study-journal-20260623b|study-journal-20260623c|study-journal-20260623d|study-journal-20260623e|study-journal-20260623f|study-journal-20260623g|study-journal-20260623h|study-journal-20260623i|study-journal-20260623j|study-journal-20260623k|study-journal-20260623l|study-journal-20260623m|study-journal-20260623n|study-journal-20260623o/);
+  assert.doesNotMatch(`${index}\n${app}\n${core}`, /study-journal-20260623a|study-journal-20260623b|study-journal-20260623c|study-journal-20260623d|study-journal-20260623e|study-journal-20260623f|study-journal-20260623g|study-journal-20260623h|study-journal-20260623i|study-journal-20260623j|study-journal-20260623k|study-journal-20260623l|study-journal-20260623m|study-journal-20260623n|study-journal-20260623o|study-journal-20260623p/);
   assert.doesNotMatch(index, /styles\/tokens\.css|styles\/shell\.css|styles\/components\.css/);
   assert.doesNotMatch(index, /<img\b|assets\/generated|docs\/mockups/);
 });
@@ -148,10 +148,13 @@ test("start desk suggestion does not ask for demons when none exist", () => {
   assert.match(app, /formatStartDeskSuggestion\(dashboard\)/);
 });
 
-test("runtime loads the built-in PDF question bank instead of sample data or imported bank state", () => {
+test("runtime loads the compact browser runtime question bank instead of sample data or imported bank state", () => {
   const app = readFileSync("app.js", "utf8");
 
-  assert.match(app, /data\/questions\.from-pdf\.json/);
+  assert.match(app, /data\/questions\.runtime\.json/);
+  assert.match(app, /loadRuntimeQuestionBank/);
+  assert.match(app, /parseQuestionImport\(payload\)/);
+  assert.doesNotMatch(app, /cache:\s*"no-store"/);
   assert.doesNotMatch(app, /sample-data\.js|sampleQuestions|savedState\.questions|questionSource/);
 });
 
@@ -159,8 +162,9 @@ test("runtime retries the PDF question bank from deployment-safe paths", () => {
   const app = readFileSync("app.js", "utf8");
 
   assert.match(app, /questionBankUrls/);
-  assert.match(app, /\.\/data\/questions\.from-pdf\.json/);
-  assert.match(app, /\/xiaoming-academy\/data\/questions\.from-pdf\.json/);
+  assert.match(app, /\.\/data\/questions\.runtime\.json/);
+  assert.match(app, /\/xiaoming-academy\/data\/questions\.runtime\.json/);
+  assert.match(app, /questionBankVersion/);
   assert.match(app, /for \(const url of questionBankUrls\)/);
   assert.match(app, /lastError/);
 });
@@ -170,15 +174,17 @@ test("pages deployment publishes the runtime PDF question bank", () => {
 
   assert.match(workflow, /--exclude 'data\/'/);
   assert.match(workflow, /mkdir -p _site\/data/);
-  assert.match(workflow, /cp data\/questions\.from-pdf\.json _site\/data\/questions\.from-pdf\.json/);
+  assert.match(workflow, /cp data\/questions\.runtime\.json _site\/data\/questions\.runtime\.json/);
+  assert.doesNotMatch(workflow, /cp data\/question-classification\.audit\.json _site\/data\/question-classification\.audit\.json/);
 });
 
-test("runtime uses classification audit for filtering without exposing audit counters in HUD", () => {
+test("runtime keeps classification audit on the local full-bank fallback path only", () => {
   const app = readFileSync("app.js", "utf8");
 
   assert.match(app, /classificationAuditUrls/);
   assert.match(app, /loadClassificationAudit/);
   assert.match(app, /parseQuestionImport\(payload, \{ classificationAudit \}\)/);
+  assert.match(app, /loadFullQuestionBankFallback/);
   assert.doesNotMatch(app, /let bankSummary|sourceTotalQuestionSlots|playableQuestionCount|reviewQuestionCount/u);
 });
 

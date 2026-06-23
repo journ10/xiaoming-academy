@@ -40,8 +40,9 @@ const manualItems = (audit.questions || [])
     };
   });
 
-if (manualItems.length !== 114) {
-  throw new Error(`待人工归类题数量应为 114，实际为 ${manualItems.length}`);
+const expectedManualCount = audit.summary?.byPrimaryDomain?.["待人工归类"] ?? manualItems.length;
+if (manualItems.length !== expectedManualCount) {
+  throw new Error(`待人工归类题数量应为 ${expectedManualCount}，实际为 ${manualItems.length}`);
 }
 
 const payload = {

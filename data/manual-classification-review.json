@@ -1,16 +1,16 @@
 {
-  "generatedAt": "2026-06-22T04:37:24.704Z",
+  "generatedAt": "2026-06-23T13:59:35.072Z",
   "sourceQuestionBank": "data/questions.from-pdf.json",
   "sourceClassificationAudit": "data/question-classification.audit.json",
-  "count": 114,
+  "count": 121,
   "pdfs": {
     "questions": "docs/09小明课堂 历年真题.pdf",
     "answers": "docs/10小明课堂 《历年真题答案》.pdf"
   },
   "items": [
     {
-      "bankIndex": 227,
-      "classificationKey": "pdf-0232#227",
+      "bankIndex": 233,
+      "classificationKey": "pdf-0232#233",
       "sourceId": "pdf-0232",
       "year": "2014",
       "type": "多项选择题",
@@ -32,8 +32,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 248,
-      "classificationKey": "pdf-0253#248",
+      "bankIndex": 255,
+      "classificationKey": "pdf-0253#255",
       "sourceId": "pdf-0253",
       "year": "2014",
       "type": "判断题",
@@ -53,8 +53,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 295,
-      "classificationKey": "pdf-0300#295",
+      "bankIndex": 303,
+      "classificationKey": "pdf-0300#303",
       "sourceId": "pdf-0300",
       "year": "2014",
       "type": "单项选择题",
@@ -76,8 +76,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 316,
-      "classificationKey": "pdf-0321#316",
+      "bankIndex": 325,
+      "classificationKey": "pdf-0321#325",
       "sourceId": "pdf-0321",
       "year": "2014",
       "type": "多项选择题",
@@ -99,8 +99,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 443,
-      "classificationKey": "pdf-0444#443",
+      "bankIndex": 453,
+      "classificationKey": "pdf-0444#453",
       "sourceId": "pdf-0444",
       "year": "2016",
       "type": "单项选择题",
@@ -122,8 +122,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 457,
-      "classificationKey": "pdf-0467#457",
+      "bankIndex": 468,
+      "classificationKey": "pdf-0467#468",
       "sourceId": "pdf-0467",
       "year": "2016",
       "type": "单项选择题",
@@ -143,8 +143,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 517,
-      "classificationKey": "pdf-0514#517",
+      "bankIndex": 528,
+      "classificationKey": "pdf-0514#528",
       "sourceId": "pdf-0514",
       "year": "2016",
       "type": "单项选择题",
@@ -166,8 +166,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 540,
-      "classificationKey": "pdf-0535#540",
+      "bankIndex": 551,
+      "classificationKey": "pdf-0535#551",
       "sourceId": "pdf-0535",
       "year": "2016",
       "type": "单项选择题",
@@ -189,8 +189,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 623,
-      "classificationKey": "pdf-0635#623",
+      "bankIndex": 636,
+      "classificationKey": "pdf-0635#636",
       "sourceId": "pdf-0635",
       "year": "2017",
       "type": "判断题",
@@ -212,8 +212,29 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 728,
-      "classificationKey": "pdf-0748#728",
+      "bankIndex": 694,
+      "classificationKey": "pdf-0692#694",
+      "sourceId": "pdf-0692",
+      "year": "2017",
+      "type": "判断题",
+      "oldTopic": "综合知识",
+      "examTitle": "2017年5月24日深圳事业单位教师招聘考试（小学）",
+      "questionNumber": 84,
+      "questionPdf": "docs/09小明课堂 历年真题.pdf",
+      "questionPdfPage": 76,
+      "questionPrintedPage": "69",
+      "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
+      "answerPdfPage": 67,
+      "sourceRef": "题目 PDF OCR 第 76 页；PDF OCR 第 67 页（原页码 69）：第 84 题解析",
+      "stemExcerpt": "在职小学教师的学习需要以系统性、组织性的学习为主。（）",
+      "reviewReasons": [
+        "low_classification_confidence"
+      ],
+      "classificationConfidence": "low"
+    },
+    {
+      "bankIndex": 748,
+      "classificationKey": "pdf-0748#748",
       "sourceId": "pdf-0748",
       "year": "2017",
       "type": "多项选择题",
@@ -233,8 +254,31 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 902,
-      "classificationKey": "pdf-0902#902",
+      "bankIndex": 857,
+      "classificationKey": "pdf-0831#857",
+      "sourceId": "pdf-0831",
+      "year": "2018",
+      "type": "多项选择题",
+      "oldTopic": "综合知识",
+      "examTitle": "2018年5月27日深圳事业单位教师招聘考试（小学）",
+      "questionNumber": 73,
+      "questionPdf": "docs/09小明课堂 历年真题.pdf",
+      "questionPdfPage": 95,
+      "questionPrintedPage": "85",
+      "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
+      "answerPdfPage": 83,
+      "sourceRef": "题目 PDF OCR 第 95 页；PDF OCR 第 83 页（原页码 85）：第 73 题解析",
+      "stemExcerpt": "当学生回答问题的答案出乎意料，教师自己没有把握判断其正确性时，比较合适的处理有（）。",
+      "reviewReasons": [
+        "OCR 置信度偏低",
+        "source_ocr_requires_review",
+        "low_classification_confidence"
+      ],
+      "classificationConfidence": "low"
+    },
+    {
+      "bankIndex": 931,
+      "classificationKey": "pdf-0902#931",
       "sourceId": "pdf-0902",
       "year": "2018",
       "type": "多项选择题",
@@ -254,8 +298,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1106,
-      "classificationKey": "pdf-1140#1106",
+      "bankIndex": 1138,
+      "classificationKey": "pdf-1140#1138",
       "sourceId": "pdf-1140",
       "year": "2022",
       "type": "单项选择题",
@@ -275,8 +319,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1197,
-      "classificationKey": "pdf-1238#1197",
+      "bankIndex": 1234,
+      "classificationKey": "pdf-1238#1234",
       "sourceId": "pdf-1238",
       "year": "2023",
       "type": "案例分析题",
@@ -296,11 +340,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1207,
-      "classificationKey": "pdf-1250#1207",
+      "bankIndex": 1246,
+      "classificationKey": "pdf-1250#1246",
       "sourceId": "pdf-1250",
       "year": "2023",
-      "type": "案例分析题",
+      "type": "判断题",
       "oldTopic": "综合知识",
       "examTitle": "2023年6月10日深圳事业单位教师招聘考试（小学）",
       "questionNumber": 30,
@@ -317,11 +361,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1219,
-      "classificationKey": "pdf-1263#1219",
+      "bankIndex": 1259,
+      "classificationKey": "pdf-1263#1259",
       "sourceId": "pdf-1263",
       "year": "2023",
-      "type": "案例分析题",
+      "type": "判断题",
       "oldTopic": "综合知识",
       "examTitle": "2023年6月10日深圳事业单位教师招聘考试（小学）",
       "questionNumber": 43,
@@ -338,8 +382,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1263,
-      "classificationKey": "pdf-1308#1263",
+      "bankIndex": 1304,
+      "classificationKey": "pdf-1308#1304",
       "sourceId": "pdf-1308",
       "year": "2023",
       "type": "判断题",
@@ -359,8 +403,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1340,
-      "classificationKey": "pdf-1343#1340",
+      "bankIndex": 1384,
+      "classificationKey": "pdf-1343#1384",
       "sourceId": "pdf-1343",
       "year": "2024",
       "type": "判断题",
@@ -382,13 +426,13 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1451,
-      "classificationKey": "pdf-1505#1451",
+      "bankIndex": 1502,
+      "classificationKey": "pdf-1505#1502",
       "sourceId": "pdf-1505",
       "year": "2013",
       "type": "单项选择题",
       "oldTopic": "综合知识",
-      "examTitle": "2013年1月12 日深圳事业单住数师招聘考试（初中）",
+      "examTitle": "2013年1月12 日深圳 业单位数师招聘考试（初中）",
       "questionNumber": 23,
       "questionPdf": "docs/09小明课堂 历年真题.pdf",
       "questionPdfPage": 166,
@@ -396,20 +440,20 @@
       "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
       "answerPdfPage": 167,
       "sourceRef": "题目 PDF OCR 第 166 页；PDF OCR 第 167 页（原页码 169）：第 23 题解析",
-      "stemExcerpt": "刘老师在制作一篇关于某种植物说明文的多媒体课件时，想将介绍该植物的图片及介绍放在同一张幻灯片上，他应该选择的板式是（）。",
+      "stemExcerpt": "刘老师在制作一篇关于某种植物说明文的多媒体课件时，“想将介绍该植物的图片及介绍放在同一张幻灯片上，他应该选择的板式是（）。",
       "reviewReasons": [
         "low_classification_confidence"
       ],
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1542,
-      "classificationKey": "pdf-1603#1542",
+      "bankIndex": 1599,
+      "classificationKey": "pdf-1603#1599",
       "sourceId": "pdf-1603",
       "year": "2013",
       "type": "案例分析题",
       "oldTopic": "综合知识",
-      "examTitle": "2013 年5月26日深圳事业单位教师招聘考试（初中）",
+      "examTitle": "2013年5月26日深圳事业单位教师招聘考试（初中）",
       "questionNumber": 34,
       "questionPdf": "docs/09小明课堂 历年真题.pdf",
       "questionPdfPage": 176,
@@ -419,14 +463,13 @@
       "sourceRef": "题目 PDF OCR 第 176 页；PDF OCR 第 175 页（原页码 177）：第 34 题解析",
       "stemExcerpt": "善于沟通的教师是（）的教师。",
       "reviewReasons": [
-        "nonstandard_option_keys:ABD",
         "low_classification_confidence"
       ],
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1564,
-      "classificationKey": "pdf-1576#1564",
+      "bankIndex": 1622,
+      "classificationKey": "pdf-1576#1622",
       "sourceId": "pdf-1576",
       "year": "2013",
       "type": "论述题",
@@ -446,8 +489,31 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1598,
-      "classificationKey": "pdf-1609#1598",
+      "bankIndex": 1648,
+      "classificationKey": "pdf-1600#1648",
+      "sourceId": "pdf-1600",
+      "year": "2013",
+      "type": "判断题",
+      "oldTopic": "综合知识",
+      "examTitle": "2013年5月26日深圳事业单位教师招聘考试（初中）",
+      "questionNumber": 83,
+      "questionPdf": "docs/09小明课堂 历年真题.pdf",
+      "questionPdfPage": 181,
+      "questionPrintedPage": "184",
+      "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
+      "answerPdfPage": 182,
+      "sourceRef": "题目 PDF OCR 第 181 页；PDF OCR 第 182 页（原页码 184）：第 83 题解析",
+      "stemExcerpt": "小小刚的智商是100，而小明的智商是 110，这说明小明的智商要高于小刚的智商。（）",
+      "reviewReasons": [
+        "OCR 置信度偏低",
+        "source_ocr_requires_review",
+        "low_classification_confidence"
+      ],
+      "classificationConfidence": "low"
+    },
+    {
+      "bankIndex": 1657,
+      "classificationKey": "pdf-1609#1657",
       "sourceId": "pdf-1609",
       "year": "2014",
       "type": "单项选择题",
@@ -469,8 +535,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1603,
-      "classificationKey": "pdf-1666#1603",
+      "bankIndex": 1662,
+      "classificationKey": "pdf-1666#1662",
       "sourceId": "pdf-1666",
       "year": "2014",
       "type": "单项选择题",
@@ -490,8 +556,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1661,
-      "classificationKey": "pdf-1669#1661",
+      "bankIndex": 1719,
+      "classificationKey": "pdf-1669#1719",
       "sourceId": "pdf-1669",
       "year": "2014",
       "type": "判断题",
@@ -511,8 +577,34 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1731,
-      "classificationKey": "pdf-1792#1731",
+      "bankIndex": 1728,
+      "classificationKey": "pdf-1625#1728",
+      "sourceId": "pdf-1625",
+      "year": "2014",
+      "type": "判断题",
+      "oldTopic": "综合知识",
+      "examTitle": "2014年6月29日深圳事业单位教师招聘考试（初中）",
+      "questionNumber": 19,
+      "questionPdf": "docs/09小明课堂 历年真题.pdf",
+      "questionPdfPage": 190,
+      "questionPrintedPage": "186",
+      "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
+      "answerPdfPage": 184,
+      "sourceRef": "题目 PDF OCR 第 190 页；PDF OCR 第 184 页（原页码 186）：第 19 题解析",
+      "stemExcerpt": "2",
+      "reviewReasons": [
+        "OCR 置信度偏低",
+        "原资料标注题干或解析不完整",
+        "source_ocr_requires_review",
+        "weak_or_missing_stem",
+        "weak_explanation",
+        "low_classification_confidence"
+      ],
+      "classificationConfidence": "low"
+    },
+    {
+      "bankIndex": 1791,
+      "classificationKey": "pdf-1792#1791",
       "sourceId": "pdf-1792",
       "year": "2014",
       "type": "单项选择题",
@@ -525,7 +617,7 @@
       "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
       "answerPdfPage": 193,
       "sourceRef": "题目 PDF OCR 第 195 页；PDF OCR 第 193 页（原页码 195）：第 48 题解析",
-      "stemExcerpt": "《深圳市中长期教育改革和发展规划纲要（2011—2020年）》提出，把高等教育作为深圳市教育改革和发展的重点，到（），高校在校生达到15万人。",
+      "stemExcerpt": "《深圳市中长期教育改革和发展规划纲要（2011|2020年）》提出，把高等教育作为深圳市教育改革和发展的重点，到（），高校在校生达到15万人。",
       "reviewReasons": [
         "OCR 置信度偏低",
         "source_ocr_requires_review",
@@ -534,8 +626,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1770,
-      "classificationKey": "pdf-1774#1770",
+      "bankIndex": 1831,
+      "classificationKey": "pdf-1774#1831",
       "sourceId": "pdf-1774",
       "year": "2014",
       "type": "判断题",
@@ -557,8 +649,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1809,
-      "classificationKey": "pdf-1871#1809",
+      "bankIndex": 1872,
+      "classificationKey": "pdf-1871#1872",
       "sourceId": "pdf-1871",
       "year": "2015",
       "type": "单项选择题",
@@ -578,8 +670,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1840,
-      "classificationKey": "pdf-1846#1840",
+      "bankIndex": 1904,
+      "classificationKey": "pdf-1846#1904",
       "sourceId": "pdf-1846",
       "year": "2015",
       "type": "单项选择题",
@@ -602,11 +694,39 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1862,
-      "classificationKey": "pdf-1867#1862",
+      "bankIndex": 1905,
+      "classificationKey": "pdf-1847#1905",
+      "sourceId": "pdf-1847",
+      "year": "2015",
+      "type": "单项选择题",
+      "oldTopic": "综合知识",
+      "examTitle": "2015年5月24日深圳事业单位教师招聘考试（初中）",
+      "questionNumber": 73,
+      "questionPdf": "docs/09小明课堂 历年真题.pdf",
+      "questionPdfPage": 207,
+      "questionPrintedPage": "208",
+      "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
+      "answerPdfPage": 206,
+      "sourceRef": "题目 PDF OCR 第 207 页；PDF OCR 第 206 页（原页码 208）：第 73 题解析",
+      "stemExcerpt": "下面有关社会常模，论述正确的有（）。",
+      "reviewReasons": [
+        "题目 OCR 未识别到选项",
+        "答案 A 未在题目 OCR 选项中识别到",
+        "答案 B 未在题目 OCR 选项中识别到",
+        "答案 D 未在题目 OCR 选项中识别到",
+        "source_ocr_requires_review",
+        "nonstandard_option_keys:ABD",
+        "option_has_ocr_noise",
+        "low_classification_confidence"
+      ],
+      "classificationConfidence": "low"
+    },
+    {
+      "bankIndex": 1929,
+      "classificationKey": "pdf-1867#1929",
       "sourceId": "pdf-1867",
       "year": "2016",
-      "type": "论述题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2016年7月31日深圳事业单位教师招聘考试（初中）",
       "questionNumber": 7,
@@ -625,8 +745,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1932,
-      "classificationKey": "pdf-1997#1932",
+      "bankIndex": 2002,
+      "classificationKey": "pdf-1997#2002",
       "sourceId": "pdf-1997",
       "year": "2016",
       "type": "判断题",
@@ -646,8 +766,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1938,
-      "classificationKey": "pdf-1944#1938",
+      "bankIndex": 2008,
+      "classificationKey": "pdf-1944#2008",
       "sourceId": "pdf-1944",
       "year": "2016",
       "type": "判断题",
@@ -669,8 +789,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1944,
-      "classificationKey": "pdf-1950#1944",
+      "bankIndex": 2014,
+      "classificationKey": "pdf-1950#2014",
       "sourceId": "pdf-1950",
       "year": "2016",
       "type": "单项选择题",
@@ -693,8 +813,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1946,
-      "classificationKey": "pdf-1952#1946",
+      "bankIndex": 2016,
+      "classificationKey": "pdf-1952#2016",
       "sourceId": "pdf-1952",
       "year": "2016",
       "type": "单项选择题",
@@ -714,13 +834,13 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1962,
-      "classificationKey": "pdf-1967#1962",
+      "bankIndex": 2032,
+      "classificationKey": "pdf-1967#2032",
       "sourceId": "pdf-1967",
       "year": "2016",
       "type": "单项选择题",
       "oldTopic": "综合知识",
-      "examTitle": "2016年11月27日深圳事业单位教师招聘考试（初中）",
+      "examTitle": "2016年11月27 日深圳事业单位教师招聘考试（初中）",
       "questionNumber": 22,
       "questionPdf": "docs/09小明课堂 历年真题.pdf",
       "questionPdfPage": 218,
@@ -738,8 +858,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 1985,
-      "classificationKey": "pdf-1989#1985",
+      "bankIndex": 2056,
+      "classificationKey": "pdf-1989#2056",
       "sourceId": "pdf-1989",
       "year": "2016",
       "type": "案例分析题",
@@ -759,8 +879,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2020,
-      "classificationKey": "pdf-2020#2020",
+      "bankIndex": 2092,
+      "classificationKey": "pdf-2020#2092",
       "sourceId": "pdf-2020",
       "year": "2016",
       "type": "判断题",
@@ -775,13 +895,14 @@
       "sourceRef": "题目 PDF OCR 第 224 页；PDF OCR 第 223 页（原页码 225）：第 82 题解析",
       "stemExcerpt": "作为教师借以完成现实职贵的主要手段的教师语言，始终贯穿着教育性。（）",
       "reviewReasons": [
+        "content_ocr_noise",
         "low_classification_confidence"
       ],
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2105,
-      "classificationKey": "pdf-2099#2105",
+      "bankIndex": 2179,
+      "classificationKey": "pdf-2099#2179",
       "sourceId": "pdf-2099",
       "year": "2017",
       "type": "判断题",
@@ -805,11 +926,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2145,
-      "classificationKey": "pdf-2210#2145",
+      "bankIndex": 2220,
+      "classificationKey": "pdf-2210#2220",
       "sourceId": "pdf-2210",
       "year": "2017",
-      "type": "判断题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2017年11月12-日深圳事业单位教师招聘考试（初中）",
       "questionNumber": 34,
@@ -828,11 +949,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2158,
-      "classificationKey": "pdf-2223#2158",
+      "bankIndex": 2233,
+      "classificationKey": "pdf-2223#2233",
       "sourceId": "pdf-2223",
       "year": "2017",
-      "type": "判断题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2017年11月12-日深圳事业单位教师招聘考试（初中）",
       "questionNumber": 47,
@@ -849,8 +970,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2162,
-      "classificationKey": "pdf-2227#2162",
+      "bankIndex": 2237,
+      "classificationKey": "pdf-2227#2237",
       "sourceId": "pdf-2227",
       "year": "2017",
       "type": "多项选择题",
@@ -875,8 +996,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2188,
-      "classificationKey": "pdf-2253#2188",
+      "bankIndex": 2264,
+      "classificationKey": "pdf-2253#2264",
       "sourceId": "pdf-2253",
       "year": "2017",
       "type": "判断题",
@@ -896,8 +1017,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2281,
-      "classificationKey": "pdf-2273#2281",
+      "bankIndex": 2360,
+      "classificationKey": "pdf-2273#2360",
       "sourceId": "pdf-2273",
       "year": "2018",
       "type": "判断题",
@@ -921,8 +1042,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2293,
-      "classificationKey": "pdf-2285#2293",
+      "bankIndex": 2372,
+      "classificationKey": "pdf-2285#2372",
       "sourceId": "pdf-2285",
       "year": "2018",
       "type": "判断题",
@@ -942,8 +1063,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2328,
-      "classificationKey": "pdf-2320#2328",
+      "bankIndex": 2410,
+      "classificationKey": "pdf-2320#2410",
       "sourceId": "pdf-2320",
       "year": "2018",
       "type": "判断题",
@@ -963,8 +1084,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2333,
-      "classificationKey": "pdf-2326#2333",
+      "bankIndex": 2416,
+      "classificationKey": "pdf-2326#2416",
       "sourceId": "pdf-2326",
       "year": "2018",
       "type": "多项选择题",
@@ -986,8 +1107,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2334,
-      "classificationKey": "pdf-2327#2334",
+      "bankIndex": 2417,
+      "classificationKey": "pdf-2327#2417",
       "sourceId": "pdf-2327",
       "year": "2018",
       "type": "多项选择题",
@@ -1009,8 +1130,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2348,
-      "classificationKey": "pdf-2340#2348",
+      "bankIndex": 2431,
+      "classificationKey": "pdf-2340#2431",
       "sourceId": "pdf-2340",
       "year": "2018",
       "type": "多项选择题",
@@ -1032,8 +1153,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2358,
-      "classificationKey": "pdf-2350#2358",
+      "bankIndex": 2441,
+      "classificationKey": "pdf-2350#2441",
       "sourceId": "pdf-2350",
       "year": "2018",
       "type": "多项选择题",
@@ -1055,8 +1176,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2373,
-      "classificationKey": "pdf-2445#2373",
+      "bankIndex": 2456,
+      "classificationKey": "pdf-2445#2456",
       "sourceId": "pdf-2445",
       "year": "2019",
       "type": "单项选择题",
@@ -1076,8 +1197,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2380,
-      "classificationKey": "pdf-2452#2380",
+      "bankIndex": 2462,
+      "classificationKey": "pdf-2452#2462",
       "sourceId": "pdf-2452",
       "year": "2019",
       "type": "单项选择题",
@@ -1097,8 +1218,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2382,
-      "classificationKey": "pdf-2374#2382",
+      "bankIndex": 2464,
+      "classificationKey": "pdf-2374#2464",
       "sourceId": "pdf-2374",
       "year": "2019",
       "type": "单项选择题",
@@ -1118,8 +1239,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2498,
-      "classificationKey": "pdf-2490#2498",
+      "bankIndex": 2583,
+      "classificationKey": "pdf-2490#2583",
       "sourceId": "pdf-2490",
       "year": "2021",
       "type": "判断题",
@@ -1139,8 +1260,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2552,
-      "classificationKey": "pdf-2542#2552",
+      "bankIndex": 2638,
+      "classificationKey": "pdf-2542#2638",
       "sourceId": "pdf-2542",
       "year": "2022",
       "type": "单项选择题",
@@ -1160,8 +1281,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2647,
-      "classificationKey": "pdf-2637#2647",
+      "bankIndex": 2736,
+      "classificationKey": "pdf-2637#2736",
       "sourceId": "pdf-2637",
       "year": "2023",
       "type": "单项选择题",
@@ -1181,8 +1302,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2667,
-      "classificationKey": "pdf-2658#2667",
+      "bankIndex": 2756,
+      "classificationKey": "pdf-2658#2756",
       "sourceId": "pdf-2658",
       "year": "2023",
       "type": "单项选择题",
@@ -1202,8 +1323,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2691,
-      "classificationKey": "pdf-2682#2691",
+      "bankIndex": 2780,
+      "classificationKey": "pdf-2682#2780",
       "sourceId": "pdf-2682",
       "year": "2023",
       "type": "多项选择题",
@@ -1225,11 +1346,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2909,
-      "classificationKey": "pdf-2897#2909",
+      "bankIndex": 3004,
+      "classificationKey": "pdf-2897#3004",
       "sourceId": "pdf-2897",
       "year": "2013",
-      "type": "判断题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2013 年1月12日深圳事业单位教师招聘考试（高中）",
       "questionNumber": 28,
@@ -1246,11 +1367,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2916,
-      "classificationKey": "pdf-2904#2916",
+      "bankIndex": 3011,
+      "classificationKey": "pdf-2904#3011",
       "sourceId": "pdf-2904",
       "year": "2013",
-      "type": "判断题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2013 年1月12日深圳事业单位教师招聘考试（高中）",
       "questionNumber": 35,
@@ -1269,11 +1390,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2924,
-      "classificationKey": "pdf-2911#2924",
+      "bankIndex": 3019,
+      "classificationKey": "pdf-2911#3019",
       "sourceId": "pdf-2911",
       "year": "2013",
-      "type": "判断题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2013 年1月12日深圳事业单位教师招聘考试（高中）",
       "questionNumber": 43,
@@ -1293,8 +1414,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2944,
-      "classificationKey": "pdf-2933#2944",
+      "bankIndex": 3041,
+      "classificationKey": "pdf-2933#3041",
       "sourceId": "pdf-2933",
       "year": "2013",
       "type": "多项选择题",
@@ -1316,8 +1437,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 2972,
-      "classificationKey": "pdf-2962#2972",
+      "bankIndex": 3071,
+      "classificationKey": "pdf-2962#3071",
       "sourceId": "pdf-2962",
       "year": "2014",
       "type": "单项选择题",
@@ -1339,8 +1460,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3040,
-      "classificationKey": "pdf-3030#3040",
+      "bankIndex": 3141,
+      "classificationKey": "pdf-3030#3141",
       "sourceId": "pdf-3030",
       "year": "2014",
       "type": "判断题",
@@ -1360,8 +1481,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3091,
-      "classificationKey": "pdf-3180#3091",
+      "bankIndex": 3193,
+      "classificationKey": "pdf-3180#3193",
       "sourceId": "pdf-3180",
       "year": "2014",
       "type": "单项选择题",
@@ -1381,8 +1502,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3107,
-      "classificationKey": "pdf-3091#3107",
+      "bankIndex": 3209,
+      "classificationKey": "pdf-3091#3209",
       "sourceId": "pdf-3091",
       "year": "2014",
       "type": "多项选择题",
@@ -1404,8 +1525,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3117,
-      "classificationKey": "pdf-3206#3117",
+      "bankIndex": 3219,
+      "classificationKey": "pdf-3206#3219",
       "sourceId": "pdf-3206",
       "year": "2014",
       "type": "多项选择题",
@@ -1425,8 +1546,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3133,
-      "classificationKey": "pdf-3222#3133",
+      "bankIndex": 3235,
+      "classificationKey": "pdf-3222#3235",
       "sourceId": "pdf-3222",
       "year": "2014",
       "type": "判断题",
@@ -1446,8 +1567,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3137,
-      "classificationKey": "pdf-3119#3137",
+      "bankIndex": 3239,
+      "classificationKey": "pdf-3119#3239",
       "sourceId": "pdf-3119",
       "year": "2014",
       "type": "判断题",
@@ -1470,8 +1591,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3196,
-      "classificationKey": "pdf-3288#3196",
+      "bankIndex": 3299,
+      "classificationKey": "pdf-3288#3299",
       "sourceId": "pdf-3288",
       "year": "2015",
       "type": "案例分析题",
@@ -1491,8 +1612,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3203,
-      "classificationKey": "pdf-3187#3203",
+      "bankIndex": 3306,
+      "classificationKey": "pdf-3187#3306",
       "sourceId": "pdf-3187",
       "year": "2015",
       "type": "案例分析题",
@@ -1512,8 +1633,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3204,
-      "classificationKey": "pdf-3188#3204",
+      "bankIndex": 3307,
+      "classificationKey": "pdf-3188#3307",
       "sourceId": "pdf-3188",
       "year": "2015",
       "type": "案例分析题",
@@ -1533,8 +1654,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3221,
-      "classificationKey": "pdf-3206#3221",
+      "bankIndex": 3325,
+      "classificationKey": "pdf-3206#3325",
       "sourceId": "pdf-3206",
       "year": "2015",
       "type": "判断题",
@@ -1557,8 +1678,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3250,
-      "classificationKey": "pdf-3236#3250",
+      "bankIndex": 3355,
+      "classificationKey": "pdf-3236#3355",
       "sourceId": "pdf-3236",
       "year": "2016",
       "type": "案例分析题",
@@ -1578,8 +1699,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3264,
-      "classificationKey": "pdf-3249#3264",
+      "bankIndex": 3369,
+      "classificationKey": "pdf-3249#3369",
       "sourceId": "pdf-3249",
       "year": "2016",
       "type": "案例分析题",
@@ -1592,7 +1713,7 @@
       "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
       "answerPdfPage": 383,
       "sourceRef": "题目 PDF OCR 第 353 页；PDF OCR 第 383 页（原页码 385）：第 45 题解析",
-      "stemExcerpt": "学生把“朝三暮四”理解为自己欺骗自己，自作聪明，这种理解水平属于（）。",
+      "stemExcerpt": "学生把“朝三暮四” 理解为自己欺骗自己，自作聪明，这种理解水平属于（）。",
       "reviewReasons": [
         "OCR 置信度偏低",
         "source_ocr_requires_review",
@@ -1601,8 +1722,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3270,
-      "classificationKey": "pdf-3365#3270",
+      "bankIndex": 3375,
+      "classificationKey": "pdf-3365#3375",
       "sourceId": "pdf-3365",
       "year": "2016",
       "type": "多项选择题",
@@ -1624,8 +1745,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3310,
-      "classificationKey": "pdf-3294#3310",
+      "bankIndex": 3416,
+      "classificationKey": "pdf-3294#3416",
       "sourceId": "pdf-3294",
       "year": "2016",
       "type": "单项选择题",
@@ -1645,8 +1766,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3315,
-      "classificationKey": "pdf-3299#3315",
+      "bankIndex": 3421,
+      "classificationKey": "pdf-3299#3421",
       "sourceId": "pdf-3299",
       "year": "2016",
       "type": "单项选择题",
@@ -1666,8 +1787,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3316,
-      "classificationKey": "pdf-3300#3316",
+      "bankIndex": 3422,
+      "classificationKey": "pdf-3300#3422",
       "sourceId": "pdf-3300",
       "year": "2016",
       "type": "单项选择题",
@@ -1691,11 +1812,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3353,
-      "classificationKey": "pdf-3336#3353",
+      "bankIndex": 3460,
+      "classificationKey": "pdf-3336#3460",
       "sourceId": "pdf-3336",
       "year": "2016",
-      "type": "判断题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2016年11月27日深圳事业单位教师招聘考试（高中）",
       "questionNumber": 49,
@@ -1712,8 +1833,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3430,
-      "classificationKey": "pdf-3416#3430",
+      "bankIndex": 3544,
+      "classificationKey": "pdf-3416#3544",
       "sourceId": "pdf-3416",
       "year": "2017",
       "type": "判断题",
@@ -1735,8 +1856,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3439,
-      "classificationKey": "pdf-3425#3439",
+      "bankIndex": 3553,
+      "classificationKey": "pdf-3425#3553",
       "sourceId": "pdf-3425",
       "year": "2017",
       "type": "多项选择题",
@@ -1756,8 +1877,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3487,
-      "classificationKey": "pdf-3473#3487",
+      "bankIndex": 3602,
+      "classificationKey": "pdf-3473#3602",
       "sourceId": "pdf-3473",
       "year": "2017",
       "type": "单项选择题",
@@ -1777,8 +1898,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3488,
-      "classificationKey": "pdf-3474#3488",
+      "bankIndex": 3603,
+      "classificationKey": "pdf-3474#3603",
       "sourceId": "pdf-3474",
       "year": "2017",
       "type": "单项选择题",
@@ -1798,11 +1919,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3505,
-      "classificationKey": "pdf-3610#3505",
+      "bankIndex": 3621,
+      "classificationKey": "pdf-3610#3621",
       "sourceId": "pdf-3610",
       "year": "2017",
-      "type": "判断题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2017年11月12日深圳事业单位教师招聘考试（高中）",
       "questionNumber": 34,
@@ -1823,11 +1944,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3511,
-      "classificationKey": "pdf-3495#3511",
+      "bankIndex": 3627,
+      "classificationKey": "pdf-3495#3627",
       "sourceId": "pdf-3495",
       "year": "2017",
-      "type": "判断题",
+      "type": "单项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2017年11月12日深圳事业单位教师招聘考试（高中）",
       "questionNumber": 40,
@@ -1845,8 +1966,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3529,
-      "classificationKey": "pdf-3636#3529",
+      "bankIndex": 3645,
+      "classificationKey": "pdf-3636#3645",
       "sourceId": "pdf-3636",
       "year": "2017",
       "type": "多项选择题",
@@ -1869,8 +1990,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3537,
-      "classificationKey": "pdf-3520#3537",
+      "bankIndex": 3653,
+      "classificationKey": "pdf-3520#3653",
       "sourceId": "pdf-3520",
       "year": "2017",
       "type": "多项选择题",
@@ -1893,8 +2014,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3554,
-      "classificationKey": "pdf-3660#3554",
+      "bankIndex": 3670,
+      "classificationKey": "pdf-3660#3670",
       "sourceId": "pdf-3660",
       "year": "2017",
       "type": "判断题",
@@ -1914,8 +2035,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3587,
-      "classificationKey": "pdf-3565#3587",
+      "bankIndex": 3703,
+      "classificationKey": "pdf-3565#3703",
       "sourceId": "pdf-3565",
       "year": "2018",
       "type": "案例分析题",
@@ -1935,8 +2056,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3600,
-      "classificationKey": "pdf-3708#3600",
+      "bankIndex": 3716,
+      "classificationKey": "pdf-3708#3716",
       "sourceId": "pdf-3708",
       "year": "2018",
       "type": "案例分析题",
@@ -1958,8 +2079,29 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3676,
-      "classificationKey": "pdf-3654#3676",
+      "bankIndex": 3758,
+      "classificationKey": "pdf-3618#3758",
+      "sourceId": "pdf-3618",
+      "year": "2018",
+      "type": "判断题",
+      "oldTopic": "综合知识",
+      "examTitle": "2018年5月27日深圳事业单位教师招聘考试（高中）",
+      "questionNumber": 89,
+      "questionPdf": "docs/09小明课堂 历年真题.pdf",
+      "questionPdfPage": 391,
+      "questionPrintedPage": "423",
+      "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
+      "answerPdfPage": 421,
+      "sourceRef": "题目 PDF OCR 第 391 页；PDF OCR 第 421 页（原页码 423）：第 89 题解析",
+      "stemExcerpt": "一般情况下，集中复习优于分散复习。（）",
+      "reviewReasons": [
+        "low_classification_confidence"
+      ],
+      "classificationConfidence": "low"
+    },
+    {
+      "bankIndex": 3794,
+      "classificationKey": "pdf-3654#3794",
       "sourceId": "pdf-3654",
       "year": "2018",
       "type": "论述题",
@@ -1981,8 +2123,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3689,
-      "classificationKey": "pdf-3665#3689",
+      "bankIndex": 3807,
+      "classificationKey": "pdf-3665#3807",
       "sourceId": "pdf-3665",
       "year": "2018",
       "type": "论述题",
@@ -2004,8 +2146,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3694,
-      "classificationKey": "pdf-3670#3694",
+      "bankIndex": 3812,
+      "classificationKey": "pdf-3670#3812",
       "sourceId": "pdf-3670",
       "year": "2018",
       "type": "多项选择题",
@@ -2027,8 +2169,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3712,
-      "classificationKey": "pdf-3689#3712",
+      "bankIndex": 3831,
+      "classificationKey": "pdf-3689#3831",
       "sourceId": "pdf-3689",
       "year": "2018",
       "type": "案例分析题",
@@ -2048,8 +2190,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3728,
-      "classificationKey": "pdf-3705#3728",
+      "bankIndex": 3847,
+      "classificationKey": "pdf-3705#3847",
       "sourceId": "pdf-3705",
       "year": "2018",
       "type": "判断题",
@@ -2069,8 +2211,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3744,
-      "classificationKey": "pdf-3722#3744",
+      "bankIndex": 3864,
+      "classificationKey": "pdf-3722#3864",
       "sourceId": "pdf-3722",
       "year": "2019",
       "type": "单项选择题",
@@ -2090,8 +2232,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3760,
-      "classificationKey": "pdf-3741#3760",
+      "bankIndex": 3882,
+      "classificationKey": "pdf-3741#3882",
       "sourceId": "pdf-3741",
       "year": "2019",
       "type": "案例分析题",
@@ -2111,8 +2253,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3779,
-      "classificationKey": "pdf-3760#3779",
+      "bankIndex": 3902,
+      "classificationKey": "pdf-3760#3902",
       "sourceId": "pdf-3760",
       "year": "2019",
       "type": "多项选择题",
@@ -2132,8 +2274,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3805,
-      "classificationKey": "pdf-3786#3805",
+      "bankIndex": 3928,
+      "classificationKey": "pdf-3786#3928",
       "sourceId": "pdf-3786",
       "year": "2019",
       "type": "判断题",
@@ -2153,8 +2295,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3825,
-      "classificationKey": "pdf-3808#3825",
+      "bankIndex": 3949,
+      "classificationKey": "pdf-3808#3949",
       "sourceId": "pdf-3808",
       "year": "2021",
       "type": "判断题",
@@ -2174,8 +2316,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3850,
-      "classificationKey": "pdf-3833#3850",
+      "bankIndex": 3975,
+      "classificationKey": "pdf-3833#3975",
       "sourceId": "pdf-3833",
       "year": "2021",
       "type": "判断题",
@@ -2195,8 +2337,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3863,
-      "classificationKey": "pdf-3846#3863",
+      "bankIndex": 3988,
+      "classificationKey": "pdf-3846#3988",
       "sourceId": "pdf-3846",
       "year": "2021",
       "type": "多项选择题",
@@ -2216,8 +2358,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 3979,
-      "classificationKey": "pdf-3962#3979",
+      "bankIndex": 4109,
+      "classificationKey": "pdf-3962#4109",
       "sourceId": "pdf-3962",
       "year": "2022",
       "type": "判断题",
@@ -2239,8 +2381,30 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4040,
-      "classificationKey": "pdf-4164#4040",
+      "bankIndex": 4133,
+      "classificationKey": "pdf-3985#4133",
+      "sourceId": "pdf-3985",
+      "year": "2023",
+      "type": "单项选择题",
+      "oldTopic": "综合知识",
+      "examTitle": "2023年6月10日深圳事业单位教师招聘考试（高中）",
+      "questionNumber": 36,
+      "questionPdf": "docs/09小明课堂 历年真题.pdf",
+      "questionPdfPage": 424,
+      "questionPrintedPage": "461",
+      "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
+      "answerPdfPage": 459,
+      "sourceRef": "题目 PDF OCR 第 424 页；PDF OCR 第 459 页（原页码 461）：第 36 题解析",
+      "stemExcerpt": "个人对未来有可能实现的奋斗目标的向往和追求称为（）。",
+      "reviewReasons": [
+        "nonstandard_option_keys:ABDG",
+        "low_classification_confidence"
+      ],
+      "classificationConfidence": "low"
+    },
+    {
+      "bankIndex": 4175,
+      "classificationKey": "pdf-4164#4175",
       "sourceId": "pdf-4164",
       "year": "2023",
       "type": "判断题",
@@ -2260,8 +2424,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4062,
-      "classificationKey": "pdf-4049#4062",
+      "bankIndex": 4198,
+      "classificationKey": "pdf-4049#4198",
       "sourceId": "pdf-4049",
       "year": "2024",
       "type": "单项选择题",
@@ -2281,8 +2445,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4102,
-      "classificationKey": "pdf-4089#4102",
+      "bankIndex": 4238,
+      "classificationKey": "pdf-4089#4238",
       "sourceId": "pdf-4089",
       "year": "2024",
       "type": "判断题",
@@ -2302,8 +2466,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4179,
-      "classificationKey": "pdf-4308#4179",
+      "bankIndex": 4320,
+      "classificationKey": "pdf-4308#4320",
       "sourceId": "pdf-4308",
       "year": "2025",
       "type": "多项选择题",
@@ -2325,8 +2489,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4271,
-      "classificationKey": "pdf-4250#4271",
+      "bankIndex": 4412,
+      "classificationKey": "pdf-4250#4412",
       "sourceId": "pdf-4250",
       "year": "2025",
       "type": "多项选择题",
@@ -2348,11 +2512,11 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4275,
-      "classificationKey": "pdf-4396#4275",
+      "bankIndex": 4417,
+      "classificationKey": "pdf-4396#4417",
       "sourceId": "pdf-4396",
       "year": "2025",
-      "type": "判断题",
+      "type": "多项选择题",
       "oldTopic": "综合知识",
       "examTitle": "2025年12月27日深圳事业单位教师招聘考试（小学）",
       "questionNumber": 71,
@@ -2369,8 +2533,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4297,
-      "classificationKey": "pdf-4487#4297",
+      "bankIndex": 4439,
+      "classificationKey": "pdf-4487#4439",
       "sourceId": "pdf-4487",
       "year": "2025",
       "type": "单项选择题",
@@ -2393,8 +2557,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4301,
-      "classificationKey": "pdf-4355#4301",
+      "bankIndex": 4443,
+      "classificationKey": "pdf-4355#4443",
       "sourceId": "pdf-4355",
       "year": "2025",
       "type": "单项选择题",
@@ -2417,8 +2581,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4313,
-      "classificationKey": "pdf-4503#4313",
+      "bankIndex": 4455,
+      "classificationKey": "pdf-4503#4455",
       "sourceId": "pdf-4503",
       "year": "2025",
       "type": "案例分析题",
@@ -2431,7 +2595,7 @@
       "answerPdf": "docs/10小明课堂 《历年真题答案》.pdf",
       "answerPdfPage": 507,
       "sourceRef": "题目 PDF OCR 第 459 页；PDF OCR 第 507 页：第 23 题解析",
-      "stemExcerpt": "某教师要研究学生退缩行为产生的原因，，在遇到导致学生产生退缩行的事件时，都会及时记录下来，该研究方法使用的方法是0。",
+      "stemExcerpt": "某教师要研究学生退缩行为产生的原因，，在遇到导致学生产生退缩行为的事件时，都会及时记录下来，该研究方法使用的方法是0。",
       "reviewReasons": [
         "OCR 置信度偏低",
         "source_ocr_requires_review",
@@ -2440,8 +2604,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4325,
-      "classificationKey": "pdf-4378#4325",
+      "bankIndex": 4467,
+      "classificationKey": "pdf-4378#4467",
       "sourceId": "pdf-4378",
       "year": "2025",
       "type": "案例分析题",
@@ -2461,8 +2625,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4329,
-      "classificationKey": "pdf-4381#4329",
+      "bankIndex": 4471,
+      "classificationKey": "pdf-4381#4471",
       "sourceId": "pdf-4381",
       "year": "2025",
       "type": "案例分析题",
@@ -2482,8 +2646,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4372,
-      "classificationKey": "pdf-4422#4372",
+      "bankIndex": 4516,
+      "classificationKey": "pdf-4422#4516",
       "sourceId": "pdf-4422",
       "year": "2025",
       "type": "判断题",
@@ -2507,8 +2671,8 @@
       "classificationConfidence": "low"
     },
     {
-      "bankIndex": 4373,
-      "classificationKey": "pdf-4560#4373",
+      "bankIndex": 4517,
+      "classificationKey": "pdf-4560#4517",
       "sourceId": "pdf-4560",
       "year": "2025",
       "type": "判断题",

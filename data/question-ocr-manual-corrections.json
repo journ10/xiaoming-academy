@@ -1,0 +1,109 @@
+[
+  {
+    "examTitle": "2024年6月2日深圳事业单位教师招聘考试（小学）",
+    "examKey": "2024-06-02-小学",
+    "section": "多项选择题",
+    "questionNumber": 73,
+    "page": 152,
+    "stem": "教师的自我评价区别于外部评价的特点主要体现在（）。",
+    "options": [
+      { "key": "A", "text": "是一种积极主动的评价" },
+      { "key": "B", "text": "是一种真实可持续的评价" },
+      { "key": "C", "text": "能够培养教师积极的自我意识" },
+      { "key": "D", "text": "是教师专业水平提高的根本动力" },
+      { "key": "E", "text": "是外部评价产生作用的动力机制" }
+    ],
+    "sourceStatus": "recognized",
+    "requiresReview": false
+  },
+  {
+    "examTitle": "2016年11月27日深圳事业单位教师招聘考试（初中）",
+    "examKey": "2016-11-27-初中",
+    "section": "单项选择题",
+    "questionNumber": 29,
+    "page": 219,
+    "stem": "《中华人民共和国未成年人保护法》规定，营业性歌舞娱乐场所、互联网上网服务营业场所等不适宜未成年人活动的场所，应当在显著位置设置（）。",
+    "options": [
+      { "key": "A", "text": "未成年人免费标志" },
+      { "key": "B", "text": "未成年人进入限制标志" },
+      { "key": "C", "text": "成年人进入标志" },
+      { "key": "D", "text": "未成年人禁入标志" }
+    ],
+    "sourceStatus": "recognized",
+    "requiresReview": false
+  },
+  {
+    "examTitle": "2019年6月2日深圳事业单位教师招聘考试（初中）",
+    "examKey": "2019-06-02-初中",
+    "section": "多项选择题",
+    "questionNumber": 66,
+    "page": 268,
+    "stem": "近朱者赤近墨者黑，良好的班集体对初中生的心理发展的影响体现在（）。",
+    "options": [
+      { "key": "A", "text": "提供了良好的学习生活环境" },
+      { "key": "B", "text": "增加了学生积极的情绪情感体验" },
+      { "key": "C", "text": "增进了学生的人际互动" },
+      { "key": "D", "text": "促进了学生的主动学习" },
+      { "key": "E", "text": "有利于学生健康人格的发展" }
+    ],
+    "sourceStatus": "recognized",
+    "requiresReview": false
+  },
+  {
+    "examTitle": "2021年9月25日深圳事业单位教师招聘考试（高中）",
+    "examKey": "2021-09-25-高中",
+    "section": "多项选择题",
+    "questionNumber": 59,
+    "page": 412,
+    "stem": "我国教师法规定，全社会应当尊重教师，这么做的原因是（）。",
+    "options": [
+      { "key": "A", "text": "教师是文明的传播者" },
+      { "key": "B", "text": "教师承担着教书育人的神圣职责" },
+      { "key": "C", "text": "教师比从事其他职业的人更高贵" },
+      { "key": "D", "text": "学生的全面发展只能依靠教师" },
+      { "key": "E", "text": "教师都是学生的良师益友" }
+    ],
+    "sourceStatus": "recognized",
+    "requiresReview": false
+  },
+  {
+    "examTitle": "2025年7月5日深圳事业单位教师招聘考试（高中）",
+    "examKey": "2025-07-05-高中",
+    "section": "单项选择题",
+    "questionNumber": 26,
+    "page": 439,
+    "stem": "高一学生小李（15岁）涉嫌犯罪，被追究刑事责任，下列说法不正确的是（）。",
+    "options": [
+      { "key": "A", "text": "应当对小李实行教育、感化、挽救方针，坚持教育为主，惩罚为辅的原则" },
+      { "key": "B", "text": "应当保障小李行使其诉讼权利，保障其得到法律援助" },
+      { "key": "C", "text": "如果小李多次实施严重危害社会的行为，则应从重追究刑事责任" },
+      { "key": "D", "text": "人民法院应对小李进行有针对性的法制教育" }
+    ],
+    "sourceStatus": "recognized",
+    "requiresReview": false
+  },
+  {
+    "examTitle": "2013年1月12日深圳事业单位教师招聘考试（高中）",
+    "examKey": "2013-01-12-高中",
+    "section": "多项选择题",
+    "questionNumber": 72,
+    "page": 323,
+    "stem": "第72题源题目缺失（题目 PDF 第322-323页、答案 PDF 第359页均跳号）",
+    "options": [],
+    "sourceStatus": "source-missing",
+    "requiresReview": true,
+    "reviewReasons": ["题目 PDF 与答案 PDF 均跳号"]
+  },
+  {
+    "examTitle": "2013年1月12日深圳事业单位教师招聘考试（高中）",
+    "examKey": "2013-01-12-高中",
+    "section": "多项选择题",
+    "questionNumber": 75,
+    "page": 323,
+    "stem": "第75题源题目缺失（题目 PDF 第323页、答案 PDF 第359页均跳号）",
+    "options": [],
+    "sourceStatus": "source-missing",
+    "requiresReview": true,
+    "reviewReasons": ["题目 PDF 与答案 PDF 均跳号"]
+  }
+]

@@ -1,0 +1,101 @@
+[
+  {
+    "id": "pdf-0068",
+    "questionNumber": 68,
+    "notes": "人工核验答案解析 OCR 错字",
+    "replacements": [
+      {
+        "field": "explanation",
+        "from": "工作\n许划与总结",
+        "to": "工作计划与总结"
+      }
+    ]
+  },
+  {
+    "id": "pdf-0073",
+    "questionNumber": 74,
+    "notes": "人工核验题目选项 OCR 错字",
+    "options": [
+      {
+        "key": "A",
+        "text": "故意不完成教育教学任务给教育教学工作造成损失的"
+      }
+    ]
+  },
+  {
+    "id": "pdf-0076",
+    "questionNumber": 76,
+    "notes": "人工核验题目选项 OCR 错字",
+    "options": [
+      {
+        "key": "A",
+        "text": "常规赔偿"
+      },
+      {
+        "key": "B",
+        "text": "残疾赔偿费"
+      },
+      {
+        "key": "D",
+        "text": "残疾赔偿金"
+      }
+    ]
+  },
+  {
+    "id": "pdf-0052",
+    "questionNumber": 53,
+    "notes": "人工核验题目选项与答案解析 OCR 错字",
+    "options": [
+      {
+        "key": "B",
+        "text": "学习动机适中，学习效果最好"
+      }
+    ],
+    "replacements": [
+      {
+        "field": "explanation",
+        "from": "学习較复杂",
+        "to": "学习较复杂"
+      }
+    ]
+  },
+  {
+    "id": "pdf-0738",
+    "questionNumber": 66,
+    "notes": "人工核验题目选项 OCR 错字",
+    "options": [
+      {
+        "key": "B",
+        "text": "情绪适中"
+      }
+    ]
+  },
+  {
+    "id": "pdf-3159",
+    "questionNumber": 40,
+    "notes": "人工核验题目选项 OCR 错字",
+    "options": [
+      {
+        "key": "C",
+        "text": "学习动机适中，学习效果最好"
+      }
+    ]
+  },
+  {
+    "id": "pdf-3774",
+    "questionNumber": 71,
+    "notes": "人工核验答案解析 OCR 错字",
+    "replacements": [
+      {
+        "field": "explanation",
+        "from": "材料难度造中",
+        "to": "材料难度适中"
+      },
+      {
+        "field": "explanation",
+        "from": "缺之成就感",
+        "to": "缺乏成就感"
+      }
+    ]
+  }
+]

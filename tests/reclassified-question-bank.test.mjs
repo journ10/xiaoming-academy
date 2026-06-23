@@ -184,7 +184,7 @@ test("formal route and mixed simulation only use clean classified questions", ()
   assert.equal(simulationRun.nodes.length, 2);
 });
 
-test("classification audit summary reports the 114 manual-classification PDF locations", () => {
+test("classification audit summary reports the 121 manual-classification PDF locations", () => {
   const audit = JSON.parse(readFileSync("data/question-classification.audit.json", "utf8"));
   const manualItems = audit.questions.filter((item) =>
     item.classification?.primaryDomain?.id === "needs_manual_classification",
@@ -194,8 +194,8 @@ test("classification audit summary reports the 114 manual-classification PDF loc
     { classificationAudit: audit },
   );
 
-  assert.equal(manualItems.length, 114);
-  assert.equal(summary.manualClassificationCount, 114);
+  assert.equal(manualItems.length, 121);
+  assert.equal(summary.manualClassificationCount, 121);
   assert.ok(manualItems.every((item) => Number.isInteger(item.source?.questionSourcePage)));
   assert.ok(manualItems.every((item) => Number.isInteger(item.source?.answerSourcePage)));
   assert.ok(manualItems.every((item) => String(item.source?.sourceRef || "").includes("PDF OCR")));
@@ -225,7 +225,9 @@ test("built-in clean playable lessons do not expose OCR spacing noise", () => {
     const text = String(question.lesson?.explanation || "");
     return /[\u3400-\u9fff\uf900-\ufaff][ \t\u00a0]+[\u3400-\u9fff\uf900-\ufaff]|专业入员|学生\s+象|学生象|对环\s*的依赖/u.test(text);
   });
-  const reviewedQuestion = prepared.find((question) => question.sourceId === "pdf-0153" && question.bankIndex === 146);
+  const reviewedQuestion = prepared.find((question) =>
+    question.sourceId === "pdf-0153" && question.gameplayStatus === "content_review",
+  );
 
   assert.equal(noisyLessons.length, 0);
   assert.equal(reviewedQuestion?.gameplayStatus, "content_review");
@@ -248,7 +250,7 @@ test("built-in clean playable question copy does not expose known OCR-dirty text
     ].join("\n");
     return dirtyPattern.test(text);
   });
-  const reviewedQuestion = prepared.find((question) => question.sourceId === "pdf-0096" && question.bankIndex === 96);
+  const reviewedQuestion = prepared.find((question) => question.sourceId === "pdf-0689");
 
   assert.equal(dirtyQuestions.length, 0);
   assert.equal(reviewedQuestion?.gameplayStatus, "content_review");

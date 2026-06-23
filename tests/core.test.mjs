@@ -780,6 +780,28 @@ test("parseQuestionImport accepts arrays or questions payloads and preserves les
   assert.equal(imported[0].lesson.keyPoint, "导入题眼");
 });
 
+test("prepareQuestions returns an already prepared question bank without rebuilding it", () => {
+  const prepared = prepareQuestions(rawQuestions);
+
+  assert.equal(prepareQuestions(prepared), prepared);
+});
+
+test("parseQuestionImport accepts a prepared browser runtime bank without classification audit", () => {
+  const runtimeQuestions = JSON.parse(JSON.stringify(prepareQuestions(rawQuestions)));
+  const payload = {
+    sourceType: "browser-runtime-question-bank-v1",
+    runtime: { prepared: true },
+    questions: runtimeQuestions,
+  };
+
+  const imported = parseQuestionImport(payload);
+
+  assert.equal(imported, payload.questions);
+  assert.equal(prepareQuestions(imported), imported);
+  assert.equal(imported[0].lesson.title, "教育法规 · 2026讲解");
+  assert.equal(imported[0].gameplayStatus, "mainline");
+});
+
 test("parseQuestionImport rejects malformed imported questions before they enter a run", () => {
   assert.throws(
     () =>

@@ -25,16 +25,21 @@ import {
   rogueliteRunModes,
   studyNode,
   upgradeHeartPower,
-} from "./core.js?v=study-journal-20260623p";
+} from "./core.js?v=study-journal-20260623q";
 
 const storageKey = "xiaoming-academy-text-game-v1";
+const questionBankVersion = "study-journal-20260623q";
 const questionBankUrls = [
-  "./data/questions.from-pdf.json",
-  "/xiaoming-academy/data/questions.from-pdf.json",
+  versionedDataUrl("./data/questions.runtime.json"),
+  versionedDataUrl("/xiaoming-academy/data/questions.runtime.json"),
+];
+const fullQuestionBankFallbackUrls = [
+  versionedDataUrl("./data/questions.from-pdf.json"),
+  versionedDataUrl("/xiaoming-academy/data/questions.from-pdf.json"),
 ];
 const classificationAuditUrls = [
-  "./data/question-classification.audit.json",
-  "/xiaoming-academy/data/question-classification.audit.json",
+  versionedDataUrl("./data/question-classification.audit.json"),
+  versionedDataUrl("/xiaoming-academy/data/question-classification.audit.json"),
 ];
 const playableScenes = new Set(["world", "mode", "build", "training", "battle", "review", "daily", "dashboard", "report"]);
 const runModeLabels = {
@@ -133,11 +138,43 @@ async function initializeGame() {
 }
 
 async function loadBuiltInQuestionBank() {
-  const classificationAudit = await loadClassificationAudit();
+  try {
+    return await loadRuntimeQuestionBank();
+  } catch (runtimeError) {
+    return loadFullQuestionBankFallback(runtimeError);
+  }
+}
+
+async function loadRuntimeQuestionBank() {
   let lastError = null;
   for (const url of questionBankUrls) {
     try {
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("卷宗入口暂时没有回应。");
+      }
+      const payload = await response.json();
+      const parsedQuestions = parseQuestionImport(payload);
+      if (!parsedQuestions.length) {
+        throw new Error("卷宗里还没有可练内容");
+      }
+      return {
+        questions: parsedQuestions,
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new Error(lastError?.message || "秘卷暂时无法展开，请稍后再试。");
+}
+
+async function loadFullQuestionBankFallback(runtimeError) {
+  const classificationAudit = await loadClassificationAudit();
+  let lastError = runtimeError;
+  for (const url of fullQuestionBankFallbackUrls) {
+    try {
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error("卷宗入口暂时没有回应。");
       }
@@ -161,7 +198,7 @@ async function loadClassificationAudit() {
   let lastError = null;
   for (const url of classificationAuditUrls) {
     try {
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error("题目校准文件暂时没有回应。");
       }
@@ -172,6 +209,10 @@ async function loadClassificationAudit() {
   }
 
   throw new Error(lastError?.message || "题目校准文件缺失，无法保证题目归类正确。");
+}
+
+function versionedDataUrl(url) {
+  return `${url}?v=${questionBankVersion}`;
 }
 
 function render() {

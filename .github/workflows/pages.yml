@@ -65,8 +65,7 @@ jobs:
             --exclude 'README.md' \
             ./ _site/
           mkdir -p _site/data
-          cp data/questions.from-pdf.json _site/data/questions.from-pdf.json
-          cp data/question-classification.audit.json _site/data/question-classification.audit.json
+          cp data/questions.runtime.json _site/data/questions.runtime.json
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

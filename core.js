@@ -2,7 +2,33 @@ import {
   getChapterMechanic,
   inferConcept,
   normalizeErrorPatterns,
-} from "./src/content-rules.js?v=study-journal-20260623p";
+} from "./src/content-rules.js?v=study-journal-20260623q";
+
+export const browserRuntimeQuestionBankSourceType = "browser-runtime-question-bank-v1";
+
+const preparedQuestionMarker = Symbol("xiaomingAcademyPreparedQuestion");
+
+function markPreparedQuestion(question) {
+  if (!question || typeof question !== "object") return question;
+  Object.defineProperty(question, preparedQuestionMarker, {
+    value: true,
+    configurable: true,
+  });
+  return question;
+}
+
+function markPreparedQuestions(questions = []) {
+  questions.forEach(markPreparedQuestion);
+  return questions;
+}
+
+function isPreparedQuestion(question) {
+  return Boolean(question?.[preparedQuestionMarker]);
+}
+
+function isPreparedQuestionBank(questions) {
+  return Array.isArray(questions) && questions.length > 0 && questions.every(isPreparedQuestion);
+}
 
 export const stances = [
   {
@@ -750,6 +776,8 @@ export function applyQuestionClassifications(rawQuestions = [], classificationAu
 }
 
 export function prepareQuestions(rawQuestions = []) {
+  if (isPreparedQuestionBank(rawQuestions)) return rawQuestions;
+
   const rawIds = rawQuestions.map((raw, index) => String(raw?.id || `question-${index + 1}`));
   const rawIdCounts = rawIds.reduce((counts, id) => counts.set(id, (counts.get(id) || 0) + 1), new Map());
 
@@ -792,7 +820,7 @@ export function prepareQuestions(rawQuestions = []) {
     const errorPatterns = normalizeErrorPatterns(raw.errorPatterns, enrichmentContext);
     const chapterMechanic = String(raw.chapterMechanic || getChapterMechanic(topic));
 
-    return {
+    return markPreparedQuestion({
       ...raw,
       id,
       sourceId,
@@ -816,7 +844,7 @@ export function prepareQuestions(rawQuestions = []) {
       gameplayStatus,
       qualityReasons: Array.isArray(raw.qualityReasons) ? raw.qualityReasons : raw.quality?.reasons || [],
       lesson,
-    };
+    });
   });
 }
 
@@ -826,12 +854,46 @@ export function parseQuestionImport(payload, options = {}) {
     throw new Error("秘卷格式不对：需要一组题目。");
   }
 
+  if (!Array.isArray(payload) && payload?.sourceType === browserRuntimeQuestionBankSourceType && payload?.runtime?.prepared) {
+    return markPreparedQuestions(expandRuntimeQuestionBank(payload));
+  }
+
   const classificationAudit = options.classificationAudit || payload?.classificationAudit || null;
   const classifiedQuestions = classificationAudit
     ? applyQuestionClassifications(rawQuestions, classificationAudit)
     : rawQuestions;
 
   return prepareQuestions(classifiedQuestions.map((raw, index) => validateImportedQuestion(raw, index)));
+}
+
+function expandRuntimeQuestionBank(payload) {
+  if (payload?.runtime?.encoding !== "schema-array") return payload.questions;
+
+  const questionSchema = payload.runtime.questionSchema || [];
+  const optionSchema = payload.runtime.optionSchema || [];
+  const lessonSchema = payload.runtime.lessonSchema || [];
+
+  return payload.questions.map((record) => {
+    if (!Array.isArray(record)) return record;
+    const question = expandSchemaRecord(record, questionSchema);
+    question.options = (question.options || []).map((option) =>
+      Array.isArray(option) ? expandSchemaRecord(option, optionSchema) : option,
+    );
+    if (Array.isArray(question.lesson)) {
+      question.lesson = expandSchemaRecord(question.lesson, lessonSchema);
+    }
+    if (!question.explanation && question.lesson?.explanation) {
+      question.explanation = question.lesson.explanation;
+    }
+    return question;
+  });
+}
+
+function expandSchemaRecord(record, schema) {
+  return schema.reduce((value, key, index) => {
+    if (record[index] !== undefined) value[key] = record[index];
+    return value;
+  }, {});
 }
 
 export function summarizeQuestionBank(payload, options = {}) {
