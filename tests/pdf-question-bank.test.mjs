@@ -375,7 +375,7 @@ test("browser runtime question bank is compact and already classified", () => {
   assert.equal(runtimePayload.questions.length, JSON.parse(fullPayloadText).questions.length);
   assert.ok(runtimePayloadText.length < fullPayloadText.length * 0.65);
   assert.equal(zlib.gunzipSync(compressedRuntimePayload).toString("utf8"), runtimePayloadText);
-  assert.ok(compressedRuntimePayload.length < runtimePayloadText.length * 0.35);
+  assert.ok(compressedRuntimePayload.length < Buffer.byteLength(runtimePayloadText) * 0.35);
   assert.equal(firstQuestion.gameplayStatus, "mainline");
   assert.ok(firstQuestion.lesson?.id);
   assert.ok(firstQuestion.lesson?.studyPrompt);
