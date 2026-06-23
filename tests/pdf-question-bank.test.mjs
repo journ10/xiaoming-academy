@@ -123,6 +123,54 @@ test("built-in PDF bank uses original question stems and option texts", () => {
   assert.equal(placeholderQuestions.length, 0);
 });
 
+test("built-in PDF bank keeps manually verified OCR corrections readable", () => {
+  const payload = JSON.parse(readFileSync("data/questions.from-pdf.json", "utf8"));
+  const payloadText = JSON.stringify(payload.questions);
+  const findQuestion = (id, questionNumber) => payload.questions.find((question) =>
+    question.id === id && question.ocr?.questionNumber === questionNumber,
+  );
+  const q68 = findQuestion("pdf-0068", 68);
+  const q74 = findQuestion("pdf-0073", 74);
+  const q76 = findQuestion("pdf-0076", 76);
+  const q53 = findQuestion("pdf-0052", 53);
+  const q66 = findQuestion("pdf-0738", 66);
+  const q40 = findQuestion("pdf-3159", 40);
+  const q71 = findQuestion("pdf-3774", 71);
+
+  assert.ok(q68);
+  assert.match(q68.explanation, /工作计划与总结/u);
+  assert.doesNotMatch(q68.explanation, /工作许划/u);
+
+  assert.ok(q74);
+  assert.equal(q74.options.find((option) => option.key === "A")?.text, "故意不完成教育教学任务给教育教学工作造成损失的");
+  assert.doesNotMatch(q74.options.map((option) => option.text).join(""), /教育数学任务/u);
+
+  assert.ok(q76);
+  assert.equal(q76.options.find((option) => option.key === "A")?.text, "常规赔偿");
+  assert.equal(q76.options.find((option) => option.key === "B")?.text, "残疾赔偿费");
+  assert.equal(q76.options.find((option) => option.key === "D")?.text, "残疾赔偿金");
+  assert.doesNotMatch(q76.options.map((option) => option.text).join(""), /賠/u);
+
+  assert.ok(q53);
+  assert.equal(q53.options.find((option) => option.key === "B")?.text, "学习动机适中，学习效果最好");
+  assert.match(q53.explanation, /学习较复杂的问题/u);
+  assert.doesNotMatch(q53.explanation, /学习較复杂/u);
+
+  assert.ok(q66);
+  assert.equal(q66.options.find((option) => option.key === "B")?.text, "情绪适中");
+
+  assert.ok(q40);
+  assert.equal(q40.options.find((option) => option.key === "C")?.text, "学习动机适中，学习效果最好");
+
+  assert.ok(q71);
+  assert.match(q71.explanation, /确保材料难度适中/u);
+  assert.match(q71.explanation, /缺乏成就感/u);
+  assert.doesNotMatch(q71.explanation, /材料难度造中/u);
+  assert.doesNotMatch(q71.explanation, /缺之成就感/u);
+
+  assert.doesNotMatch(payloadText, /工作许划|教育数学任务|賠|学习动机造中|情绪造中|材料难度造中|学习較复杂|缺之成就感/u);
+});
+
 test("built-in PDF bank reports source slots separately from playable questions", () => {
   const payload = JSON.parse(readFileSync("data/questions.from-pdf.json", "utf8"));
 

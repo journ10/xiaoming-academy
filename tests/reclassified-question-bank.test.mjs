@@ -98,6 +98,31 @@ test("classification audit replaces old catch-all topics and makes duplicate PDF
   assert.equal(prepared[2].gameplayStatus, "manual_classification");
 });
 
+test("prepared lessons follow reclassified topics and current short-lesson copy", () => {
+  const raw = [
+    {
+      ...makeQuestion("pdf-0050", "教师职业规范题"),
+      lesson: {
+        title: "综合知识 · 第 51 题解析",
+        sourceRef: "题目 PDF OCR 第 5 页；PDF OCR 第 5 页（原页码 7）：第 51 题解析",
+        keyPoint: "教师职业规范",
+        studyPrompt: "练功目标：先核对 OCR 原文，再记住本题解析中的题眼。",
+      },
+    },
+  ];
+  const audit = auditFor(raw, [
+    { domainId: "teacher_ethics_professionalism", domainName: "教师职业素养与专业规范", quality: "clean" },
+  ]);
+  const [question] = parseQuestionImport({ questions: raw }, { classificationAudit: audit });
+
+  assert.equal(question.topic, "教师职业素养与专业规范");
+  assert.equal(question.gameplayStatus, "mainline");
+  assert.equal(question.lesson.title, "教师职业素养与专业规范 · 第 51 题解析");
+  assert.doesNotMatch(question.lesson.title, /综合知识/u);
+  assert.match(question.lesson.studyPrompt, /^短课目标/u);
+  assert.doesNotMatch(question.lesson.studyPrompt, /练功/u);
+});
+
 test("mainline chapters contain six real learning domains and no comprehensive catch-all", () => {
   const domainQuestions = learningDomainDefinitions.map((domain, index) =>
     makeQuestion(`pdf-${String(index + 1).padStart(4, "0")}`, `${domain.name} 题干`),
@@ -174,4 +199,57 @@ test("classification audit summary reports the 114 manual-classification PDF loc
   assert.ok(manualItems.every((item) => Number.isInteger(item.source?.questionSourcePage)));
   assert.ok(manualItems.every((item) => Number.isInteger(item.source?.answerSourcePage)));
   assert.ok(manualItems.every((item) => String(item.source?.sourceRef || "").includes("PDF OCR")));
+});
+
+test("built-in classified playable lessons do not leak old catch-all lesson copy", () => {
+  const payload = JSON.parse(readFileSync("data/questions.from-pdf.json", "utf8"));
+  const audit = JSON.parse(readFileSync("data/question-classification.audit.json", "utf8"));
+  const prepared = parseQuestionImport(payload, { classificationAudit: audit });
+  const playable = prepared.filter((question) => question.gameplayStatus === "mainline");
+  const leakingTitles = playable.filter((question) => /综合知识/u.test(String(question.lesson?.title || "")));
+  const oldGoalPrompts = prepared.filter((question) => /练功/u.test(String(question.lesson?.studyPrompt || "")));
+
+  assert.ok(playable.length > 0);
+  assert.equal(leakingTitles.length, 0);
+  assert.equal(oldGoalPrompts.length, 0);
+});
+
+test("built-in clean playable lessons do not expose OCR spacing noise", () => {
+  const payload = JSON.parse(readFileSync("data/questions.from-pdf.json", "utf8"));
+  const audit = JSON.parse(readFileSync("data/question-classification.audit.json", "utf8"));
+  const prepared = parseQuestionImport(payload, { classificationAudit: audit });
+  const cleanPlayable = prepared.filter((question) =>
+    question.gameplayStatus === "mainline" && question.qualityStatus === "clean",
+  );
+  const noisyLessons = cleanPlayable.filter((question) => {
+    const text = String(question.lesson?.explanation || "");
+    return /[\u3400-\u9fff\uf900-\ufaff][ \t\u00a0]+[\u3400-\u9fff\uf900-\ufaff]|专业入员|学生\s+象|学生象|对环\s*的依赖/u.test(text);
+  });
+  const reviewedQuestion = prepared.find((question) => question.sourceId === "pdf-0153" && question.bankIndex === 146);
+
+  assert.equal(noisyLessons.length, 0);
+  assert.equal(reviewedQuestion?.gameplayStatus, "content_review");
+});
+
+test("built-in clean playable question copy does not expose known OCR-dirty text", () => {
+  const payload = JSON.parse(readFileSync("data/questions.from-pdf.json", "utf8"));
+  const audit = JSON.parse(readFileSync("data/question-classification.audit.json", "utf8"));
+  const prepared = parseQuestionImport(payload, { classificationAudit: audit });
+  const cleanPlayable = prepared.filter((question) =>
+    question.gameplayStatus === "mainline" && question.qualityStatus === "clean",
+  );
+  const dirtyPattern = /米成年人|抚养义务7|照管制度化|职贵|太双避冲突|对环\s*的依赖|对环的依赖|X45/u;
+  const dirtyQuestions = cleanPlayable.filter((question) => {
+    const text = [
+      question.stem,
+      ...(question.options || []).map((option) => option.text),
+      question.explanation,
+      question.lesson?.explanation,
+    ].join("\n");
+    return dirtyPattern.test(text);
+  });
+  const reviewedQuestion = prepared.find((question) => question.sourceId === "pdf-0096" && question.bankIndex === 96);
+
+  assert.equal(dirtyQuestions.length, 0);
+  assert.equal(reviewedQuestion?.gameplayStatus, "content_review");
 });
