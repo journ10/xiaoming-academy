@@ -29,6 +29,7 @@ import {
 
 const storageKey = "xiaoming-academy-text-game-v1";
 const questionBankVersion = "study-journal-20260623q";
+const questionBankRequestTimeoutMs = 18000;
 const compressedQuestionBankUrls = [
   versionedDataUrl("./data/questions.runtime.json.gz"),
   versionedDataUrl("/xiaoming-academy/data/questions.runtime.json.gz"),
@@ -101,6 +102,8 @@ let selectedKeys = [];
 let submittedResult = null;
 let report = null;
 let battleQuestionStartedAt = Date.now();
+let questionBankLoadState = "loading";
+let questionBankLoadError = "";
 let logLine = "秘卷正在展开。";
 
 dom.importAction.addEventListener("click", showImportPanel);
@@ -118,6 +121,10 @@ document.addEventListener("keydown", (event) => {
 initializeGame();
 
 async function initializeGame() {
+  questionBankLoadState = "loading";
+  questionBankLoadError = "";
+  logLine = "题库正在展开，请稍候。";
+  render();
   try {
     const builtInBank = await loadBuiltInQuestionBank();
     questions = builtInBank.questions;
@@ -127,6 +134,8 @@ async function initializeGame() {
     selectedChapterId = saved.selectedChapterId || chapters[0]?.id || "";
     scene = resolveInitialScene() || saved.scene || "world";
     run = createRogueliteRun(questions, player, { modeId: selectedRunModeId, buildId: selectedBuildId, length: 5 });
+    questionBankLoadState = "ready";
+    questionBankLoadError = "";
     logLine = "选择今日小目标，开始一页题眼手账。";
     render();
   } catch (error) {
@@ -136,7 +145,9 @@ async function initializeGame() {
     selectedChapterId = "";
     scene = "world";
     run = createRouteRun([]);
-    logLine = error.message || "秘卷暂时无法展开。";
+    questionBankLoadState = "error";
+    questionBankLoadError = error.message || "题库暂时无法展开。";
+    logLine = questionBankLoadError;
     render();
     showToast(logLine);
   }
@@ -174,7 +185,7 @@ async function loadRuntimeQuestionBank() {
 }
 
 async function fetchQuestionBankPayload(url) {
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   if (!response.ok) {
     throw new Error("卷宗入口暂时没有回应。");
   }
@@ -189,6 +200,21 @@ async function fetchQuestionBankPayload(url) {
     return await new Response(stream).json();
   } catch {
     throw new Error("卷宗压缩包暂时无法展开。");
+  }
+}
+
+async function fetchWithTimeout(url) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), questionBankRequestTimeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("卷宗入口连接超时。");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
 
@@ -276,6 +302,16 @@ function render() {
 }
 
 function renderHud() {
+  if (!isQuestionBankReady()) {
+    dom.hudStats.replaceChildren(
+      hudStat("题库", questionBankLoadState === "loading" ? "展开中" : "需重试"),
+      hudStat("本局", "未开局"),
+      hudStat("目标", "待加载"),
+      hudStat("题眼", questionBankLoadState === "loading" ? "准备中" : "未展开"),
+    );
+    return;
+  }
+
   dom.hudStats.replaceChildren(
     hudStat("心力", `${player.heartPower || 0}/${player.maxHeartPower || 6}`),
     hudStat("本局", formatHudRunProgress()),
@@ -313,6 +349,8 @@ function formatBattleSettleState() {
 }
 
 function renderStage() {
+  if (questionBankLoadState === "loading") return renderQuestionBankLoadingStage();
+  if (!isQuestionBankReady()) return renderQuestionBankErrorStage();
   if (scene === "mode") return renderModeSelectStage();
   if (scene === "build") return renderBuildSelectStage();
   if (scene === "training") return renderTrainingStage();
@@ -322,6 +360,38 @@ function renderStage() {
   if (scene === "dashboard") return renderDashboardStage();
   if (scene === "report") return renderReport();
   return renderWorldStage();
+}
+
+function renderQuestionBankLoadingStage() {
+  dom.stage.replaceChildren(textScreen({
+    kicker: "开局台",
+    title: "题库正在展开",
+    intro: "正在载入题阵与题眼短课，请稍候。",
+    body: [
+      panel("加载中", [
+        el("p", "", {}, ["如果网络较慢，书院会自动尝试备用入口。"]),
+        el("p", "text-muted", {}, ["无需重复点击，加载完成后会进入开局台。"]),
+      ]),
+    ],
+    choices: [],
+    log: logLine,
+  }));
+}
+
+function renderQuestionBankErrorStage() {
+  dom.stage.replaceChildren(textScreen({
+    kicker: "开局台",
+    title: "题库暂时没有展开",
+    intro: "当前网络没有成功载入题阵，请重试。若 GitHub Pages 在当前网络不稳定，可以稍后刷新页面。",
+    body: [
+      panel("加载失败", [
+        el("p", "", {}, [questionBankLoadError || "题库入口暂时没有回应。"]),
+        el("p", "text-muted", {}, ["重试会重新请求压缩题库和备用题库入口。"]),
+      ]),
+    ],
+    choices: [["重新加载题库", retryQuestionBankLoad, "text-choice is-primary"]],
+    log: logLine,
+  }));
 }
 
 function renderWorldStage() {
@@ -1009,6 +1079,10 @@ function formatReportPanelNextText(reportData = report) {
 }
 
 function renderQuestPanel() {
+  if (!isQuestionBankReady()) {
+    return renderQuestionBankStatusPanel();
+  }
+
   const recommendation = createRunRecommendation(questions, player);
   const mode = getRunModeDefinition(run.modeId || recommendation.modeId);
   const build = getRunBuildDefinition(run.buildId || recommendation.buildId);
@@ -1053,7 +1127,48 @@ function renderQuestPanel() {
   );
 }
 
+function renderQuestionBankStatusPanel() {
+  const isLoading = questionBankLoadState === "loading";
+  dom.questPanel.replaceChildren(
+    el("header", "dossier-head", {}, [
+      el("span", "text-kicker", {}, ["局势"]),
+      el("h2", "", {}, [isLoading ? "题库展开中" : "题库未展开"]),
+    ]),
+    el("section", "objective-panel", {}, [
+      el("div", "section-title", {}, [
+        el("span", "", {}, ["题阵状态"]),
+        el("span", "", {}, [isLoading ? "加载中" : "需重试"]),
+      ]),
+      questLine("题库", isLoading ? "正在加载" : "加载失败"),
+      questLine("本局", "未开局"),
+      questLine("题眼", isLoading ? "准备中" : "未展开"),
+      el("p", "text-muted", {}, [isLoading
+        ? "正在请求题库入口，完成后会显示开局台。"
+        : questionBankLoadError || "请重新加载题库。"]),
+    ]),
+    el("section", "next-box", {}, [
+      el("strong", "", {}, [isLoading ? "下一步" : "重试"]),
+      el("p", "", {}, [isLoading ? "等待题库展开。" : "点击主区域的按钮重新加载题库。"]),
+    ]),
+  );
+}
+
+function isQuestionBankReady() {
+  return questionBankLoadState === "ready" && questions.length > 0;
+}
+
+function ensureQuestionBankAvailable() {
+  if (isQuestionBankReady()) return true;
+  showToast(questionBankLoadState === "loading" ? "题库正在展开，请稍候。" : "题库还没有展开，请先重新加载。");
+  return false;
+}
+
+function retryQuestionBankLoad() {
+  initializeGame();
+}
+
 function startRecommendedRun(recommendation = createRunRecommendation(questions, player)) {
+  if (!ensureQuestionBankAvailable()) return;
   selectedRunModeId = recommendation.modeId;
   selectedBuildId = recommendation.buildId;
   startRogueliteRun(selectedRunModeId, selectedBuildId);
@@ -1075,6 +1190,7 @@ function selectRunBuild(buildId) {
 }
 
 function startRogueliteRun(modeId = selectedRunModeId, buildId = selectedBuildId) {
+  if (!ensureQuestionBankAvailable()) return;
   run = createRogueliteRun(questions, player, { modeId, buildId, length: 5 });
   if (!run.nodes.length) {
     showToast("当前还没有可进入的题阵。");

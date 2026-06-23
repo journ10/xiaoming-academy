@@ -173,6 +173,39 @@ test("runtime retries the PDF question bank from deployment-safe paths", () => {
   assert.match(app, /lastError/);
 });
 
+test("runtime shows loading and failure states instead of a blank or empty-bank start desk", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /let questionBankLoadState = "loading"/);
+  assert.match(app, /let questionBankLoadError = ""/);
+  assert.match(functionBody(app, "initializeGame"), /questionBankLoadState = "loading";[\s\S]*render\(\);[\s\S]*await loadBuiltInQuestionBank\(\)/);
+  assert.match(functionBody(app, "renderStage"), /renderQuestionBankLoadingStage/);
+  assert.match(functionBody(app, "renderStage"), /renderQuestionBankErrorStage/);
+  assert.match(functionBody(app, "renderQuestPanel"), /renderQuestionBankStatusPanel/);
+  assert.match(app, /function retryQuestionBankLoad\(/);
+});
+
+test("runtime times out stalled question-bank requests before trying fallback URLs", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /questionBankRequestTimeoutMs/);
+  assert.match(app, /function fetchWithTimeout\(/);
+  assert.match(functionBody(app, "fetchQuestionBankPayload"), /fetchWithTimeout\(url\)/);
+  assert.match(functionBody(app, "fetchWithTimeout"), /AbortController/);
+  assert.match(functionBody(app, "fetchWithTimeout"), /setTimeout/);
+  assert.match(functionBody(app, "fetchWithTimeout"), /clearTimeout/);
+  assert.match(functionBody(app, "fetchWithTimeout"), /signal: controller\.signal/);
+});
+
+test("runtime refuses to start a run when the question bank is unavailable", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /function isQuestionBankReady\(/);
+  assert.match(app, /function ensureQuestionBankAvailable\(/);
+  assert.match(functionBody(app, "startRecommendedRun"), /ensureQuestionBankAvailable\(\)/);
+  assert.match(functionBody(app, "startRogueliteRun"), /ensureQuestionBankAvailable\(\)/);
+});
+
 test("pages deployment publishes the runtime PDF question bank", () => {
   const workflow = readFileSync(".github/workflows/pages.yml", "utf8");
 
