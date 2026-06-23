@@ -33,6 +33,7 @@ const compressedQuestionBankUrls = [
   versionedDataUrl("./data/questions.runtime.json.gz"),
   versionedDataUrl("/xiaoming-academy/data/questions.runtime.json.gz"),
 ];
+let compressedQuestionBankSupport;
 const questionBankUrls = [
   versionedDataUrl("./data/questions.runtime.json"),
   versionedDataUrl("/xiaoming-academy/data/questions.runtime.json"),
@@ -192,22 +193,27 @@ async function fetchQuestionBankPayload(url) {
 }
 
 function supportsCompressedQuestionBank() {
+  if (compressedQuestionBankSupport !== undefined) {
+    return compressedQuestionBankSupport;
+  }
   if (
     typeof DecompressionStream !== "function" ||
     typeof ReadableStream !== "function" ||
     typeof Response !== "function"
   ) {
-    return false;
+    compressedQuestionBankSupport = false;
+    return compressedQuestionBankSupport;
   }
   try {
-    return Boolean(new DecompressionStream("gzip"));
+    compressedQuestionBankSupport = Boolean(new DecompressionStream("gzip"));
   } catch {
-    return false;
+    compressedQuestionBankSupport = false;
   }
+  return compressedQuestionBankSupport;
 }
 
 function isCompressedQuestionBankUrl(url) {
-  return new URL(url, location.href).pathname.endsWith(".json.gz");
+  return compressedQuestionBankUrls.includes(url);
 }
 
 async function loadFullQuestionBankFallback(runtimeError) {
