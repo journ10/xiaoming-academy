@@ -25,10 +25,10 @@ import {
   rogueliteRunModes,
   studyNode,
   upgradeHeartPower,
-} from "./core.js?v=study-journal-20260623q";
+} from "./core.js?v=study-journal-20260623s";
 
 const storageKey = "xiaoming-academy-text-game-v1";
-const questionBankVersion = "study-journal-20260623q";
+const questionBankVersion = "study-journal-20260623s";
 const questionBankRequestTimeoutMs = 18000;
 const compressedQuestionIndexUrls = [
   versionedDataUrl("./data/question-index.json.gz"),
@@ -702,9 +702,9 @@ function renderBattleDesk({ node, question, mechanicState, options }) {
     renderBattleStatusBar({ node, question, mechanicState }),
     el("section", "battle-main", {}, [
       renderBattleQuestionCard({ question, mechanicState, options }),
+      renderBattleActionBar(question),
       renderBattleSupportPanel({ node, question, mechanicState }),
     ]),
-    renderBattleActionBar(question),
   ]);
 }
 

@@ -71,3 +71,16 @@ test("mobile shell keeps the page scrollable below the design screenshot height"
   assert.doesNotMatch(mobileBlock, /\.rpg-shell\s*\{[^}]*height:\s*844px/u);
   assert.doesNotMatch(mobileBlock, /\.rpg-shell\s*\{[^}]*overflow:\s*hidden/u);
 });
+
+test("mobile battle keeps submit controls adjacent to answer options", () => {
+  assert.match(appSource, /renderBattleQuestionCard\(\{ question, mechanicState, options \}\)[\s\S]*renderBattleActionBar\(question\)[\s\S]*renderBattleSupportPanel\(\{ node, question, mechanicState \}\)/u);
+  assert.match(cssSource, /\.battle-main\s*\{[\s\S]*grid-template-areas:\s*"question support"[\s\S]*"actions actions"/u);
+  assert.match(cssSource, /\.battle-question-card\s*\{[\s\S]*grid-area:\s*question/u);
+  assert.match(cssSource, /\.battle-support-panel\s*\{[\s\S]*grid-area:\s*support/u);
+  assert.match(cssSource, /\.battle-action-bar\s*\{[\s\S]*grid-area:\s*actions/u);
+  assert.match(cssSource, /\.battle-action-bar\s*\{[\s\S]*grid-template-areas:\s*"meta buttons"/u);
+  assert.match(cssSource, /\.battle-action-meta\s*\{[\s\S]*grid-area:\s*meta/u);
+  assert.match(cssSource, /\.battle-action-buttons\s*\{[\s\S]*grid-area:\s*buttons/u);
+  assert.match(cssSource, /@media \(max-width:\s*860px\)\s*\{[\s\S]*\.battle-main\s*\{[\s\S]*grid-template-areas:\s*"question"[\s\S]*"actions"[\s\S]*"support"/u);
+  assert.match(cssSource, /@media \(max-width:\s*860px\)\s*\{[\s\S]*\.battle-action-bar\s*\{[\s\S]*grid-template-areas:\s*"buttons"[\s\S]*"meta"/u);
+});

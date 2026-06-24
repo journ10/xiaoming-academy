@@ -2,7 +2,7 @@ import {
   getChapterMechanic,
   inferConcept,
   normalizeErrorPatterns,
-} from "./src/content-rules.js?v=study-journal-20260623q";
+} from "./src/content-rules.js?v=study-journal-20260623s";
 
 export const browserRuntimeQuestionBankSourceType = "browser-runtime-question-bank-v1";
 export const browserRuntimeQuestionIndexSourceType = "browser-runtime-question-index-v1";

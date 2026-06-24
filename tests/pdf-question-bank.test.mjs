@@ -439,11 +439,11 @@ test("complete PDF source-slot artifact accounts for every source question slot"
 test("top-level design docs use the verified PDF source-slot count", () => {
   const docs = [
     "docs/01-game-overview.md",
-    "docs/02-story-design.md",
+    "docs/02-text-feedback.md",
     "docs/03-gameplay-systems.md",
     "docs/04-ui-spec.md",
     "docs/06-content-pipeline.md",
-    "docs/07-implementation-roadmap.md",
+    "docs/07-product-acceptance.md",
     "docs/08-verification-report.md",
   ].map((filePath) => readFileSync(filePath, "utf8")).join("\n");
 

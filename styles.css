@@ -279,7 +279,7 @@ p {
 
 .battle-desk {
   display: grid;
-  grid-template-rows: auto max-content auto;
+  grid-template-rows: auto max-content;
   align-content: start;
   gap: 14px;
   min-height: 100%;
@@ -342,6 +342,9 @@ p {
 .battle-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-areas:
+    "question support"
+    "actions actions";
   gap: 16px;
   min-height: max-content;
   align-self: start;
@@ -350,6 +353,7 @@ p {
 }
 
 .battle-question-card {
+  grid-area: question;
   display: grid;
   gap: 18px;
   min-height: 0;
@@ -411,6 +415,7 @@ p {
 }
 
 .battle-support-panel {
+  grid-area: support;
   display: grid;
   align-content: start;
   gap: 12px;
@@ -430,9 +435,11 @@ p {
 }
 
 .battle-action-bar {
+  grid-area: actions;
   position: static;
   display: grid;
   grid-template-columns: minmax(190px, 1fr) auto;
+  grid-template-areas: "meta buttons";
   gap: 14px;
   align-items: stretch;
   padding: 12px;
@@ -450,6 +457,7 @@ p {
 }
 
 .battle-action-meta {
+  grid-area: meta;
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -472,6 +480,7 @@ p {
 }
 
 .battle-action-buttons {
+  grid-area: buttons;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -540,7 +549,7 @@ p {
   }
 
   .battle-desk {
-    grid-template-rows: auto max-content auto;
+    grid-template-rows: auto max-content;
     align-content: start;
     gap: 12px;
     padding: 14px;
@@ -549,6 +558,10 @@ p {
 
   .battle-main {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "question"
+      "actions"
+      "support";
     overflow: visible;
   }
 
@@ -561,6 +574,9 @@ p {
   .battle-action-bar {
     position: static;
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "buttons"
+      "meta";
   }
 
   .battle-action-buttons {

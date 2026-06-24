@@ -13,13 +13,13 @@ test("static entry loads only the pure text game runtime", () => {
   const index = readFileSync("index.html", "utf8");
   const app = readFileSync("app.js", "utf8");
   const core = readFileSync("core.js", "utf8");
-  const cacheVersion = "study-journal-20260623q";
+  const cacheVersion = "study-journal-20260623s";
 
   assert.match(index, new RegExp(`<script type="module" src="\\./app\\.js\\?v=${cacheVersion}"></script>`));
   assert.match(index, new RegExp(`href="\\./styles\\.css\\?v=${cacheVersion}"`));
   assert.match(app, new RegExp(`from "\\./core\\.js\\?v=${cacheVersion}"`));
   assert.match(core, new RegExp(`from "\\./src/content-rules\\.js\\?v=${cacheVersion}"`));
-  assert.doesNotMatch(`${index}\n${app}\n${core}`, /study-journal-20260623a|study-journal-20260623b|study-journal-20260623c|study-journal-20260623d|study-journal-20260623e|study-journal-20260623f|study-journal-20260623g|study-journal-20260623h|study-journal-20260623i|study-journal-20260623j|study-journal-20260623k|study-journal-20260623l|study-journal-20260623m|study-journal-20260623n|study-journal-20260623o|study-journal-20260623p/);
+  assert.doesNotMatch(`${index}\n${app}\n${core}`, /study-journal-20260623a|study-journal-20260623b|study-journal-20260623c|study-journal-20260623d|study-journal-20260623e|study-journal-20260623f|study-journal-20260623g|study-journal-20260623h|study-journal-20260623i|study-journal-20260623j|study-journal-20260623k|study-journal-20260623l|study-journal-20260623m|study-journal-20260623n|study-journal-20260623o|study-journal-20260623p|study-journal-20260623q|study-journal-20260623r/);
   assert.doesNotMatch(index, /styles\/tokens\.css|styles\/shell\.css|styles\/components\.css/);
   assert.doesNotMatch(index, /<img\b|assets\/generated|docs\/mockups/);
 });
@@ -429,9 +429,11 @@ test("battle UI uses a dedicated answer desk layout instead of stacked text pane
   }
 
   assert.match(styles, /\.battle-main\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(280px,\s*360px\)/);
+  assert.match(styles, /\.battle-main\s*\{[\s\S]*grid-template-areas:\s*"question support"[\s\S]*"actions actions"/);
   assert.match(styles, /\.battle-action-bar\s*\{[\s\S]*position:\s*static/);
   assert.match(styles, /@media \(max-width: 860px\)\s*\{[\s\S]*\.battle-main\s*\{[\s\S]*grid-template-columns:\s*1fr/);
-  assert.match(styles, /@media \(max-width: 860px\)\s*\{[\s\S]*\.battle-desk\s*\{[\s\S]*grid-template-rows:\s*auto max-content auto/);
+  assert.match(styles, /@media \(max-width: 860px\)\s*\{[\s\S]*\.battle-main\s*\{[\s\S]*grid-template-areas:\s*"question"[\s\S]*"actions"[\s\S]*"support"/);
+  assert.match(styles, /@media \(max-width: 860px\)\s*\{[\s\S]*\.battle-desk\s*\{[\s\S]*grid-template-rows:\s*auto max-content/);
 });
 
 test("battle scene gives the answer desk the full stage instead of duplicating the side dossier", () => {
@@ -451,7 +453,7 @@ test("battle question and support panels do not create nested scroll areas", () 
     return match[1];
   };
 
-  assert.match(styles, /\.battle-desk\s*\{[\s\S]*grid-template-rows:\s*auto max-content auto[\s\S]*align-content:\s*start[\s\S]*overflow-y:\s*auto/);
+  assert.match(styles, /\.battle-desk\s*\{[\s\S]*grid-template-rows:\s*auto max-content[\s\S]*align-content:\s*start[\s\S]*overflow-y:\s*auto/);
   assert.match(styles, /\.battle-main\s*\{[\s\S]*min-height:\s*max-content[\s\S]*align-self:\s*start/);
   assert.match(styles, /\.battle-main\s*\{[\s\S]*overflow:\s*visible/);
   assert.match(styles, /\.battle-question-card\s*\{[\s\S]*max-height:\s*none[\s\S]*overflow:\s*visible/);
