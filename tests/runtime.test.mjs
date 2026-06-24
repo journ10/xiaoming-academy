@@ -151,7 +151,9 @@ test("start desk suggestion does not ask for demons when none exist", () => {
 test("runtime loads the compact browser runtime question bank instead of sample data or imported bank state", () => {
   const app = readFileSync("app.js", "utf8");
 
+  assert.match(app, /data\/question-index\.json/);
   assert.match(app, /data\/questions\.runtime\.json/);
+  assert.match(app, /loadQuestionIndex/);
   assert.match(app, /loadRuntimeQuestionBank/);
   assert.match(app, /parseQuestionImport\(payload\)/);
   assert.doesNotMatch(app, /cache:\s*"no-store"/);
@@ -161,8 +163,14 @@ test("runtime loads the compact browser runtime question bank instead of sample 
 test("runtime retries the PDF question bank from deployment-safe paths", () => {
   const app = readFileSync("app.js", "utf8");
 
+  assert.match(app, /questionIndexUrls/);
+  assert.match(app, /compressedQuestionIndexUrls/);
   assert.match(app, /questionBankUrls/);
   assert.match(app, /compressedQuestionBankUrls/);
+  assert.match(app, /\.\/data\/question-index\.json\.gz/);
+  assert.match(app, /\/xiaoming-academy\/data\/question-index\.json\.gz/);
+  assert.match(app, /\.\/data\/question-index\.json/);
+  assert.match(app, /\/xiaoming-academy\/data\/question-index\.json/);
   assert.match(app, /\.\/data\/questions\.runtime\.json\.gz/);
   assert.match(app, /\/xiaoming-academy\/data\/questions\.runtime\.json\.gz/);
   assert.match(app, /\.\/data\/questions\.runtime\.json/);
@@ -171,6 +179,32 @@ test("runtime retries the PDF question bank from deployment-safe paths", () => {
   assert.match(app, /supportsCompressedQuestionBank/);
   assert.match(app, /for \(const url of runtimeBankUrls\)/);
   assert.match(app, /lastError/);
+});
+
+test("runtime hydrates lazy question chunks before opening a题阵", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /let questionChunkById = new Map\(\)/);
+  assert.match(app, /let loadedQuestionChunkIds = new Set\(\)/);
+  assert.match(app, /let hydratedQuestionById = new Map\(\)/);
+  assert.match(app, /function getQuestionChunkUrls\(/);
+  assert.match(app, /async function ensureQuestionsHydrated\(/);
+  assert.match(app, /async function loadQuestionChunk\(/);
+  assert.match(functionBody(app, "startRogueliteRun"), /await ensureQuestionsHydrated\(runQuestionIds/);
+  assert.match(functionBody(app, "getCurrentQuestion"), /hydratedQuestionById\.get/);
+});
+
+test("runtime hydrates restored lesson and question scenes before rendering full question fields", () => {
+  const app = readFileSync("app.js", "utf8");
+
+  assert.match(app, /let pendingRunHydrationKey = ""/);
+  assert.match(app, /function ensureCurrentRunHydrated\(/);
+  assert.match(app, /function requestCurrentRunHydration\(/);
+  assert.match(app, /function renderCurrentRunHydrationStage\(/);
+  assert.match(functionBody(app, "renderTrainingStage"), /if \(!ensureCurrentRunHydrated\(\)\) return renderCurrentRunHydrationStage\("题眼短课"\);/);
+  assert.match(functionBody(app, "renderBattleStage"), /if \(!ensureCurrentRunHydrated\(\)\) return renderCurrentRunHydrationStage\("题阵"\);/);
+  assert.match(functionBody(app, "requestCurrentRunHydration"), /await ensureQuestionsHydrated\(questionIds\)/);
+  assert.match(functionBody(app, "requestCurrentRunHydration"), /finally \{\s*pendingRunHydrationKey = "";\s*render\(\);/);
 });
 
 test("runtime shows loading and failure states instead of a blank or empty-bank start desk", () => {
@@ -211,6 +245,9 @@ test("pages deployment publishes the runtime PDF question bank", () => {
 
   assert.match(workflow, /--exclude 'data\/'/);
   assert.match(workflow, /mkdir -p _site\/data/);
+  assert.match(workflow, /cp data\/question-index\.json _site\/data\/question-index\.json/);
+  assert.match(workflow, /cp data\/question-index\.json\.gz _site\/data\/question-index\.json\.gz/);
+  assert.match(workflow, /cp -R data\/question-chunks _site\/data\/question-chunks/);
   assert.match(workflow, /cp data\/questions\.runtime\.json _site\/data\/questions\.runtime\.json/);
   assert.match(workflow, /cp data\/questions\.runtime\.json\.gz _site\/data\/questions\.runtime\.json\.gz/);
   assert.doesNotMatch(workflow, /cp data\/question-classification\.audit\.json _site\/data\/question-classification\.audit\.json/);

@@ -30,6 +30,14 @@ import {
 const storageKey = "xiaoming-academy-text-game-v1";
 const questionBankVersion = "study-journal-20260623q";
 const questionBankRequestTimeoutMs = 18000;
+const compressedQuestionIndexUrls = [
+  versionedDataUrl("./data/question-index.json.gz"),
+  versionedDataUrl("/xiaoming-academy/data/question-index.json.gz"),
+];
+const questionIndexUrls = [
+  versionedDataUrl("./data/question-index.json"),
+  versionedDataUrl("/xiaoming-academy/data/question-index.json"),
+];
 const compressedQuestionBankUrls = [
   versionedDataUrl("./data/questions.runtime.json.gz"),
   versionedDataUrl("/xiaoming-academy/data/questions.runtime.json.gz"),
@@ -99,6 +107,10 @@ let currentNodeIndex = 0;
 let observationHintUsed = false;
 let selectedBreakMoveId = "steady";
 let selectedKeys = [];
+let questionChunkById = new Map();
+let loadedQuestionChunkIds = new Set();
+let hydratedQuestionById = new Map();
+let pendingRunHydrationKey = "";
 let submittedResult = null;
 let report = null;
 let battleQuestionStartedAt = Date.now();
@@ -123,11 +135,16 @@ initializeGame();
 async function initializeGame() {
   questionBankLoadState = "loading";
   questionBankLoadError = "";
+  questionChunkById = new Map();
+  loadedQuestionChunkIds = new Set();
+  hydratedQuestionById = new Map();
+  pendingRunHydrationKey = "";
   logLine = "题库正在展开，请稍候。";
   render();
   try {
     const builtInBank = await loadBuiltInQuestionBank();
     questions = builtInBank.questions;
+    configureQuestionChunks(builtInBank.chunks);
     chapters = createStoryChapters(questions);
     const saved = loadSavedState();
     player = saved.player;
@@ -155,10 +172,38 @@ async function initializeGame() {
 
 async function loadBuiltInQuestionBank() {
   try {
-    return await loadRuntimeQuestionBank();
-  } catch (runtimeError) {
-    return loadFullQuestionBankFallback(runtimeError);
+    return await loadQuestionIndex();
+  } catch {
+    try {
+      return await loadRuntimeQuestionBank();
+    } catch (runtimeError) {
+      return loadFullQuestionBankFallback(runtimeError);
+    }
   }
+}
+
+async function loadQuestionIndex() {
+  let lastError = null;
+  const runtimeBankUrls = supportsCompressedQuestionBank()
+    ? [...compressedQuestionIndexUrls, ...questionIndexUrls]
+    : questionIndexUrls;
+  for (const url of runtimeBankUrls) {
+    try {
+      const payload = await fetchQuestionBankPayload(url);
+      const parsedQuestions = parseQuestionImport(payload);
+      if (!parsedQuestions.length) {
+        throw new Error("卷宗索引里还没有可练内容");
+      }
+      return {
+        questions: parsedQuestions,
+        chunks: payload.chunks || [],
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new Error(lastError?.message || "卷宗索引暂时无法展开，请稍后再试。");
 }
 
 async function loadRuntimeQuestionBank() {
@@ -239,7 +284,72 @@ function supportsCompressedQuestionBank() {
 }
 
 function isCompressedQuestionBankUrl(url) {
-  return compressedQuestionBankUrls.includes(url);
+  return String(url).split("?")[0].endsWith(".gz");
+}
+
+function configureQuestionChunks(chunks = []) {
+  questionChunkById = new Map((chunks || []).map((chunk) => [chunk.id, chunk]));
+  loadedQuestionChunkIds = new Set();
+  hydratedQuestionById = new Map();
+  pendingRunHydrationKey = "";
+  if (!questionChunkById.size) {
+    questions.forEach((question) => hydratedQuestionById.set(question.id, question));
+  }
+}
+
+async function ensureQuestionsHydrated(questionIds = []) {
+  const missingChunkIds = unique(questionIds)
+    .filter((questionId) => !hydratedQuestionById.has(questionId))
+    .map((questionId) => questions.find((question) => question.id === questionId)?.chunkId || "")
+    .filter(Boolean);
+
+  await Promise.all(unique(missingChunkIds).map((chunkId) => loadQuestionChunk(chunkId)));
+
+  const stillMissing = unique(questionIds).filter((questionId) =>
+    !hydratedQuestionById.has(questionId) && questions.some((question) => question.id === questionId && question.chunkId),
+  );
+  if (stillMissing.length) {
+    throw new Error("本页题阵暂时没有展开完整题目。");
+  }
+}
+
+async function loadQuestionChunk(chunkId) {
+  if (loadedQuestionChunkIds.has(chunkId)) return;
+  const chunk = questionChunkById.get(chunkId);
+  if (!chunk) {
+    throw new Error("题阵分片暂时没有回应。");
+  }
+
+  let lastError = null;
+  for (const url of getQuestionChunkUrls(chunk)) {
+    try {
+      const payload = await fetchQuestionBankPayload(url);
+      const hydratedQuestions = parseQuestionImport(payload);
+      mergeHydratedQuestions(hydratedQuestions);
+      loadedQuestionChunkIds.add(chunkId);
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new Error(lastError?.message || "题阵分片暂时无法展开。");
+}
+
+function getQuestionChunkUrls(chunk) {
+  const urls = [];
+  const compressedUrl = chunk.compressedUrl || `${chunk.url}.gz`;
+  if (supportsCompressedQuestionBank()) {
+    urls.push(versionedDataUrl(`./${compressedUrl}`), versionedDataUrl(`/xiaoming-academy/${compressedUrl}`));
+  }
+  urls.push(versionedDataUrl(`./${chunk.url}`), versionedDataUrl(`/xiaoming-academy/${chunk.url}`));
+  return urls;
+}
+
+function mergeHydratedQuestions(hydratedQuestions = []) {
+  const hydratedById = new Map(hydratedQuestions.map((question) => [question.id, question]));
+  hydratedQuestions.forEach((question) => hydratedQuestionById.set(question.id, question));
+  questions = questions.map((question) => hydratedById.get(question.id) || question);
 }
 
 async function loadFullQuestionBankFallback(runtimeError) {
@@ -526,6 +636,7 @@ function getRunBuildDefinition(buildId) {
 
 function renderTrainingStage() {
   ensureRun();
+  if (!ensureCurrentRunHydrated()) return renderCurrentRunHydrationStage("题眼短课");
   const node = getCurrentNode();
   const question = getCurrentQuestion();
   if (!node || !question) {
@@ -564,6 +675,7 @@ function renderTrainingStage() {
 
 function renderBattleStage() {
   ensureRun();
+  if (!ensureCurrentRunHydrated()) return renderCurrentRunHydrationStage("题阵");
   const node = getCurrentNode();
   const question = getCurrentQuestion();
   if (!node || !question) {
@@ -1189,13 +1301,25 @@ function selectRunBuild(buildId) {
   startRogueliteRun(selectedRunModeId, selectedBuildId);
 }
 
-function startRogueliteRun(modeId = selectedRunModeId, buildId = selectedBuildId) {
+async function startRogueliteRun(modeId = selectedRunModeId, buildId = selectedBuildId) {
   if (!ensureQuestionBankAvailable()) return;
-  run = createRogueliteRun(questions, player, { modeId, buildId, length: 5 });
-  if (!run.nodes.length) {
+  const nextRun = createRogueliteRun(questions, player, { modeId, buildId, length: 5 });
+  if (!nextRun.nodes.length) {
     showToast("当前还没有可进入的题阵。");
     return;
   }
+  const runQuestionIds = nextRun.nodes.map((node) => node.questionId);
+  try {
+    logLine = "正在展开本页题阵。";
+    await ensureQuestionsHydrated(runQuestionIds);
+  } catch (error) {
+    logLine = error.message || "本页题阵暂时无法展开。";
+    showToast(logLine);
+    render();
+    return;
+  }
+
+  run = nextRun;
   selectedRunModeId = run.modeId;
   selectedBuildId = run.buildId;
   currentNodeIndex = 0;
@@ -1553,6 +1677,49 @@ function resetRunForChapter() {
   report = null;
 }
 
+function ensureCurrentRunHydrated() {
+  const questionIds = unique((run.nodes || []).map((node) => node.questionId).filter(Boolean));
+  const needsHydration = questionIds.some((questionId) => {
+    const question = questions.find((item) => item.id === questionId);
+    return Boolean(question?.chunkId) && !hydratedQuestionById.has(questionId);
+  });
+  if (!needsHydration) return true;
+  requestCurrentRunHydration(questionIds);
+  return false;
+}
+
+async function requestCurrentRunHydration(questionIds) {
+  const key = questionIds.join("|");
+  if (!key || pendingRunHydrationKey === key) return;
+  pendingRunHydrationKey = key;
+  logLine = "正在展开本页题阵。";
+  try {
+    await ensureQuestionsHydrated(questionIds);
+  } catch (error) {
+    logLine = error.message || "本页题阵暂时无法展开。";
+    showToast(logLine);
+  } finally {
+    pendingRunHydrationKey = "";
+    render();
+  }
+}
+
+function renderCurrentRunHydrationStage(label) {
+  dom.stage.replaceChildren(textScreen({
+    kicker: "开局台",
+    title: `${label}正在展开`,
+    intro: "正在载入当前页题目，请稍候。",
+    body: [
+      panel("展开中", [
+        el("p", "", {}, ["本页只会加载需要的题目分片。"]),
+        el("p", "text-muted", {}, ["如果网络较慢，书院会自动尝试备用入口。"]),
+      ]),
+    ],
+    choices: [["回开局台", () => goScene("world")]],
+    log: logLine,
+  }));
+}
+
 function createRunForSelectedChapter() {
   return createRogueliteRun(questions, player, { modeId: selectedRunModeId, buildId: selectedBuildId, length: 5 });
 }
@@ -1564,7 +1731,7 @@ function getCurrentNode() {
 
 function getCurrentQuestion() {
   const node = getCurrentNode();
-  return node ? questions.find((question) => question.id === node.questionId) || null : null;
+  return node ? hydratedQuestionById.get(node.questionId) || questions.find((question) => question.id === node.questionId) || null : null;
 }
 
 function ensureRunIndex() {
@@ -1761,6 +1928,10 @@ function formatCost(cost = {}) {
 
 function normalizeMaterialBag(materials = {}) {
   return Object.fromEntries(materialTypes.map((material) => [material.id, Number(materials?.[material.id] || 0)]));
+}
+
+function unique(items = []) {
+  return [...new Set(items)];
 }
 
 function toggleKey(keys, key, order) {

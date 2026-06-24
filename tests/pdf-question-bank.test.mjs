@@ -384,6 +384,40 @@ test("browser runtime question bank is compact and already classified", () => {
   assert.equal("sourceLocation" in firstQuestion, false);
 });
 
+test("browser runtime question index shards full questions into lazy chunks", () => {
+  const runtimePayloadText = readFileSync("data/questions.runtime.json", "utf8");
+  const indexPayloadText = readFileSync("data/question-index.json", "utf8");
+  const compressedIndexPayload = readFileSync("data/question-index.json.gz");
+  const indexPayload = JSON.parse(indexPayloadText);
+  const parsedIndex = parseQuestionImport(indexPayload);
+  const firstIndexQuestion = parsedIndex[0];
+  const firstChunk = indexPayload.chunks[0];
+  const firstChunkText = readFileSync(firstChunk.url, "utf8");
+  const firstChunkPayload = JSON.parse(firstChunkText);
+  const parsedFirstChunk = parseQuestionImport(firstChunkPayload);
+  const firstFullQuestion = parsedFirstChunk[0];
+
+  assert.equal(indexPayload.sourceType, "browser-runtime-question-index-v1");
+  assert.equal(indexPayload.runtime?.prepared, true);
+  assert.equal(indexPayload.runtime?.encoding, "schema-array");
+  assert.equal(indexPayload.questions.length, JSON.parse(runtimePayloadText).questions.length);
+  assert.ok(indexPayload.chunks.length > 20);
+  assert.ok(Buffer.byteLength(indexPayloadText) < Buffer.byteLength(runtimePayloadText) * 0.25);
+  assert.equal(zlib.gunzipSync(compressedIndexPayload).toString("utf8"), indexPayloadText);
+  assert.equal(firstIndexQuestion.chunkId, firstChunk.id);
+  assert.equal(firstIndexQuestion.lesson?.id.startsWith("lesson-"), true);
+  assert.equal("stem" in firstIndexQuestion, false);
+  assert.equal("options" in firstIndexQuestion, false);
+  assert.equal("answer" in firstIndexQuestion, false);
+  assert.equal(firstChunkPayload.sourceType, "browser-runtime-question-bank-v1");
+  assert.equal(zlib.gunzipSync(readFileSync(`${firstChunk.url}.gz`)).toString("utf8"), firstChunkText);
+  assert.equal(firstFullQuestion.id, firstIndexQuestion.id);
+  assert.ok(firstFullQuestion.stem);
+  assert.ok(firstFullQuestion.options.length >= 2);
+  assert.ok(firstFullQuestion.answer);
+  assert.ok(firstFullQuestion.lesson?.explanation);
+});
+
 test("complete PDF source-slot artifact accounts for every source question slot", () => {
   const payload = JSON.parse(readFileSync("data/question-source-slots.from-pdf.json", "utf8"));
   const findSlot = (examKey, questionNumber) => payload.slots.find((slot) =>

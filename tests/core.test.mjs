@@ -2012,7 +2012,10 @@ test("completed roguelite runs advance fatigue counters", () => {
   assert.equal(result.run.completed, true);
   assert.equal(result.player.consecutiveRouteRuns, 1);
   assert.equal(result.player.lastRouteRunDay, "2026-06-23");
-  assert.equal(createDailyQuestState([question], result.player).fatigue.consecutiveRouteRuns, 1);
+  assert.equal(
+    createDailyQuestState([question], result.player, { now: new Date("2026-06-23T10:00:00+08:00") }).fatigue.consecutiveRouteRuns,
+    1,
+  );
 });
 
 test("fatigue recovers after resting or on a new day", () => {

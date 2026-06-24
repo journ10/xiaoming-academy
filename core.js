@@ -5,6 +5,7 @@ import {
 } from "./src/content-rules.js?v=study-journal-20260623q";
 
 export const browserRuntimeQuestionBankSourceType = "browser-runtime-question-bank-v1";
+export const browserRuntimeQuestionIndexSourceType = "browser-runtime-question-index-v1";
 
 const preparedQuestionMarker = Symbol("xiaomingAcademyPreparedQuestion");
 
@@ -854,7 +855,14 @@ export function parseQuestionImport(payload, options = {}) {
     throw new Error("秘卷格式不对：需要一组题目。");
   }
 
-  if (!Array.isArray(payload) && payload?.sourceType === browserRuntimeQuestionBankSourceType && payload?.runtime?.prepared) {
+  if (
+    !Array.isArray(payload)
+    && (
+      payload?.sourceType === browserRuntimeQuestionBankSourceType
+      || payload?.sourceType === browserRuntimeQuestionIndexSourceType
+    )
+    && payload?.runtime?.prepared
+  ) {
     return markPreparedQuestions(expandRuntimeQuestionBank(payload));
   }
 
@@ -876,9 +884,11 @@ function expandRuntimeQuestionBank(payload) {
   return payload.questions.map((record) => {
     if (!Array.isArray(record)) return record;
     const question = expandSchemaRecord(record, questionSchema);
-    question.options = (question.options || []).map((option) =>
-      Array.isArray(option) ? expandSchemaRecord(option, optionSchema) : option,
-    );
+    if (Array.isArray(question.options)) {
+      question.options = question.options.map((option) =>
+        Array.isArray(option) ? expandSchemaRecord(option, optionSchema) : option,
+      );
+    }
     if (Array.isArray(question.lesson)) {
       question.lesson = expandSchemaRecord(question.lesson, lessonSchema);
     }

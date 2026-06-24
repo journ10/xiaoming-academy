@@ -65,6 +65,9 @@ jobs:
             --exclude 'README.md' \
             ./ _site/
           mkdir -p _site/data
+          cp data/question-index.json _site/data/question-index.json
+          cp data/question-index.json.gz _site/data/question-index.json.gz
+          cp -R data/question-chunks _site/data/question-chunks
           cp data/questions.runtime.json _site/data/questions.runtime.json
           cp data/questions.runtime.json.gz _site/data/questions.runtime.json.gz
 
