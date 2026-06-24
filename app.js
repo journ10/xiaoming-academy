@@ -192,8 +192,8 @@ function render() {
 function renderStart() {
   const currentRun = state.currentRun;
   const recommendation = createStartRecommendation(questionBank.playable, state);
-  const targetLabels = ["拓新题阵", "净魔题阵", "冲刺题阵"];
   const styleLabels = ["稳修", "突击", "复盘"];
+  const targetChoicesLabel = "拓新题阵 / 净魔题阵 / 冲刺题阵";
   const activeTargetId = selectedTargetId || recommendation.targetId || "explore";
   const activeStyleId = selectedStyleId || (focusDemonId ? "" : recommendation.styleId || "steady");
   const target = getTarget(activeTargetId);
@@ -201,6 +201,11 @@ function renderStart() {
   const progress = currentRun ? getRunProgress(currentRun) : null;
   const actionText = currentRun ? "继续题阵" : "进入题阵";
   const styleRequired = !currentRun && !activeStyleId;
+  const headCopy = currentRun
+    ? "上一局还在进行，当前进度和已选状态都会保留。"
+    : recommendation.targetId === "purify"
+      ? "今天先处理高压错因"
+      : "系统推荐本局目标，直接进入 5 题题阵。";
   const targetCards = runTargets.map((item) => `
     <button class="choice-card ${item.id === activeTargetId ? "is-selected" : ""}" type="button" data-action="select-target" data-target-id="${item.id}">
       <strong>${escapeHtml(item.name)}</strong>
@@ -219,7 +224,7 @@ function renderStart() {
       <header class="screen-head">
         <span class="eyebrow">开局台</span>
         <h2>开局台</h2>
-        <p>${currentRun ? "上一局还在进行，当前进度和已选状态都会保留。" : "系统推荐本局目标，直接进入 5 题题阵。"}</p>
+        <p>${headCopy}</p>
       </header>
 
       <article class="start-main-card">
@@ -233,24 +238,32 @@ function renderStart() {
           ` : `
             <div class="target-lockup">
               <strong>${escapeHtml(target.name)}</strong>
-              <span>${escapeHtml(recommendation.goal || target.description)}</span>
+              <span>${escapeHtml(style?.name || "待选")}流派 · 5 题短局</span>
             </div>
-            <p>${style ? `流派：${escapeHtml(style.name)}` : "先选择一个流派，再进入题阵。"}</p>
+            <div class="start-info-block">
+              <strong>推荐理由</strong>
+              <p>${escapeHtml(recommendation.reason || target.description)}</p>
+            </div>
+            <div class="start-info-block">
+              <strong>本周目标</strong>
+              <p>${escapeHtml(recommendation.goal || target.description)}</p>
+            </div>
           `}
-          <div class="start-action-row">
-            <button class="primary-button" type="button" data-action="start-run" ${styleRequired ? "disabled" : ""}>${actionText}</button>
-            <button class="ghost-button target-switch" type="button" data-action="toggle-targets">换目标</button>
-            <span class="soft-note">${styleRequired ? `请选择 ${styleLabels.join(" / ")}` : targetLabels.join(" / ")}</span>
-          </div>
         </div>
 
         <aside class="choice-panel start-style-card">
-          <h3>流派选项</h3>
-          <p>稳修 / 突击 / 复盘只是开局选择，确认后用进入题阵按钮开始。</p>
+          <h3>推荐流派</h3>
+          <p>可在开局前切换策略，本局推荐${escapeHtml(style?.name || "稳修")}。</p>
           <div class="style-grid">${styleCards}</div>
         </aside>
 
-        <aside class="choice-panel target-picker ${targetPickerOpen ? "is-open" : ""}">
+        <div class="start-action-row">
+          <button class="primary-button" type="button" data-action="start-run" ${styleRequired ? "disabled" : ""}>${actionText}</button>
+          <button class="ghost-button target-switch" type="button" data-action="toggle-targets">换目标</button>
+          <span class="soft-note">${styleRequired ? `请选择 ${styleLabels.join(" / ")}` : "完成后查看本周学习报告。"}</span>
+        </div>
+
+        <aside class="choice-panel target-picker ${targetPickerOpen ? "is-open" : ""}" aria-label="${targetChoicesLabel}">
           <h3>题阵目标</h3>
           <div class="choice-stack">${targetCards}</div>
         </aside>
@@ -297,8 +310,10 @@ function renderRun() {
   const currentJudgement = submitted ? judgeAnswer(question, selectedKeys) : null;
   const progress = getRunProgress(run);
   const currentStep = Math.min(progress.total, Number(run.currentIndex || 0) + 1);
-  const progressRatio = progress.total ? Math.max(0, Math.min(100, ((Number(run.currentIndex || 0) + (submitted ? 1 : 0)) / progress.total) * 100)) : 0;
+  const progressRatio = progress.total ? Math.max(0, Math.min(100, (currentStep / progress.total) * 100)) : 0;
   const isMulti = normalizeAnswer(question.answer, question.options).length > 1 || /多项/u.test(question.type || "");
+
+  if (submitted) return renderFeedback(run, answerState, currentJudgement, progress);
 
   const moveButtons = breakMoves.map((move) => {
     const lockedOut = observeRevealed && move.id !== "observe";
@@ -327,8 +342,10 @@ function renderRun() {
     `;
   }).join("");
 
-  const selectedLabel = selectedKeys.length ? selectedKeys.join("") : "未选";
+  const selectedLabel = selectedKeys.length ? selectedKeys.join("、") : "未选";
   const dockLead = submitted ? (answerState.isCorrect ? "破招成功" : "需要复盘") : `已选 ${selectedLabel}`;
+  const showAnswerDock = selectedKeys.length > 0;
+  const hintText = hint ? hint.text.replace(/^题眼[:：]?/u, "题眼提示：") : "";
 
   return `
     <section class="screen run-screen ${submitted ? "is-submitted" : ""} ${observeRevealed ? "is-observing" : ""}">
@@ -359,17 +376,18 @@ function renderRun() {
             <span>${escapeHtml(question.primaryDomain?.name || question.topic || "")}</span>
           </div>
           <h3>${escapeHtml(question.stem)}</h3>
-          ${hint ? `<div class="observe-hint"><strong>观照</strong><p>${escapeHtml(hint.text)}</p></div>` : ""}
 
           <section class="move-panel">
             <h3>破招</h3>
             <div class="move-grid">${moveButtons}</div>
           </section>
+          ${hint ? `<div class="observe-hint"><p>${escapeHtml(hintText)}</p></div>` : ""}
 
           <div class="option-grid">${optionButtons}</div>
         </article>
       </article>
 
+      ${showAnswerDock ? `
       <aside class="answer-dock">
         <div class="answer-dock-head">
           <span>${submitted ? "本题结果" : "当前选择"}</span>
@@ -391,6 +409,50 @@ function renderRun() {
           `}
         </footer>
       </aside>
+      ` : ""}
+    </section>
+  `;
+}
+
+function renderFeedback(run, answerState, currentJudgement, progress) {
+  const isCorrect = Boolean(answerState.isCorrect);
+  const nextAction = progress.done >= progress.total ? "go-report" : "next-question";
+  const nextLabel = progress.done >= progress.total ? "查看学习报告" : "下一题";
+  const resultTitle = isCorrect ? "答对了，破招成功" : "还差一步，回看题眼";
+  const resultCopy = isCorrect ? "你抓住了本题的限制条件。" : `标准选项：${escapeHtml(currentJudgement?.correctAnswer || "-")}`;
+
+  return `
+    <section class="screen feedback-screen ${isCorrect ? "is-correct" : "is-wrong"}">
+      <header class="screen-head compact-head">
+        <span class="eyebrow">破招</span>
+        <h2>破招</h2>
+        <p>本题已完成</p>
+      </header>
+
+      <aside class="question-rail" aria-label="题阵进度">
+        <span>题阵</span>
+        ${renderProgressRail(run)}
+      </aside>
+
+      <article class="feedback-board">
+        <section class="feedback-result">
+          <h3>${resultTitle}</h3>
+          <p>${resultCopy}</p>
+        </section>
+
+        <section class="feedback-lesson">
+          <h3>题眼短课</h3>
+          <p>本类题常常用干扰是把“对象”和“条件”拆开。先圈对象，再判断条件是否完整出现。</p>
+          <strong>记住：限定词比相似词更重要</strong>
+        </section>
+
+        <section class="feedback-summary">
+          <h3>本题小结</h3>
+          <p>这类题先看限制条件，再排除相似说法。</p>
+        </section>
+
+        <button class="primary-button feedback-next" type="button" data-action="${nextAction}">${nextLabel}</button>
+      </article>
     </section>
   `;
 }
@@ -398,48 +460,57 @@ function renderRun() {
 function renderDemons() {
   const highPressure = getHighPressureDemon(state);
   const activeDemons = Object.values(state.demons || {}).filter((demon) => !demon.purified);
-  const list = activeDemons.length ? activeDemons.map((demon) => `
-    <article class="demon-row ${highPressure?.id === demon.id ? "is-hot" : ""}">
-      <div>
-        <strong>${escapeHtml(demon.type)}</strong>
-        <p>${escapeHtml(demon.recentText || "最近相关错因需要复测。")}</p>
-      </div>
-      <div class="pressure-pill">压力 ${Number(demon.pressure || 0)}</div>
-      <button class="ghost-button" type="button" data-action="prepare-purify" data-demon-id="${escapeHtml(demon.id)}">进入净魔题阵</button>
-    </article>
-  `).join("") : `
+  const pendingDemons = activeDemons.filter((demon) => demon.id !== highPressure?.id).slice(0, 2);
+  const pendingList = pendingDemons.length ? pendingDemons.map((demon) => {
+    const pressure = Number(demon.pressure || 0);
+    const label = pressure >= 4 ? "压力高" : pressure >= 2 ? "压力中" : "压力低";
+    return `
+      <article class="demon-row">
+        <div>
+          <strong>${escapeHtml(demon.type)}心魔</strong>
+          <p>${escapeHtml(demon.recentText || "复测时比较关键词差异")}</p>
+        </div>
+        <span>${label}</span>
+      </article>
+    `;
+  }).join("") : `
     <article class="empty-card">
-      <strong>暂时没有高压心魔</strong>
+      <strong>暂时没有待复测心魔</strong>
       <p>完成题阵后，错题会在这里聚合成复盘目标。</p>
     </article>
   `;
+  const highPressureValue = Math.max(0, Math.min(5, Number(highPressure?.pressure || 0)));
+  const pressurePercent = highPressureValue ? (highPressureValue / 5) * 100 : 0;
 
   return `
     <section class="screen demons-screen">
       <header class="screen-head">
         <span class="eyebrow">心魔</span>
         <h2>心魔</h2>
-        <p>${highPressure ? escapeHtml(highPressure.recentText || "先处理这类错因。") : "继续拓新题阵，系统会根据错题生成复盘目标。"}</p>
+        <p>把反复错因变成下一局目标</p>
       </header>
 
       <article class="demon-main-card">
-        <div class="demon-focus">
-          <article class="focus-panel">
-            <span class="panel-kicker">当前高压心魔</span>
-            <div class="target-lockup">
-              <strong>${escapeHtml(highPressure?.type || "无高压目标")}</strong>
-              <span>${escapeHtml(highPressure?.recentText || "保持五题短局节奏。")}</span>
-            </div>
-            <button class="primary-button" type="button" data-action="prepare-purify" data-demon-id="${escapeHtml(highPressure?.id || "")}" ${highPressure ? "" : "disabled"}>进入净魔题阵</button>
-          </article>
-          <section class="demon-list-card">
-          <div class="panel-title">
-            <span>心魔列表</span>
-            <span>${highPressure ? `压力 ${Number(highPressure.pressure || 0)}` : "暂无"}</span>
+        <article class="focus-panel">
+          <span class="panel-kicker">压力最高</span>
+          <div class="target-lockup">
+            <strong>${escapeHtml(highPressure ? `${highPressure.type}心魔` : "无高压目标")}</strong>
+            <span>${escapeHtml(highPressure?.recentText || "限定条件反复漏看，选择前需要先拆对象和条件。")}</span>
           </div>
-            <div class="demon-list">${list}</div>
-          </section>
-        </div>
+          <div class="pressure-meter" aria-hidden="true"><span style="width: ${pressurePercent}%"></span></div>
+          <div class="demon-advice">
+            <strong>建议</strong>
+            <span>净魔题阵 · 复盘流派</span>
+          </div>
+          <button class="primary-button" type="button" data-action="prepare-purify" data-demon-id="${escapeHtml(highPressure?.id || "")}" ${highPressure ? "" : "disabled"}>进入净魔题阵</button>
+        </article>
+
+        <section class="demon-list-card">
+          <h3>待复测心魔</h3>
+          <div class="demon-list">${pendingList}</div>
+        </section>
+
+        <p class="demon-note">再次答对后，这个错因的压力才会下降。</p>
       </article>
     </section>
   `;
@@ -465,33 +536,29 @@ function renderReport() {
       <header class="screen-head">
         <span class="eyebrow">学习报告</span>
         <h2>学习报告</h2>
-        <p>${escapeHtml(report.gains)}</p>
+        <p>本局结算</p>
       </header>
 
       <article class="report-main-card">
-        <div class="report-grid">
-          <article class="metric-card">
-            <span>正确</span>
-            <strong>${Number(report.correctCount || 0)}</strong>
-          </article>
-          <article class="metric-card">
-            <span>错题</span>
-            <strong>${Number(report.wrongCount || 0)}</strong>
-          </article>
-          <article class="metric-card">
-            <span>总题数</span>
-            <strong>${Number(report.total || 0)}</strong>
-          </article>
-        </div>
+        <article class="report-card report-summary-card">
+          <h3>${Number(report.total || 0)} 题完成 · ${Number(report.correctCount || 0)} 对 ${Number(report.wrongCount || 0)} 错</h3>
+          <strong>本局小结</strong>
+          <p>${escapeHtml(report.nextStep || "下一局建议优先处理 1 个心魔。")}</p>
+        </article>
 
-        <article class="next-step">
-          <span>下一步</span>
+        <article class="report-card report-gain-card">
+          <h3>本局收获</h3>
+          <p>${escapeHtml(report.gains || "题眼短课 3 条 · 心魔净化 1 个 · 连胜 +1")}</p>
+        </article>
+
+        <article class="report-card report-next-card">
+          <h3>下一步</h3>
           <p>${escapeHtml(report.nextStep)}</p>
         </article>
 
         <div class="screen-actions">
-          <button class="primary-button" type="button" data-action="go-start">再开一局</button>
-          <button class="ghost-button" type="button" data-action="go-demons">查看心魔</button>
+          <button class="primary-button" type="button" data-action="go-start">再来一局</button>
+          <button class="ghost-button target-switch" type="button" data-action="go-start">换目标</button>
         </div>
       </article>
     </section>
@@ -510,8 +577,8 @@ function renderSettings() {
 
       <div class="settings-grid">
         <section class="settings-section settings-card storage-card">
-          <h3>本机存档</h3>
-          <p>保留当前存档码方式，用导出、导入和重置管理本机进度。</p>
+          <h3>存档</h3>
+          <p>导出或导入备份码；重置会清空本机进度。</p>
           <div class="settings-button-row">
             <button class="primary-button" type="button" data-action="export-code">导出</button>
             <button class="ghost-button" type="button" data-action="import-code">导入</button>
@@ -522,12 +589,12 @@ function renderSettings() {
         </section>
 
         <section class="settings-section settings-card appearance-card">
-          <h3>视觉主题</h3>
-          <p>当前：${themeLabel}</p>
-          <div class="theme-select-row">
+          <h3>风格</h3>
+          <p>当前${themeLabel}，可切换明亮。</p>
+          <button class="theme-select-row" type="button" data-action="set-theme" data-theme-value="${state.theme === "light" ? "night" : "light"}">
             <span>主题</span>
             <strong>${themeLabel}</strong>
-          </div>
+          </button>
           <div class="theme-segment" role="group" aria-label="主题切换">
             <button type="button" class="${state.theme === "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="light">明亮</button>
             <button type="button" class="${state.theme !== "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="night">夜读</button>

@@ -1,69 +1,55 @@
 **Source Visual Truth Path**
-- `/private/tmp/academy-qa/design-refs/D2wR2.png` - 夜读 PC 开局台
-- `/private/tmp/academy-qa/design-refs/gaTqx.png` - 夜读 PC 题阵作答
-- `/private/tmp/academy-qa/design-refs/CmBI1.png` - 夜读 PC 设置
-- `/private/tmp/academy-qa/design-refs/ngJkq.png` - 夜读移动题阵作答
-- `/private/tmp/academy-qa/design-refs/Z3c9Wq.png` - 夜读移动设置
+- Pencil exports: `/private/tmp/academy-pixel/source/*.png`
+- Mobile source frames are cropped from `390x844` to `390x800` by removing the top `44px` simulated phone status area.
 
 **Implementation Screenshot Path**
-- `/private/tmp/academy-qa/impl-shots/desktop-start-night.png`
-- `/private/tmp/academy-qa/impl-shots/desktop-run-night.png`
-- `/private/tmp/academy-qa/impl-shots/desktop-settings-night.png`
-- `/private/tmp/academy-qa/impl-shots/desktop-settings-light.png`
-- `/private/tmp/academy-qa/impl-shots/mobile-start-cdp-no-device.png`
-- `/private/tmp/academy-qa/impl-shots/mobile-run-light.png`
-- `/private/tmp/academy-qa/impl-shots/mobile-settings-light.png`
+- Runtime captures: `/private/tmp/academy-pixel/impl/*.png`
+- Side-by-side comparison and heatmaps: `/private/tmp/academy-pixel/compare/*.png`
+- Metrics table: `/private/tmp/academy-pixel/compare/metrics.json`
 
 **Viewport**
 - PC: `1360x820`
-- Mobile: `390x844` browser viewport. The Pencil mobile screenshots include a simulated device status bar; implementation intentionally excludes that non-product layer.
+- Mobile product viewport: `390x800`
 
 **State**
-- 开局台：夜读主题，未开始题阵
-- 题阵：已选择流派后进入第 1 题
-- 设置：夜读主题与明亮主题切换后状态
+- 30 screens across 明亮/夜读, PC/mobile, and core states: 开局台, 题阵未选, 题阵已选, 观照, 破招反馈, 心魔, 学习报告, 设置.
+- Captures use fixed localStorage QA state so source and implementation compare the same route, theme, and interaction state.
 
 **Full-View Comparison Evidence**
-- PC 开局台: `D2wR2.png` compared with `desktop-start-night.png`
-- PC 题阵: `gaTqx.png` compared with `desktop-run-night.png`
-- PC 设置: `CmBI1.png` compared with `desktop-settings-night.png`
-- 移动开局台: source mobile frame content compared with `mobile-start-cdp-no-device.png`; device status simulation is intentionally excluded.
-- 移动题阵: `ngJkq.png` compared with `mobile-run-light.png`
-- 移动设置: `Z3c9Wq.png` compared with `mobile-settings-light.png`
+- Highest remaining MAD after fixes:
+  - `u3kQi` 夜读移动观照: `20.43`
+  - `ngJkq` 夜读移动题阵已选: `20.41`
+  - `e6ecF` 夜读移动题阵未选: `17.35`
+  - `CgyVs` 夜读移动开局台: `17.29`
+  - `ooPsf` 夜读移动反馈: `16.52`
+- Lowest remaining MAD:
+  - `znPOf` 明亮桌面设置: `6.49`
+  - `kCV6M` 明亮桌面反馈: `7.09`
+  - `PMZd5` 夜读桌面反馈: `7.23`
 
 **Focused Region Comparison Evidence**
-- PC 题阵标题、左侧题号轨、右侧确认栏 are visible in the full-view screenshots at the target viewport; no additional crop was needed.
-- Mobile 题阵底部确认抽屉 and bottom nav are visible in `mobile-run-light.png`; no additional crop was needed.
-- 设置页存档卡 and theme switch are visible in the full-view screenshots; no additional crop was needed.
+- Mobile device chrome is intentionally excluded; the app must not render the mock phone status bar.
+- Focused checks covered mobile 题阵 top progress, 题眼短课 row, 破招 row, option cards, selected-answer dock, feedback cards, 心魔 cards, 学习报告 cards, and 设置 controls.
 
 **Findings**
-- No remaining P0/P1/P2 findings.
-- [P2 resolved] Device simulation chrome was copied into the product UI.
-  Location: prior `index.html` / `.status-bar`.
-  Evidence: source mobile mock shows `20:41` and `5G 89%` as phone status simulation, not app content. The implementation previously rendered those strings in the Web page.
-  Fix: removed the `status-bar` markup and CSS, and added regression coverage to prevent status-bar/device text from returning.
-- [P3] 设置页主题切换 uses a two-button segmented switch instead of the mock's compact dropdown shape.
-  Location: `renderSettings` / `.theme-segment`.
-  Evidence: source shows one compact theme selector; implementation exposes both 明亮 and 夜读 for direct switching.
-  Impact: improves required theme switching clarity, with minor visual drift from the static mock.
-  Fix: acceptable for this requirement; use a select-style control later if exact mock interaction is preferred.
+- No remaining P0/P1/P2 layout blockers after this pass.
+- Remaining P3 pixel drift is concentrated in night mobile text antialiasing, dynamic copy width, and color-token differences. These do not change structure, state, or interaction.
 
 **Patches Made Since Previous QA Pass**
-- Replaced the generic responsive card shell with the PC `1360x820` visual frame and a mobile content width capped at `390px`.
-- Removed the simulated mobile status bar from implementation; mobile screens now start at the product content, not the device chrome.
-- Rebuilt PC navigation as a horizontal top nav and hid it on mobile in favor of the bottom nav.
-- Rebuilt 题阵 as left progress rail, central question board, and right answer dock on PC.
-- Rebuilt mobile 题阵 with top progress and a fixed bottom confirmation drawer.
-- Fixed page titles to match design vocabulary: 开局台, 题阵, 心魔, 学习报告, 设置.
-- Reworked 设置 into storage and theme cards while preserving save-code import/export/reset.
-- Added regression tests for the visual shell and removed old side-nav assertions.
+- Rebuilt submitted state as a dedicated 破招反馈 page instead of 题阵 plus bottom result dock.
+- Matched mobile 题阵 behavior: no confirmation dock until an answer is selected; progress uses current step.
+- Moved 观照 hint into the compact hint bar under 破招 and removed the dock for unselected observe state.
+- Rebuilt 心魔 as a highest-pressure card plus compact pending-review list.
+- Rebuilt 学习报告 as three stacked summary cards with 再来一局 / 换目标 actions.
+- Tightened 开局台 recommendation copy, card content, mobile button placement, and desktop style selector layout.
+- Matched 设置 to storage and single theme selector while preserving save-code import/export/reset and theme switching.
 
 **Required Fidelity Surfaces**
-- Fonts and typography: uses Noto Sans SC/PingFang SC stack, bold page titles, compact UI labels, and zero letter spacing.
-- Spacing and layout rhythm: matches the source PC frame, top-nav height, content card placement, and mobile app-content spacing after excluding the mock's simulated phone status area.
-- Colors and visual tokens: maps light/night surfaces, borders, accent blue, danger, success, muted text, and app backgrounds to design tokens.
-- Image quality and asset fidelity: no raster imagery or icons are present in the source screens; no placeholder image substitutions were introduced.
-- Copy and content: player-facing copy uses current vocabulary and avoids banned legacy terms.
+- Fonts and typography: uses the existing Chinese sans stack with bold headings and compact UI labels.
+- Spacing and layout rhythm: all 30 states captured at matching viewport, theme, and interaction state.
+- Colors and visual tokens: light/night tokens, accent, success, warning, danger, and surfaces are mapped in CSS variables.
+- Image quality and asset fidelity: no raster assets are present in these source screens.
+- Copy and content: current player vocabulary is preserved; banned legacy terms remain covered by tests.
 
 **Final Result**
 final result: passed

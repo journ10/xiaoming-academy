@@ -204,8 +204,8 @@ export function createStartRecommendation(questions = [], state = createInitialS
       targetId: "purify",
       styleId: "review",
       title: "净魔题阵",
-      reason: `${highPressureDemon.type}心魔压力较高，先用错题复测稳定判断。`,
-      goal: `净化 2 个${highPressureDemon.type}心魔，争取 4 / 5 正确。`,
+      reason: `${highPressureDemon.type}反复出现，先用一局错题复测把判断稳住。`,
+      goal: `净化2个${highPressureDemon.type}心魔，争取4/5正确。`,
       primaryAction: "进入题阵",
       focusDemonId: highPressureDemon.id,
     };

@@ -59,7 +59,9 @@ test("start screen renders unfinished-run continuation and local choices", () =>
   assert.match(body, /进入题阵/u);
   assert.match(body, /choice-card/u);
   assert.match(body, /choice-chip/u);
-  assert.match(body, /流派选项/u);
+  assert.match(body, /推荐流派/u);
+  assert.match(body, /推荐理由/u);
+  assert.match(body, /本周目标/u);
 });
 
 test("run progress rail is display-only", () => {
