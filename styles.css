@@ -6,7 +6,6 @@
   --radius-md: 14px;
   --radius-lg: 24px;
   --frame-w: 390px;
-  --frame-h: 844px;
   --pc-w: 1360px;
   --pc-h: 820px;
 }
@@ -128,28 +127,10 @@ textarea {
 
 .app-shell {
   position: relative;
-  width: min(100vw, var(--frame-w));
-  min-height: var(--frame-h);
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100dvh;
   overflow: hidden;
   background: var(--app-bg);
-  box-shadow: var(--shadow);
-}
-
-.status-bar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  width: 100%;
-  height: 44px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 28px;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .top-nav {
@@ -158,7 +139,6 @@ textarea {
 
 .view-root {
   position: relative;
-  height: var(--frame-h);
   min-height: 100dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -207,8 +187,8 @@ textarea {
 
 .screen {
   position: relative;
-  min-height: var(--frame-h);
-  padding: 64px 20px 96px;
+  min-height: 100dvh;
+  padding: 20px 20px 96px;
 }
 
 .screen-head {
@@ -934,7 +914,6 @@ textarea {
     min-height: 0;
   }
 
-  .status-bar,
   .bottom-nav {
     display: none;
   }
