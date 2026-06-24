@@ -208,7 +208,7 @@ function renderStart() {
     </button>
   `).join("");
   const styleCards = studyStyles.map((item) => `
-    <button class="choice-chip ${item.id === activeStyleId ? "is-selected" : ""}" type="button" data-action="select-style" data-style-id="${item.id}">
+    <button class="choice-chip style-option ${item.id === activeStyleId ? "is-selected" : ""}" type="button" data-action="select-style" data-style-id="${item.id}">
       <strong>${escapeHtml(item.name)}</strong>
       <span>${escapeHtml(item.description)}</span>
     </button>
@@ -218,20 +218,18 @@ function renderStart() {
     <section class="screen start-screen">
       <header class="screen-head">
         <span class="eyebrow">开局台</span>
-        <h2>${currentRun ? "未完成的题阵" : escapeHtml(recommendation.title || target.name)}</h2>
-        <p>${currentRun ? "上一局还在进行，当前进度和已选状态都会保留。" : escapeHtml(recommendation.reason)}</p>
+        <h2>开局台</h2>
+        <p>${currentRun ? "上一局还在进行，当前进度和已选状态都会保留。" : "系统推荐本局目标，直接进入 5 题题阵。"}</p>
       </header>
 
-      <div class="start-layout">
-        <article class="focus-panel">
-          <div class="panel-title">
-            <span>${currentRun ? "当前进度" : "推荐目标"}</span>
-            <button class="ghost-button" type="button" data-action="toggle-targets">换目标</button>
-          </div>
+      <article class="start-main-card">
+        <div class="start-copy">
+          <span class="panel-kicker">${currentRun ? "继续未完成题阵" : "今日推荐"}</span>
           ${currentRun ? `
+            <h3>${escapeHtml(currentRun.targetName)}</h3>
+            <p>保留当前题阵进度和已选状态，继续完成这一组五题短局。</p>
             <div class="big-number">${progress.done}<small> / ${progress.total}</small></div>
-            <p>${escapeHtml(currentRun.targetName)} · ${escapeHtml(currentRun.styleName)}</p>
-            ${renderProgressRail(currentRun)}
+            <div class="start-progress-wrap">${renderProgressRail(currentRun)}</div>
           ` : `
             <div class="target-lockup">
               <strong>${escapeHtml(target.name)}</strong>
@@ -241,20 +239,22 @@ function renderStart() {
           `}
           <div class="start-action-row">
             <button class="primary-button" type="button" data-action="start-run" ${styleRequired ? "disabled" : ""}>${actionText}</button>
-            ${styleRequired ? `<span class="soft-note">请选择 ${styleLabels.join(" / ")}</span>` : `<span class="soft-note">${targetLabels.join(" / ")}</span>`}
+            <button class="ghost-button target-switch" type="button" data-action="toggle-targets">换目标</button>
+            <span class="soft-note">${styleRequired ? `请选择 ${styleLabels.join(" / ")}` : targetLabels.join(" / ")}</span>
           </div>
-        </article>
+        </div>
 
-        <aside class="choice-panel ${targetPickerOpen ? "is-open" : ""}">
+        <aside class="choice-panel start-style-card">
+          <h3>流派选项</h3>
+          <p>稳修 / 突击 / 复盘只是开局选择，确认后用进入题阵按钮开始。</p>
+          <div class="style-grid">${styleCards}</div>
+        </aside>
+
+        <aside class="choice-panel target-picker ${targetPickerOpen ? "is-open" : ""}">
           <h3>题阵目标</h3>
           <div class="choice-stack">${targetCards}</div>
         </aside>
-
-        <aside class="choice-panel">
-          <h3>流派选项</h3>
-          <div class="style-grid">${styleCards}</div>
-        </aside>
-      </div>
+      </article>
     </section>
   `;
 }
@@ -296,6 +296,8 @@ function renderRun() {
   const hint = observeRevealed ? createObservationHint(question) : null;
   const currentJudgement = submitted ? judgeAnswer(question, selectedKeys) : null;
   const progress = getRunProgress(run);
+  const currentStep = Math.min(progress.total, Number(run.currentIndex || 0) + 1);
+  const progressRatio = progress.total ? Math.max(0, Math.min(100, ((Number(run.currentIndex || 0) + (submitted ? 1 : 0)) / progress.total) * 100)) : 0;
   const isMulti = normalizeAnswer(question.answer, question.options).length > 1 || /多项/u.test(question.type || "");
 
   const moveButtons = breakMoves.map((move) => {
@@ -325,51 +327,70 @@ function renderRun() {
     `;
   }).join("");
 
+  const selectedLabel = selectedKeys.length ? selectedKeys.join("") : "未选";
+  const dockLead = submitted ? (answerState.isCorrect ? "破招成功" : "需要复盘") : `已选 ${selectedLabel}`;
+
   return `
-    <section class="screen run-screen">
+    <section class="screen run-screen ${submitted ? "is-submitted" : ""} ${observeRevealed ? "is-observing" : ""}">
       <header class="screen-head compact-head">
-        <div>
-          <span class="eyebrow">题阵</span>
-          <h2>${escapeHtml(run.targetName)} · ${progress.done + 1 > progress.total ? progress.total : progress.done + 1}/${progress.total}</h2>
-          <p>${escapeHtml(run.goal || "完成五题短局。")}</p>
-        </div>
-        ${renderProgressRail(run)}
+        <span class="eyebrow">题阵</span>
+        <h2>题阵</h2>
+        <p>第 ${currentStep}/${progress.total} 题</p>
       </header>
 
-      <article class="lesson-strip">
-        <span>题眼短课</span>
-        <strong>${escapeHtml(question.lesson?.title || question.primaryDomain?.name || "本题题眼")}</strong>
-        <p>${escapeHtml(question.lesson?.keyPoint || "先抓限定词、对象和条件。")}</p>
+      <aside class="question-rail" aria-label="题阵进度">
+        <span>题阵</span>
+        ${renderProgressRail(run)}
+      </aside>
+
+      <article class="run-board">
+        <div class="run-board-progress" aria-hidden="true"><span style="width: ${progressRatio}%"></span></div>
+
+        <article class="lesson-strip">
+          <span>题眼短课</span>
+          <strong>${escapeHtml(question.lesson?.title || question.primaryDomain?.name || "本题题眼")}</strong>
+          <p>${escapeHtml(question.lesson?.keyPoint || "先抓限定词、对象和条件。")}</p>
+        </article>
+
+        <article class="question-panel">
+          <div class="question-meta">
+            <span>${escapeHtml(question.type || "选择题")}</span>
+            <span>${isMulti ? "可多选" : "单选"}</span>
+            <span>${escapeHtml(question.primaryDomain?.name || question.topic || "")}</span>
+          </div>
+          <h3>${escapeHtml(question.stem)}</h3>
+          ${hint ? `<div class="observe-hint"><strong>观照</strong><p>${escapeHtml(hint.text)}</p></div>` : ""}
+
+          <section class="move-panel">
+            <h3>破招</h3>
+            <div class="move-grid">${moveButtons}</div>
+          </section>
+
+          <div class="option-grid">${optionButtons}</div>
+        </article>
       </article>
 
-      <article class="question-panel">
-        <div class="question-meta">
-          <span>${escapeHtml(question.type || "选择题")}</span>
-          <span>${isMulti ? "可多选" : "单选"}</span>
-          <span>${escapeHtml(question.primaryDomain?.name || question.topic || "")}</span>
+      <aside class="answer-dock">
+        <div class="answer-dock-head">
+          <span>${submitted ? "本题结果" : "当前选择"}</span>
+          <strong>${escapeHtml(dockLead)}</strong>
         </div>
-        <h3>${escapeHtml(question.stem)}</h3>
-        ${hint ? `<div class="observe-hint"><strong>观照</strong><p>${escapeHtml(hint.text)}</p></div>` : ""}
-        <div class="option-grid">${optionButtons}</div>
-      </article>
-
-      <section class="move-panel">
-        <h3>破招</h3>
-        <div class="move-grid">${moveButtons}</div>
-      </section>
-
-      <footer class="run-actions">
         ${submitted ? `
           <div class="answer-result ${answerState.isCorrect ? "is-correct" : "is-wrong"}">
             <strong>${answerState.isCorrect ? "破招成功" : "需要复盘"}</strong>
             <span>标准选项：${escapeHtml(currentJudgement.correctAnswer || "-")}</span>
           </div>
-          <button class="primary-button" type="button" data-action="${progress.done >= progress.total ? "go-report" : "next-question"}">${progress.done >= progress.total ? "查看学习报告" : "下一题"}</button>
         ` : `
-          <span class="soft-note">${selectedKeys.length ? `已选 ${escapeHtml(selectedKeys.join(""))}` : "选择选项后确认答案"}</span>
-          <button class="primary-button" type="button" data-action="submit-answer" ${selectedKeys.length ? "" : "disabled"}>确认答案</button>
+          <p>${observeRevealed ? "观照已展开，先看清题眼再确认。" : "确认后会记录本题结果，并更新心魔压力。"}</p>
         `}
-      </footer>
+        <footer class="run-actions">
+          ${submitted ? `
+            <button class="primary-button" type="button" data-action="${progress.done >= progress.total ? "go-report" : "next-question"}">${progress.done >= progress.total ? "查看学习报告" : "下一题"}</button>
+          ` : `
+            <button class="primary-button" type="button" data-action="submit-answer" ${selectedKeys.length ? "" : "disabled"}>确认答案</button>
+          `}
+        </footer>
+      </aside>
     </section>
   `;
 }
@@ -397,24 +418,29 @@ function renderDemons() {
     <section class="screen demons-screen">
       <header class="screen-head">
         <span class="eyebrow">心魔</span>
-        <h2>${highPressure ? `${escapeHtml(highPressure.type)}正在升压` : "当前很安静"}</h2>
+        <h2>心魔</h2>
         <p>${highPressure ? escapeHtml(highPressure.recentText || "先处理这类错因。") : "继续拓新题阵，系统会根据错题生成复盘目标。"}</p>
       </header>
 
-      <div class="demon-focus">
-        <article class="focus-panel">
+      <article class="demon-main-card">
+        <div class="demon-focus">
+          <article class="focus-panel">
+            <span class="panel-kicker">当前高压心魔</span>
+            <div class="target-lockup">
+              <strong>${escapeHtml(highPressure?.type || "无高压目标")}</strong>
+              <span>${escapeHtml(highPressure?.recentText || "保持五题短局节奏。")}</span>
+            </div>
+            <button class="primary-button" type="button" data-action="prepare-purify" data-demon-id="${escapeHtml(highPressure?.id || "")}" ${highPressure ? "" : "disabled"}>进入净魔题阵</button>
+          </article>
+          <section class="demon-list-card">
           <div class="panel-title">
-            <span>当前高压心魔</span>
+            <span>心魔列表</span>
             <span>${highPressure ? `压力 ${Number(highPressure.pressure || 0)}` : "暂无"}</span>
           </div>
-          <div class="target-lockup">
-            <strong>${escapeHtml(highPressure?.type || "无高压目标")}</strong>
-            <span>${escapeHtml(highPressure?.recentText || "保持五题短局节奏。")}</span>
-          </div>
-          <button class="primary-button" type="button" data-action="prepare-purify" data-demon-id="${escapeHtml(highPressure?.id || "")}" ${highPressure ? "" : "disabled"}>进入净魔题阵</button>
-        </article>
-        <div class="demon-list">${list}</div>
-      </div>
+            <div class="demon-list">${list}</div>
+          </section>
+        </div>
+      </article>
     </section>
   `;
 }
@@ -438,72 +464,76 @@ function renderReport() {
     <section class="screen report-screen">
       <header class="screen-head">
         <span class="eyebrow">学习报告</span>
-        <h2>${escapeHtml(report.summary)}</h2>
+        <h2>学习报告</h2>
         <p>${escapeHtml(report.gains)}</p>
       </header>
 
-      <div class="report-grid">
-        <article class="metric-card">
-          <span>正确</span>
-          <strong>${Number(report.correctCount || 0)}</strong>
-        </article>
-        <article class="metric-card">
-          <span>错题</span>
-          <strong>${Number(report.wrongCount || 0)}</strong>
-        </article>
-        <article class="metric-card">
-          <span>总题数</span>
-          <strong>${Number(report.total || 0)}</strong>
-        </article>
-      </div>
+      <article class="report-main-card">
+        <div class="report-grid">
+          <article class="metric-card">
+            <span>正确</span>
+            <strong>${Number(report.correctCount || 0)}</strong>
+          </article>
+          <article class="metric-card">
+            <span>错题</span>
+            <strong>${Number(report.wrongCount || 0)}</strong>
+          </article>
+          <article class="metric-card">
+            <span>总题数</span>
+            <strong>${Number(report.total || 0)}</strong>
+          </article>
+        </div>
 
-      <article class="next-step">
-        <span>下一步</span>
-        <p>${escapeHtml(report.nextStep)}</p>
+        <article class="next-step">
+          <span>下一步</span>
+          <p>${escapeHtml(report.nextStep)}</p>
+        </article>
+
+        <div class="screen-actions">
+          <button class="primary-button" type="button" data-action="go-start">再开一局</button>
+          <button class="ghost-button" type="button" data-action="go-demons">查看心魔</button>
+        </div>
       </article>
-
-      <div class="screen-actions">
-        <button class="primary-button" type="button" data-action="go-start">再开一局</button>
-        <button class="ghost-button" type="button" data-action="go-demons">查看心魔</button>
-      </div>
     </section>
   `;
 }
 
 function renderSettings() {
+  const themeLabel = state.theme === "light" ? "明亮" : "夜读";
   return `
     <section class="screen settings-screen">
       <header class="screen-head">
         <span class="eyebrow">设置</span>
-        <h2>主题与存档码</h2>
-        <p>可在明亮 / 夜读主题之间切换，也可以用存档码迁移当前进度。</p>
+        <h2>设置</h2>
+        <p>存档与风格</p>
       </header>
 
-      <section class="settings-section">
-        <h3>主题</h3>
-        <div class="theme-segment" role="group" aria-label="主题切换">
-          <button type="button" class="${state.theme === "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="light">明亮</button>
-          <button type="button" class="${state.theme !== "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="night">夜读</button>
-        </div>
-      </section>
+      <div class="settings-grid">
+        <section class="settings-section settings-card storage-card">
+          <h3>本机存档</h3>
+          <p>保留当前存档码方式，用导出、导入和重置管理本机进度。</p>
+          <div class="settings-button-row">
+            <button class="primary-button" type="button" data-action="export-code">导出</button>
+            <button class="ghost-button" type="button" data-action="import-code">导入</button>
+            <button class="danger-button" type="button" data-action="reset-progress">重置</button>
+          </div>
+          <textarea class="save-code ${exportedCode ? "is-open" : "is-hidden"}" readonly data-export-output placeholder="点击导出生成存档码">${escapeHtml(exportedCode)}</textarea>
+          <textarea class="save-code sr-only" data-import-code>${escapeHtml(importDraft)}</textarea>
+        </section>
 
-      <section class="settings-section">
-        <h3>导出</h3>
-        <textarea class="save-code" readonly data-export-output placeholder="点击导出生成存档码">${escapeHtml(exportedCode)}</textarea>
-        <button class="primary-button" type="button" data-action="export-code">导出</button>
-      </section>
-
-      <section class="settings-section">
-        <h3>导入</h3>
-        <textarea class="save-code" data-import-code placeholder="粘贴存档码">${escapeHtml(importDraft)}</textarea>
-        <button class="ghost-button" type="button" data-action="import-code">导入</button>
-      </section>
-
-      <section class="settings-section danger-zone">
-        <h3>重置</h3>
-        <p>清空本机进度，保留题库不变。</p>
-        <button class="danger-button" type="button" data-action="reset-progress">重置</button>
-      </section>
+        <section class="settings-section settings-card appearance-card">
+          <h3>视觉主题</h3>
+          <p>当前：${themeLabel}</p>
+          <div class="theme-select-row">
+            <span>主题</span>
+            <strong>${themeLabel}</strong>
+          </div>
+          <div class="theme-segment" role="group" aria-label="主题切换">
+            <button type="button" class="${state.theme === "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="light">明亮</button>
+            <button type="button" class="${state.theme !== "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="night">夜读</button>
+          </div>
+        </section>
+      </div>
     </section>
   `;
 }
@@ -722,11 +752,12 @@ function exportSaveCode() {
 }
 
 function importSaveCode() {
-  if (!importDraft.trim()) {
+  const promptedCode = importDraft.trim() || window.prompt("粘贴存档码") || "";
+  if (!promptedCode.trim()) {
     showToast("请先粘贴存档码。");
     return;
   }
-  state = decodeSaveState(importDraft);
+  state = decodeSaveState(promptedCode);
   selectedTargetId = "";
   selectedStyleId = "";
   focusDemonId = "";

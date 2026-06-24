@@ -15,6 +15,7 @@ function functionBody(source, name) {
 
 test("static shell exposes the redesigned app frame and not the old shell", () => {
   assert.match(indexSource, /class="app-shell"/u);
+  assert.match(indexSource, /class="status-bar"/u);
   assert.match(indexSource, /class="top-nav"/u);
   assert.match(indexSource, /class="bottom-nav"/u);
   assert.match(indexSource, /data-view-root/u);
@@ -35,11 +36,16 @@ test("navigation source is limited to the five primary entries", () => {
 test("visual system implements light and night responsive shells", () => {
   assert.match(cssSource, /\[data-theme="light"\]\s*\{/u);
   assert.match(cssSource, /\[data-theme="night"\]\s*\{/u);
-  assert.match(cssSource, /\.app-shell\s*\{[\s\S]*min-height:\s*100dvh/u);
+  assert.match(cssSource, /--frame-w:\s*390px/u);
+  assert.match(cssSource, /--frame-h:\s*844px/u);
+  assert.match(cssSource, /--pc-w:\s*1360px/u);
+  assert.match(cssSource, /--pc-h:\s*820px/u);
   assert.match(cssSource, /\.top-nav\s*\{/u);
-  assert.match(cssSource, /\.bottom-nav\s*\{[\s\S]*position:\s*fixed/u);
-  assert.match(cssSource, /@media \(min-width:\s*760px\)[\s\S]*\.app-shell\s*\{[\s\S]*grid-template-columns:\s*220px minmax\(0,\s*1fr\)/u);
+  assert.match(cssSource, /\.bottom-nav\s*\{[\s\S]*position:\s*absolute/u);
+  assert.match(cssSource, /@media \(min-width:\s*760px\)[\s\S]*\.app-shell\s*\{[\s\S]*width:\s*var\(--pc-w\)/u);
+  assert.match(cssSource, /@media \(min-width:\s*760px\)[\s\S]*\.top-nav\s*\{[\s\S]*height:\s*92px/u);
   assert.match(cssSource, /@media \(min-width:\s*760px\)[\s\S]*\.bottom-nav\s*\{[\s\S]*display:\s*none/u);
+  assert.doesNotMatch(cssSource, /grid-template-columns:\s*220px minmax\(0,\s*1fr\)/u);
   assert.doesNotMatch(cssSource, /\.rpg-shell|\.hud-stats|\.quest-panel/u);
 });
 
@@ -66,7 +72,7 @@ test("run progress rail is display-only", () => {
 test("run screen keeps question options, break moves, and submit controls adjacent", () => {
   const body = functionBody(appSource, "renderRun");
 
-  assert.match(body, /lesson-strip[\s\S]*question-panel[\s\S]*option-grid[\s\S]*move-panel[\s\S]*run-actions/u);
+  assert.match(body, /question-rail[\s\S]*run-board[\s\S]*lesson-strip[\s\S]*question-panel[\s\S]*move-panel[\s\S]*option-grid[\s\S]*answer-dock[\s\S]*run-actions/u);
   assert.match(body, /确认答案/u);
   assert.match(body, /observeRevealed/u);
   assert.match(body, /createObservationHint/u);
