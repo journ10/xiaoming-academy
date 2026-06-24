@@ -1,161 +1,161 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  applyTrialAnswer,
-  createDailyChallenges,
-  createRouteRun,
-  getHeartPowerUpgradeState,
-  initialPlayerState,
-  materialTypes,
-  nodeTypes,
-  prepareQuestions,
-  studyNode,
-  upgradeHeartPower,
+  applyAnswer,
+  breakMoves,
+  createInitialState,
+  createObservationHint,
+  createRun,
+  createStartRecommendation,
+  decodeSaveState,
+  encodeSaveState,
+  getHighPressureDemon,
+  prepareQuestionBank,
+  runTargets,
+  studyStyles,
 } from "../core.js";
 
+const domains = [
+  "学习心理与认知机制",
+  "教育学原理、课程与教学",
+  "教育法律法规与政策制度",
+  "德育、班级管理与家校协同",
+  "学生身心发展与个体差异",
+  "教师职业素养与专业规范",
+];
+
 function makeRawQuestions(count = 9) {
-  const topics = ["教育法规", "教育心理学", "教学设计", "教师职业道德", "班级管理", "儿童发展"];
-  return Array.from({ length: count }, (_, index) => ({
-    id: `redesign-${index + 1}`,
-    year: "2026",
-    type: index % 3 === 0 ? "多项选择" : "单项选择",
-    topic: topics[index % topics.length],
-    stem: `第 ${index + 1} 道秘卷题的题干`,
-    options: [
-      { key: "A", text: "干扰项" },
-      { key: "B", text: "正确题眼" },
-      { key: "C", text: "近似干扰" },
-      { key: "D", text: "无关表述" },
-    ],
-    answer: index % 3 === 0 ? "BC" : "B",
-    explanation: `题眼是第 ${index + 1} 题的关键讲解，需要先练功再破阵。`,
-    difficulty: (index % 5) + 1,
-  }));
+  return Array.from({ length: count }, (_, index) => {
+    const domain = domains[index % domains.length];
+    return {
+      id: `redesign-${index + 1}`,
+      sourceId: `redesign-${index + 1}`,
+      year: "2026",
+      type: index % 3 === 0 ? "多项选择题" : "单项选择题",
+      topic: domain,
+      primaryDomain: { id: domain, name: domain },
+      stem: `第 ${index + 1} 道真题题干`,
+      options: [
+        { key: "A", text: "干扰项" },
+        { key: "B", text: "正确题眼" },
+        { key: "C", text: "近似干扰" },
+        { key: "D", text: "无关表述" },
+      ],
+      answer: index % 3 === 0 ? "BC" : "B",
+      explanation: `考点：${domain}。题眼是限定词、对象和条件。`,
+      difficulty: (index % 5) + 1,
+      qualityStatus: "clean",
+      errorPatterns: index % 2 ? ["concept-confusion"] : ["reading-mistake"],
+    };
+  });
 }
 
-test("redesign route exposes all RPG node types with asset ids", () => {
-  const questions = prepareQuestions(makeRawQuestions(9));
-  const run = createRouteRun(questions, { length: 9 });
-
-  assert.deepEqual(Object.keys(nodeTypes), [
-    "normal",
-    "elite",
-    "recover",
-    "treasure",
-    "demon",
-    "mystery",
-    "resonance",
-    "trial",
-  ]);
-  assert.deepEqual(run.nodes.map((node) => node.type), [
-    "normal",
-    "elite",
-    "recover",
-    "treasure",
-    "normal",
-    "mystery",
-    "resonance",
-    "trial",
-    "demon",
-  ]);
-  assert.ok(run.nodes.every((node) => node.assetId === `node.${node.type}`));
-  assert.ok(run.nodes.every((node) => node.nodeFlavor && node.rewardPreview));
+test("redesign exposes the current target, style, and break-move vocabulary", () => {
+  assert.deepEqual(runTargets.map((target) => target.name), ["拓新题阵", "净魔题阵", "冲刺题阵"]);
+  assert.deepEqual(studyStyles.map((style) => style.name), ["稳修", "突击", "复盘"]);
+  assert.deepEqual(breakMoves.map((move) => move.name), ["稳破", "强攻", "观照"]);
 });
 
-test("material economy keeps only study pages and ink jade", () => {
-  assert.deepEqual(materialTypes.map((material) => material.id), ["shuye", "moyu"]);
-});
-
-test("correct battle answers grow stance mastery and pay simplified node materials", () => {
-  const questions = prepareQuestions(makeRawQuestions(8));
-  let player = initialPlayerState();
-  let run = createRouteRun(questions, { length: 8 });
-  const trialNode = run.nodes.find((node) => node.type === "trial");
-  const question = questions.find((item) => item.id === trialNode.questionId);
-
-  const studied = studyNode(player, run, trialNode.id);
-  player = studied.player;
-  run = studied.run;
-
-  const result = applyTrialAnswer(player, run, {
-    nodeId: trialNode.id,
-    question,
-    selectedAnswer: question.answer,
-    stanceId: "assault",
+test("five-question runs are created directly from playable questions", () => {
+  const bank = prepareQuestionBank(makeRawQuestions(9));
+  const run = createRun(bank.playable, createInitialState(), {
+    targetId: "explore",
+    styleId: "steady",
+    length: 5,
   });
 
-  assert.equal(result.isCorrect, true);
-  assert.ok(result.stanceMasteryGain > 0);
-  assert.ok(result.player.stanceMastery.assault.xp >= result.stanceMasteryGain);
-  assert.ok(result.player.stanceMastery.assault.level >= 1);
-  assert.ok(result.materialsGain.shuye >= 1);
-  assert.equal(result.materialsGain.moyu, 0);
-  assert.equal(result.player.materials.shuye, studied.player.materials.shuye + result.materialsGain.shuye);
-  assert.deepEqual(result.run.events.at(-1).materialsGain, result.materialsGain);
+  assert.equal(run.targetName, "拓新题阵");
+  assert.equal(run.styleName, "稳修");
+  assert.equal(run.questions.length, 5);
+  assert.equal(run.currentIndex, 0);
+  assert.equal("nodes" in run, false);
 });
 
-test("heart power upgrades consume study pages and increase the cap", () => {
-  const player = {
-    ...initialPlayerState(),
-    heartPower: 5,
-    maxHeartPower: 6,
-    materials: { shuye: 20, moyu: 0 },
-  };
+test("unfinished runs take priority on the start recommendation", () => {
+  const bank = prepareQuestionBank(makeRawQuestions(7));
+  const currentRun = createRun(bank.playable, createInitialState(), {
+    targetId: "sprint",
+    styleId: "assault",
+  });
+  const recommendation = createStartRecommendation(bank.playable, createInitialState({ currentRun }));
 
-  const before = getHeartPowerUpgradeState(player);
-  const upgraded = upgradeHeartPower(player);
-  const after = getHeartPowerUpgradeState(upgraded.player);
-
-  assert.equal(before.canUpgrade, true);
-  assert.equal(upgraded.player.maxHeartPower, 7);
-  assert.equal(upgraded.player.heartPower, 6);
-  assert.equal(upgraded.player.materials.shuye, player.materials.shuye - upgraded.cost.shuye);
-  assert.equal(upgraded.player.materials.moyu, 0);
-  assert.equal(after.nextMaxHeartPower, 8);
+  assert.equal(recommendation.hasUnfinishedRun, true);
+  assert.equal(recommendation.targetId, "sprint");
+  assert.equal(recommendation.styleId, "assault");
+  assert.match(recommendation.primaryAction, /继续题阵/u);
 });
 
-test("demon nodes are the only battle source of ink jade", () => {
-  const questions = prepareQuestions(makeRawQuestions(9));
-  let player = initialPlayerState();
-  let run = createRouteRun(questions, { length: 9 });
-  const demonNode = run.nodes.find((node) => node.type === "demon");
-  const question = questions.find((item) => item.id === demonNode.questionId);
+test("wrong answers create high-pressure demons that purify runs prioritize", () => {
+  const bank = prepareQuestionBank(makeRawQuestions(7));
+  let state = createInitialState();
+  const run = createRun(bank.playable, state, { targetId: "explore", styleId: "steady" });
+  const wrong = applyAnswer(state, run, run.questions[0].id, {
+    selectedKeys: ["A"],
+    breakMoveId: "assault",
+  });
+  state = wrong.state;
 
-  const result = applyTrialAnswer(player, run, {
-    nodeId: demonNode.id,
-    question,
-    selectedAnswer: question.answer,
-    stanceId: "steady",
+  const demon = getHighPressureDemon(state);
+  const purifyRun = createRun(bank.playable, state, {
+    targetId: "purify",
+    styleId: "review",
+    focusDemonId: demon.id,
   });
 
-  assert.equal(result.isCorrect, true);
-  assert.equal(result.materialsGain.shuye, 0);
-  assert.ok(result.materialsGain.moyu >= 1);
-  assert.equal(result.player.materials.moyu, result.materialsGain.moyu);
+  assert.ok(demon);
+  assert.equal(demon.pressure >= 2, true);
+  assert.equal(purifyRun.questions[0].id, run.questions[0].id);
 });
 
-test("daily challenges create RPG goals with material rewards", () => {
-  const questions = prepareQuestions(makeRawQuestions(6));
-  const challenges = createDailyChallenges(questions, {
-    ...initialPlayerState(),
-    studiedLessonIds: questions.slice(0, 2).map((question) => question.lesson.id),
-    correctQuestionIds: [questions[0].id],
-    mindDemons: {
-      [questions[1].id]: {
-        questionId: questions[1].id,
-        topic: questions[1].topic,
+test("correct answers in review purify runs reduce demon pressure", () => {
+  const bank = prepareQuestionBank(makeRawQuestions(7));
+  const state = createInitialState({
+    demons: {
+      "审题失误": {
+        id: "审题失误",
+        type: "审题失误",
         pressure: 3,
+        questionIds: ["redesign-1"],
+        recentText: "最近漏看限定词。",
+        purified: false,
       },
     },
   });
+  const run = createRun(bank.playable, state, { targetId: "purify", styleId: "review", focusDemonId: "审题失误" });
+  const result = applyAnswer(state, run, "redesign-1", {
+    selectedKeys: ["B", "C"],
+    breakMoveId: "steady",
+  });
 
-  assert.deepEqual(challenges.map((challenge) => challenge.id), [
-    "daily-study",
-    "daily-battle",
-    "daily-demon",
-    "daily-resonance",
-  ]);
-  assert.ok(challenges.every((challenge) => challenge.title && challenge.description));
-  assert.ok(challenges.every((challenge) => challenge.progress.current <= challenge.progress.target));
-  assert.ok(challenges.every((challenge) => Object.values(challenge.rewards.materials).some((value) => value > 0)));
+  assert.equal(result.answer.isCorrect, true);
+  assert.equal(result.state.demons["审题失误"].pressure, 1);
+});
+
+test("observation gives a cue and records locked observe state on submission", () => {
+  const bank = prepareQuestionBank(makeRawQuestions(5));
+  const state = createInitialState();
+  const run = createRun(bank.playable, state, { targetId: "explore", styleId: "steady" });
+  const question = run.questions[1];
+  const hint = createObservationHint(question);
+  const result = applyAnswer(state, run, question.id, {
+    selectedKeys: ["B"],
+    breakMoveId: "observe",
+    observeRevealed: true,
+  });
+
+  assert.match(hint.text, /题眼|限定|对象|条件/u);
+  assert.equal(hint.revealsAnswer, false);
+  assert.equal(result.run.answers[question.id].observeRevealed, true);
+  assert.equal(result.run.answers[question.id].breakMoveId, "observe");
+});
+
+test("save codes preserve theme and unfinished run state", () => {
+  const bank = prepareQuestionBank(makeRawQuestions(5));
+  const currentRun = createRun(bank.playable, createInitialState(), { targetId: "explore", styleId: "steady" });
+  const state = createInitialState({ theme: "light", currentRun });
+  const decoded = decodeSaveState(encodeSaveState(state));
+
+  assert.equal(decoded.theme, "light");
+  assert.equal(decoded.currentRun.id, currentRun.id);
+  assert.equal(decoded.currentRun.questions.length, 5);
 });

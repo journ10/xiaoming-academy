@@ -406,9 +406,9 @@ test("browser runtime question index shards full questions into lazy chunks", ()
   assert.equal(zlib.gunzipSync(compressedIndexPayload).toString("utf8"), indexPayloadText);
   assert.equal(firstIndexQuestion.chunkId, firstChunk.id);
   assert.equal(firstIndexQuestion.lesson?.id.startsWith("lesson-"), true);
-  assert.equal("stem" in firstIndexQuestion, false);
-  assert.equal("options" in firstIndexQuestion, false);
-  assert.equal("answer" in firstIndexQuestion, false);
+  assert.equal(firstIndexQuestion.stem, "");
+  assert.deepEqual(firstIndexQuestion.options, []);
+  assert.equal(firstIndexQuestion.answer, "");
   assert.equal(firstChunkPayload.sourceType, "browser-runtime-question-bank-v1");
   assert.equal(zlib.gunzipSync(readFileSync(`${firstChunk.url}.gz`)).toString("utf8"), firstChunkText);
   assert.equal(firstFullQuestion.id, firstIndexQuestion.id);
