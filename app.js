@@ -15,11 +15,11 @@ import {
   parseQuestionImport,
   runTargets,
   studyStyles,
-} from "./core.js?v=runtime-redesign-20260624";
+} from "./core.js?v=runtime-redesign-20260625";
 
 const scenes = ["start", "run", "demons", "report", "settings"];
 const storageKey = "xiaoming-academy-runtime-v2";
-const cacheVersion = "runtime-redesign-20260624";
+const cacheVersion = "runtime-redesign-20260625";
 const requestTimeoutMs = 18000;
 const questionIndexUrls = [
   versionedDataUrl("./data/question-index.json"),
@@ -275,16 +275,19 @@ function renderStart() {
 function renderRun() {
   const run = state.currentRun;
   if (!run) {
-    return `
-      <section class="screen empty-screen">
-        <header class="screen-head">
-          <span class="eyebrow">题阵</span>
-          <h2>当前没有进行中的题阵</h2>
-          <p>从开局台选择目标和流派后进入五题短局。</p>
-        </header>
-        <button class="primary-button" type="button" data-action="go-start">回到开局台</button>
-      </section>
-    `;
+    return renderPreflightEmpty({
+      sceneClass: "run-empty-screen",
+      eyebrow: "题阵",
+      title: "题阵",
+      description: "还没有开始本局",
+      emptyTitle: "还没有本局题阵",
+      emptyDescription: "先到开局台选择本局目标和流派，再进入 5 题题阵。",
+      desktopDescription: "还没有开始本局。",
+      desktopEmptyDescription: "先从开局台选择本局目标和流派，再进入 5 题题阵。",
+      footnote: "开始后这里会显示题阵进度、破招和作答状态。",
+      sideTitle: "进入后显示",
+      sideItems: ["题阵进度", "破招选择", "作答确认"],
+    });
   }
 
   const question = getCurrentQuestion(run);
@@ -519,16 +522,19 @@ function renderDemons() {
 function renderReport() {
   const report = state.lastReport || (state.currentRun ? createLearningReport(state, state.currentRun) : null);
   if (!report) {
-    return `
-      <section class="screen empty-screen">
-        <header class="screen-head">
-          <span class="eyebrow">学习报告</span>
-          <h2>还没有完成题阵</h2>
-          <p>完成一局五题短局后，这里会显示本次总结。</p>
-        </header>
-        <button class="primary-button" type="button" data-action="go-start">去开局台</button>
-      </section>
-    `;
+    return renderPreflightEmpty({
+      sceneClass: "report-empty-screen",
+      eyebrow: "学习报告",
+      title: "学习报告",
+      description: "暂无本局结算",
+      desktopDescription: "暂无本局结算。",
+      emptyTitle: "还没有学习报告",
+      emptyDescription: "完成一局 5 题题阵后，这里会生成本局小结和下一步建议。",
+      desktopEmptyDescription: "完成一局 5 题题阵后，这里会生成本局小结、收获和下一步建议。",
+      footnote: "报告会记录正确率、题眼短课和心魔变化。",
+      sideTitle: "报告会包含",
+      sideItems: ["正确率", "题眼短课", "心魔变化"],
+    });
   }
 
   return `
@@ -560,6 +566,54 @@ function renderReport() {
           <button class="primary-button" type="button" data-action="go-start">再来一局</button>
           <button class="ghost-button target-switch" type="button" data-action="go-start">换目标</button>
         </div>
+      </article>
+    </section>
+  `;
+}
+
+function renderPreflightEmpty({
+  sceneClass,
+  eyebrow,
+  title,
+  description,
+  desktopDescription = description,
+  emptyTitle,
+  emptyDescription,
+  desktopEmptyDescription = emptyDescription,
+  footnote,
+  sideTitle,
+  sideItems,
+}) {
+  return `
+    <section class="screen preflight-empty-screen ${sceneClass}">
+      <header class="screen-head">
+        <span class="eyebrow">${escapeHtml(eyebrow)}</span>
+        <h2>${escapeHtml(title)}</h2>
+        <p><span class="mobile-copy">${escapeHtml(description)}</span><span class="desktop-copy">${escapeHtml(desktopDescription)}</span></p>
+      </header>
+
+      <aside class="question-rail empty-question-rail" aria-label="题阵进度">
+        <span>题阵</span>
+        <div class="empty-progress-rail" aria-hidden="true">
+          ${Array.from({ length: 5 }, (_, index) => `<span>${index + 1}</span>`).join("")}
+        </div>
+      </aside>
+
+      <article class="preflight-empty-board">
+        <section class="preflight-empty-copy">
+          <span class="empty-state-label">尚未开始</span>
+          <h3>${escapeHtml(emptyTitle)}</h3>
+          <p><span class="mobile-copy">${escapeHtml(emptyDescription)}</span><span class="desktop-copy">${escapeHtml(desktopEmptyDescription)}</span></p>
+          <button class="primary-button" type="button" data-action="go-start">去开局台</button>
+          <small>${escapeHtml(footnote)}</small>
+        </section>
+
+        <aside class="preflight-empty-side">
+          <h3>${escapeHtml(sideTitle)}</h3>
+          <div class="preflight-side-list">
+            ${sideItems.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+          </div>
+        </aside>
       </article>
     </section>
   `;

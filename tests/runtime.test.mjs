@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const cacheVersion = "runtime-redesign-20260624";
+const cacheVersion = "runtime-redesign-20260625";
 
 function read(file) {
   return readFileSync(file, "utf8");
