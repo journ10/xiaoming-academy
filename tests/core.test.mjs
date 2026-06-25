@@ -4,6 +4,7 @@ import {
   applyAnswer,
   createInitialState,
   createLearningReport,
+  createQuestionStudyPayload,
   createObservationHint,
   createRun,
   createStartRecommendation,
@@ -24,6 +25,32 @@ const rawQuestions = [
   { ...question("manual-1", "待人工归类", "单项选择", "A", [], "待复核题不应进入推荐。"), qualityStatus: "manual_review" },
   { ...question("catchall-1", "综合知识", "单项选择", "A", [], "旧兜底域不应进入推荐。"), qualityStatus: "verified" },
 ];
+
+const realStudyQuestion = {
+  id: "real-law-1",
+  stem: "适龄儿童在非户籍所在地接受义务教育时，当地人民政府应当（）。",
+  type: "单项选择题",
+  topic: "教育法律法规与政策制度",
+  primaryDomain: { id: "law", name: "教育法律法规与政策制度" },
+  options: [
+    { key: "A", text: "要求学生回到户籍所在地就近入学" },
+    { key: "B", text: "为其提供平等接受义务教育的条件" },
+    { key: "C", text: "为其提供临时借读证明" },
+    { key: "D", text: "暂缓办理入学手续" },
+  ],
+  answer: "B",
+  difficulty: 1,
+  concept: "教育法律法规与政策制度 · 义务教育法",
+  qualityStatus: "verified",
+  errorPatterns: ["memory-gap"],
+  lesson: {
+    id: "lesson-real-law-1",
+    title: "教育法规 · 义务教育入学保障",
+    keyPoint: "义务教育法第十二条",
+    explanation: "《义务教育法》第十二条规定，父母或者其他法定监护人在非户籍所在地工作或者居住的适龄儿童、少年，当地人民政府应当为其提供平等接受义务教育的条件。",
+    studyPrompt: "抓住非户籍所在地与当地人民政府两个条件。",
+  },
+};
 
 function question(id, domain, type, answer, errorPatterns, stem) {
   return {
@@ -166,6 +193,26 @@ test("observation hint reveals a cue without exposing the answer", () => {
   assert.doesNotMatch(hint.text, /正确答案|答案是|B 选项/);
 });
 
+test("observation hints and study payload use real lesson and option data", () => {
+  const hint = createObservationHint(realStudyQuestion);
+  const payload = createQuestionStudyPayload(realStudyQuestion, {
+    selectedKeys: ["A"],
+    correctAnswer: "B",
+    selectedAnswer: "A",
+    demonType: "记忆盲区",
+  });
+
+  assert.match(hint.text, /平等接受义务教育的条件/u);
+  assert.doesNotMatch(hint.text, /先找限定词、对象和条件/u);
+  assert.equal(payload.lessonTitle, "教育法规 · 义务教育入学保障");
+  assert.equal(payload.lessonKeyPoint, "义务教育法第十二条");
+  assert.match(payload.lessonExplanation, /当地人民政府应当为其提供平等接受义务教育的条件/u);
+  assert.equal(payload.correctAnswerText, "B. 为其提供平等接受义务教育的条件");
+  assert.equal(payload.selectedAnswerText, "A. 要求学生回到户籍所在地就近入学");
+  assert.match(payload.summary, /义务教育法第十二条/u);
+  assert.match(payload.summary, /记忆盲区/u);
+});
+
 test("wrong answers generate demons and reports summarize next action", () => {
   const bank = prepareQuestionBank(rawQuestions);
   let state = createInitialState();
@@ -185,6 +232,28 @@ test("wrong answers generate demons and reports summarize next action", () => {
   assert.ok(report.nextStep);
   assert.equal("materials" in report, false);
   assert.equal("journal" in report, false);
+});
+
+test("learning reports and demons retain concrete question review details", () => {
+  const bank = prepareQuestionBank([realStudyQuestion]);
+  const state = createInitialState();
+  const run = createRun(bank.playable, state, { targetId: "explore", styleId: "steady", length: 1 });
+  const result = applyAnswer(state, run, realStudyQuestion.id, {
+    selectedKeys: ["A"],
+    breakMoveId: "steady",
+  });
+  const report = createLearningReport(result.state, result.run);
+  const reviewItem = report.questionReviewItems[0];
+  const demon = result.state.demons["记忆盲区"];
+
+  assert.equal(reviewItem.questionId, realStudyQuestion.id);
+  assert.equal(reviewItem.isCorrect, false);
+  assert.equal(reviewItem.correctAnswerText, "B. 为其提供平等接受义务教育的条件");
+  assert.equal(reviewItem.selectedAnswerText, "A. 要求学生回到户籍所在地就近入学");
+  assert.match(reviewItem.lessonExplanation, /当地人民政府应当为其提供平等接受义务教育的条件/u);
+  assert.match(reviewItem.summary, /记忆盲区/u);
+  assert.match(demon.recentText, /义务教育法/u);
+  assert.match(demon.recentText, /记忆盲区/u);
 });
 
 test("correct answers in purify runs reduce demon pressure", () => {

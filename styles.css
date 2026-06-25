@@ -1122,6 +1122,52 @@ textarea {
   line-height: 1.55;
 }
 
+.report-review-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.report-review-item {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.report-review-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.report-review-item strong {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.report-review-item p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.report-review-item span {
+  display: block;
+  overflow: hidden;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .report-gain-list {
   display: none;
 }
@@ -2261,13 +2307,13 @@ textarea {
 
   .report-gain-card {
     position: absolute;
-    left: 700px;
+    left: 770px;
     top: 80px;
     width: 300px;
-    min-height: 250px;
+    min-height: 210px;
     border: 0;
     background: var(--surface-2);
-    padding: 30px;
+    padding: 22px 30px;
   }
 
   .report-gain-card h3 {
@@ -2280,14 +2326,14 @@ textarea {
 
   .report-gain-list {
     display: grid;
-    gap: 16px;
-    margin-top: 36px;
+    gap: 8px;
+    margin-top: 18px;
   }
 
   .report-gain-list span {
     display: flex;
     width: 220px;
-    height: 46px;
+    height: 38px;
     align-items: center;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -2296,6 +2342,49 @@ textarea {
     padding: 0 24px;
     font-size: 15px;
     font-weight: 800;
+  }
+
+  .report-review-card {
+    position: absolute;
+    left: 770px;
+    top: 326px;
+    width: 300px;
+    min-height: 116px;
+    max-height: 136px;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .report-review-card h3 {
+    font-size: 18px;
+  }
+
+  .report-review-list {
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .report-review-item {
+    gap: 4px;
+    padding-top: 8px;
+  }
+
+  .report-review-item strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .report-review-item p {
+    -webkit-line-clamp: 1;
+    font-size: 11px;
+  }
+
+  .report-review-item span {
+    font-size: 10px;
   }
 
   .report-next-card {

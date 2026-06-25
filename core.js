@@ -399,13 +399,45 @@ export function judgeAnswer(question, selectedKeys = []) {
 }
 
 export function createObservationHint(question = {}) {
-  const lesson = normalizeLesson(question.lesson);
-  const explanation = String(lesson.keyPoint || lesson.explanation || question.explanation || "");
-  const sentence = firstUsefulSentence(explanation) || "题眼：先找限定词、对象和条件，再比较选项是否完整对应。";
-  const sanitized = stripAnswerLeak(sentence, question);
+  const study = createQuestionStudyPayload(question);
+  const sanitized = stripAnswerLeak(study.observationText, question);
   return {
     text: sanitized.startsWith("题眼") ? sanitized : `题眼：${sanitized}`,
     revealsAnswer: false,
+  };
+}
+
+export function createQuestionStudyPayload(question = {}, answerState = {}) {
+  const normalized = normalizeQuestion(question) || {};
+  const lesson = normalizeLesson(normalized.lesson, normalized);
+  const options = normalizeOptions(normalized.options || []);
+  const correctAnswer = normalizeAnswer(answerState.correctAnswer || normalized.answer, options);
+  const selectedAnswer = normalizeAnswer(answerState.selectedAnswer || answerState.selectedKeys || [], options);
+  const lessonExplanation = String(lesson.explanation || normalized.explanation || "").trim();
+  const studyPrompt = String(lesson.studyPrompt || "").trim();
+  const concept = String(normalized.concept || normalized.primaryDomain?.name || normalized.topic || "").trim();
+  const questionSummary = summarizeText(normalized.stem, 54);
+  const lessonLead = firstContentSentence(lessonExplanation) || firstContentSentence(studyPrompt);
+  const observationText = stripAnswerLeak(lessonLead || lesson.keyPoint || concept || "先找限定词、对象和条件，再比较选项是否完整对应。", normalized);
+  const demonType = String(answerState.demonType || "").trim();
+  const summaryFocus = lesson.keyPoint || concept || normalized.primaryDomain?.name || "本题题眼";
+  const summaryDetail = lessonLead || studyPrompt || questionSummary || "复盘本题的题眼和选项差异。";
+
+  return {
+    questionId: normalized.id || "",
+    isCorrect: Boolean(answerState.isCorrect),
+    lessonTitle: lesson.title || normalized.primaryDomain?.name || "题眼短课",
+    lessonKeyPoint: summaryFocus,
+    lessonExplanation,
+    studyPrompt,
+    concept,
+    questionSummary,
+    correctAnswer,
+    selectedAnswer,
+    correctAnswerText: formatAnswerText(correctAnswer, options, "未记录正确答案"),
+    selectedAnswerText: formatAnswerText(selectedAnswer, options, "未选择"),
+    observationText,
+    summary: `${summaryFocus}：${demonType ? `${demonType}，` : ""}${summaryDetail}`,
   };
 }
 
@@ -492,6 +524,7 @@ export function createLearningReport(state = createInitialState(), run = {}) {
   const wrongCount = Math.max(0, submitted.length - correctCount);
   const total = questions.length || balanceConfig.run.length;
   const submittedAnswers = submitted.map((question) => answers[question.id]);
+  const questionReviewItems = submitted.map((question) => createQuestionStudyPayload(question, answers[question.id]));
   const newDemons = uniqueDemonSummaries(submittedAnswers.flatMap((answer) => answer.newDemons || []));
   const strengthenedDemons = uniqueDemonSummaries(submittedAnswers.flatMap((answer) => answer.strengthenedDemons || []));
   const reducedDemons = uniqueDemonSummaries(submittedAnswers.flatMap((answer) => answer.reducedDemons || []));
@@ -532,6 +565,7 @@ export function createLearningReport(state = createInitialState(), run = {}) {
     totalGain,
     bestStreak,
     lessonCount: submitted.length,
+    questionReviewItems,
   };
 }
 
@@ -1011,19 +1045,32 @@ function getDemonId(type) {
 }
 
 function createRecentDemonText(type, question) {
-  if (type === "审题失误") return "最近漏看限定词、对象或条件。";
-  if (type === "概念混淆") return "最近把相近概念边界混在一起。";
-  if (type === "记忆盲区") return "最近基础事实或条文没有稳定记住。";
-  if (type === "应用失误") return "最近知道概念但没有匹配到情境。";
-  if (type === "多选漏选") return "最近多选题没有逐项排查。";
-  return `${question.primaryDomain?.name || "本题"}需要复测。`;
+  const study = createQuestionStudyPayload(question, { demonType: type });
+  const label = study.concept || study.questionSummary || question.primaryDomain?.name || "本题";
+  return `${label}：${type}需要复测。`;
 }
 
-function firstUsefulSentence(text) {
+function formatAnswerText(answer, options = [], fallback = "未选择") {
+  const normalized = normalizeAnswer(answer, options);
+  if (!normalized) return fallback;
+  const byKey = new Map(options.map((option) => [option.key, option.text]));
+  return normalized
+    .split("")
+    .map((key) => `${key}. ${byKey.get(key) || "选项内容待复核"}`)
+    .join("；");
+}
+
+function firstContentSentence(text) {
   return String(text || "")
     .split(/[。！？\n]/u)
     .map((part) => part.trim())
-    .find((part) => /题眼|限定|对象|条件|考点|错因/u.test(part));
+    .find(Boolean) || "";
+}
+
+function summarizeText(text, maxLength = 48) {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength)}…`;
 }
 
 function stripAnswerLeak(text, question) {

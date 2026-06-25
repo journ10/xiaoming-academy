@@ -4,6 +4,7 @@ import {
   createInitialState,
   createLearningReport,
   createObservationHint,
+  createQuestionStudyPayload,
   createRun,
   createStartRecommendation,
   decodeSaveState,
@@ -366,6 +367,7 @@ function renderRun() {
   const observeRevealed = Boolean(answerState.observeRevealed);
   const submitted = Boolean(answerState.submitted);
   const activeMoveId = answerState.breakMoveId || "steady";
+  const study = createQuestionStudyPayload(question, answerState);
   const hint = observeRevealed ? createObservationHint(question) : null;
   const currentJudgement = submitted ? judgeAnswer(question, selectedKeys) : null;
   const progress = getRunProgress(run);
@@ -373,7 +375,7 @@ function renderRun() {
   const progressRatio = progress.total ? Math.max(0, Math.min(100, (currentStep / progress.total) * 100)) : 0;
   const isMulti = normalizeAnswer(question.answer, question.options).length > 1 || /多项/u.test(question.type || "");
 
-  if (submitted) return renderFeedback(run, answerState, currentJudgement, progress);
+  if (submitted) return renderFeedback(run, question, answerState, currentJudgement, progress);
 
   const moveButtons = breakMoves.map((move) => {
     const lockedOut = observeRevealed && move.id !== "observe";
@@ -421,8 +423,8 @@ function renderRun() {
 
         <article class="lesson-strip">
           <span>题眼短课</span>
-          <strong>${escapeHtml(question.lesson?.title || question.primaryDomain?.name || "本题题眼")}</strong>
-          <p>${escapeHtml(question.lesson?.keyPoint || "先抓限定词、对象和条件。")}</p>
+          <strong>${escapeHtml(study.lessonTitle)}</strong>
+          <p>${escapeHtml(study.studyPrompt || study.lessonKeyPoint)}</p>
         </article>
 
         <article class="question-panel">
@@ -463,12 +465,20 @@ function renderRun() {
   `;
 }
 
-function renderFeedback(run, answerState, currentJudgement, progress) {
+function renderFeedback(run, question, answerState, currentJudgement, progress) {
   const isCorrect = Boolean(answerState.isCorrect);
+  const study = createQuestionStudyPayload(question, {
+    ...answerState,
+    correctAnswer: currentJudgement?.correctAnswer || answerState.correctAnswer,
+    selectedAnswer: currentJudgement?.selectedAnswer || answerState.selectedAnswer,
+  });
   const nextAction = progress.done >= progress.total ? "go-report" : "next-question";
   const nextLabel = progress.done >= progress.total ? "查看学习报告" : "下一题";
   const resultTitle = isCorrect ? "答对了，破招成功" : "答错了，已加入心魔";
-  const resultCopy = isCorrect ? "你抓住了本题的限制条件。" : `正确答案是 ${escapeHtml(currentJudgement?.correctAnswer || "-")}。这个错因会进入心魔，后续可集中处理。`;
+  const resultCopy = isCorrect
+    ? `正确答案：${escapeHtml(study.correctAnswerText)}。`
+    : `你的选择：${escapeHtml(study.selectedAnswerText)}。正确答案：${escapeHtml(study.correctAnswerText)}。`;
+  const lessonText = study.lessonExplanation || study.studyPrompt || study.lessonKeyPoint;
 
   return `
     <section class="screen feedback-screen ${isCorrect ? "is-correct" : "is-wrong"}">
@@ -487,13 +497,13 @@ function renderFeedback(run, answerState, currentJudgement, progress) {
 
         <section class="feedback-lesson">
           <h3>题眼短课</h3>
-          <p>本类题常常用干扰是把“对象”和“条件”拆开。先圈对象，再判断条件是否完整出现。</p>
-          <strong>记住：限定词比相似词更重要</strong>
+          <p>${escapeHtml(lessonText)}</p>
+          <strong>${escapeHtml(study.lessonKeyPoint)}</strong>
         </section>
 
         <section class="feedback-summary">
           <h3>本题小结</h3>
-          <p>这类题先看限制条件，再排除相似说法。</p>
+          <p>${escapeHtml(study.summary)}</p>
         </section>
 
         ${renderButton({ action: nextAction, label: nextLabel, className: "feedback-next" })}
@@ -591,6 +601,17 @@ function renderReport() {
   const targetSummary = targetProgress
     ? `${targetProgress.label} ${targetProgress.current} / ${targetProgress.target}${targetProgress.completed ? "，目标完成" : "，继续推进"}`
     : "";
+  const reviewItems = Array.isArray(report.questionReviewItems) ? report.questionReviewItems : [];
+  const featuredReviewItems = (reviewItems.filter((item) => !item.isCorrect).length
+    ? reviewItems.filter((item) => !item.isCorrect)
+    : reviewItems).slice(0, 3);
+  const reviewMarkup = featuredReviewItems.map((item) => `
+    <article class="report-review-item">
+      <strong>${escapeHtml(item.lessonTitle || item.concept || "本题小结")}</strong>
+      <p>${escapeHtml(item.summary || item.lessonKeyPoint || "")}</p>
+      <span>${escapeHtml(item.selectedAnswerText || "未选择")} → ${escapeHtml(item.correctAnswerText || "未记录正确答案")}</span>
+    </article>
+  `).join("");
   const summaryText = targetSummary || (wrongCount ? "下一局建议优先处理 1 个心魔。" : "继续拓新题阵，保持短局节奏。");
   const nextText = report.nextStep || (wrongCount ? "先处理 1 个心魔，再继续题阵。" : "继续拓新题阵，保持短局节奏。");
   const mobileNextText = nextText;
@@ -636,6 +657,13 @@ function renderReport() {
             <span>心魔净化 ${purifiedDemonCount} 个</span>
           </div>
         </article>
+
+        ${reviewMarkup ? `
+        <article class="report-card report-review-card">
+          <h3>本题小结</h3>
+          <div class="report-review-list">${reviewMarkup}</div>
+        </article>
+        ` : ""}
 
         <article class="report-card report-next-card">
           <h3>下一步</h3>

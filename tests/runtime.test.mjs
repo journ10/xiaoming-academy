@@ -35,6 +35,7 @@ test("browser runtime imports the new core API only", () => {
     "createInitialState",
     "createLearningReport",
     "createObservationHint",
+    "createQuestionStudyPayload",
     "createRun",
     "createStartRecommendation",
     "decodeSaveState",
@@ -110,6 +111,18 @@ test("run scene locks observation hints and keeps answer submission adjacent", (
   assert.match(body, /确认答案/u);
   assert.match(body, /selectedKeys/);
   assert.doesNotMatch(body, /正确答案.*observe|低收益看答案/u);
+});
+
+test("feedback scene renders real study payload instead of hard-coded summaries", () => {
+  const app = read("app.js");
+  const body = functionBody(app, "renderFeedback");
+
+  assert.match(body, /createQuestionStudyPayload/);
+  assert.match(body, /correctAnswerText/);
+  assert.match(body, /selectedAnswerText/);
+  assert.match(body, /lessonExplanation/);
+  assert.match(body, /summary/);
+  assert.doesNotMatch(body, /本类题常常用干扰|限定词比相似词更重要|这类题先看限制条件/u);
 });
 
 test("settings scene keeps save-code import export reset and theme switching", () => {
