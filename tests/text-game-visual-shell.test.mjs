@@ -90,7 +90,9 @@ test("run screen keeps question options, break moves, and submit controls adjace
 test("settings screen keeps theme switching and save-code controls", () => {
   const body = functionBody(appSource, "renderSettings");
 
-  assert.match(body, /theme-segment/u);
+  assert.match(body, /theme-select-control/u);
+  assert.match(body, /<select[\s\S]*data-theme-select/u);
+  assert.doesNotMatch(body, /theme-select-row|theme-segment/u);
   assert.match(body, /明亮/u);
   assert.match(body, /夜读/u);
   assert.match(body, /save-code/u);

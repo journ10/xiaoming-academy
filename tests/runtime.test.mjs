@@ -121,6 +121,8 @@ test("settings scene keeps save-code import export reset and theme switching", (
   assert.match(body, /重置/u);
   assert.match(body, /明亮/u);
   assert.match(body, /夜读/u);
+  assert.match(body, /<select[\s\S]*data-theme-select/u);
+  assert.doesNotMatch(body, /theme-select-row|theme-segment/u);
   assert.match(app, /function exportSaveCode\(/);
   assert.match(app, /function importSaveCode\(/);
   assert.match(app, /function resetProgress\(/);
@@ -137,12 +139,13 @@ test("stylesheet implements the light and night responsive design system", () =>
     ".top-nav",
     ".run-progress-rail",
     ".observe-hint",
-    ".theme-segment",
+    ".theme-select-control",
     "@media (min-width: 760px)",
     "prefers-reduced-motion",
   ]) {
     assert.match(css, new RegExp(escapeRegExp(token)), `missing ${token}`);
   }
+  assert.doesNotMatch(css, /theme-select-row|theme-segment/u);
 });
 
 function escapeRegExp(value) {

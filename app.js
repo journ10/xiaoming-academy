@@ -97,6 +97,13 @@ document.addEventListener("input", (event) => {
   }
 });
 
+document.addEventListener("change", (event) => {
+  const field = event.target;
+  if (field.matches("[data-theme-select]")) {
+    setTheme(field.value);
+  }
+});
+
 syncTheme();
 render();
 initialize();
@@ -723,16 +730,17 @@ function renderSettings() {
 
         <section class="settings-section settings-card appearance-card">
           <div class="theme-block">
-            <h3>风格</h3>
-            <p>当前${themeLabel}，可切换${nextThemeLabel}。</p>
-            <button class="theme-select-row" type="button" data-action="set-theme" data-theme-value="${state.theme === "light" ? "night" : "light"}">
-              <span>主题</span>
-              <strong>${themeLabel}</strong>
-            </button>
-          </div>
-          <div class="theme-segment" role="group" aria-label="主题切换">
-            <button type="button" class="${state.theme === "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="light">明亮</button>
-            <button type="button" class="${state.theme !== "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="night">夜读</button>
+            <div class="theme-copy">
+              <h3>风格</h3>
+              <p><span class="mobile-copy">当前${themeLabel}</span><span class="desktop-copy">当前${themeLabel}，可切换${nextThemeLabel}。</span></p>
+            </div>
+            <label class="theme-select-control">
+              <span class="sr-only">主题</span>
+              <select data-theme-select aria-label="主题">
+                <option value="light" ${state.theme === "light" ? "selected" : ""}>明亮</option>
+                <option value="night" ${state.theme !== "light" ? "selected" : ""}>夜读</option>
+              </select>
+            </label>
           </div>
           <div class="reset-panel">
             <span>需要清空本机进度时使用</span>
