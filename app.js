@@ -74,9 +74,14 @@ let focusDemonId = "";
 let targetPickerOpen = false;
 let exportedCode = "";
 let importDraft = "";
+let themeMenuOpen = false;
 let toastTimer = 0;
 
 document.addEventListener("click", (event) => {
+  const themeMenuTarget = event.target.closest("[data-theme-menu]");
+  const closedThemeMenu = themeMenuOpen && !themeMenuTarget;
+  if (closedThemeMenu) themeMenuOpen = false;
+
   const navButton = event.target.closest("[data-scene-link]");
   if (navButton) {
     event.preventDefault();
@@ -85,7 +90,10 @@ document.addEventListener("click", (event) => {
   }
 
   const actionButton = event.target.closest("[data-action]");
-  if (!actionButton) return;
+  if (!actionButton) {
+    if (closedThemeMenu) render();
+    return;
+  }
   event.preventDefault();
   handleAction(actionButton).catch((error) => showToast(error.message || "操作失败，请稍后再试。"));
 });
@@ -97,10 +105,10 @@ document.addEventListener("input", (event) => {
   }
 });
 
-document.addEventListener("change", (event) => {
-  const field = event.target;
-  if (field.matches("[data-theme-select]")) {
-    setTheme(field.value);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && themeMenuOpen) {
+    themeMenuOpen = false;
+    render();
   }
 });
 
@@ -734,13 +742,15 @@ function renderSettings() {
               <h3>风格</h3>
               <p><span class="mobile-copy">当前${themeLabel}</span><span class="desktop-copy">当前${themeLabel}，可切换${nextThemeLabel}。</span></p>
             </div>
-            <label class="theme-select-control">
-              <span class="sr-only">主题</span>
-              <select data-theme-select aria-label="主题">
-                <option value="light" ${state.theme === "light" ? "selected" : ""}>明亮</option>
-                <option value="night" ${state.theme !== "light" ? "selected" : ""}>夜读</option>
-              </select>
-            </label>
+            <div class="theme-select-control ${themeMenuOpen ? "is-open" : ""}" data-theme-menu>
+              <button class="theme-select-button" type="button" data-action="toggle-theme-menu" aria-haspopup="listbox" aria-expanded="${themeMenuOpen ? "true" : "false"}">
+                <span>${themeLabel}</span>
+              </button>
+              <div class="theme-select-menu" role="listbox" aria-label="主题">
+                <button class="theme-select-option ${state.theme === "light" ? "is-selected" : ""}" type="button" role="option" aria-selected="${state.theme === "light" ? "true" : "false"}" data-action="set-theme" data-theme-value="light">明亮</button>
+                <button class="theme-select-option ${state.theme !== "light" ? "is-selected" : ""}" type="button" role="option" aria-selected="${state.theme !== "light" ? "true" : "false"}" data-action="set-theme" data-theme-value="night">夜读</button>
+              </div>
+            </div>
           </div>
           <div class="reset-panel">
             <span>需要清空本机进度时使用</span>
@@ -785,6 +795,7 @@ async function handleAction(node) {
   if (action === "submit-answer") return submitCurrentAnswer();
   if (action === "next-question") return nextQuestion();
   if (action === "prepare-purify") return preparePurifyRun(node.dataset.demonId);
+  if (action === "toggle-theme-menu") return toggleThemeMenu();
   if (action === "set-theme") return setTheme(node.dataset.themeValue);
   if (action === "export-code") return exportSaveCode();
   if (action === "import-code") return importSaveCode();
@@ -793,6 +804,7 @@ async function handleAction(node) {
 
 function goScene(nextScene) {
   scene = scenes.includes(nextScene) ? nextScene : "start";
+  themeMenuOpen = false;
   render();
 }
 
@@ -946,7 +958,13 @@ function preparePurifyRun(demonId) {
   render();
 }
 
+function toggleThemeMenu() {
+  themeMenuOpen = !themeMenuOpen;
+  render();
+}
+
 function setTheme(theme) {
+  themeMenuOpen = false;
   state.theme = theme === "light" ? "light" : "night";
   saveState();
   render();

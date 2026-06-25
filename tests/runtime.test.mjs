@@ -121,8 +121,10 @@ test("settings scene keeps save-code import export reset and theme switching", (
   assert.match(body, /重置/u);
   assert.match(body, /明亮/u);
   assert.match(body, /夜读/u);
-  assert.match(body, /<select[\s\S]*data-theme-select/u);
-  assert.doesNotMatch(body, /theme-select-row|theme-segment/u);
+  assert.match(body, /data-theme-menu/u);
+  assert.match(body, /data-action="toggle-theme-menu"/u);
+  assert.match(body, /role="listbox"/u);
+  assert.doesNotMatch(body, /<select|data-theme-select|theme-select-row|theme-segment/u);
   assert.match(app, /function exportSaveCode\(/);
   assert.match(app, /function importSaveCode\(/);
   assert.match(app, /function resetProgress\(/);
@@ -140,12 +142,13 @@ test("stylesheet implements the light and night responsive design system", () =>
     ".run-progress-rail",
     ".observe-hint",
     ".theme-select-control",
+    ".theme-select-menu",
     "@media (min-width: 760px)",
     "prefers-reduced-motion",
   ]) {
     assert.match(css, new RegExp(escapeRegExp(token)), `missing ${token}`);
   }
-  assert.doesNotMatch(css, /theme-select-row|theme-segment/u);
+  assert.doesNotMatch(css, /theme-select-row|theme-segment|data-theme-select/u);
 });
 
 function escapeRegExp(value) {

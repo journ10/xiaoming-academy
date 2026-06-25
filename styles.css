@@ -136,7 +136,6 @@ body {
 }
 
 button,
-select,
 textarea {
   font: inherit;
 }
@@ -1307,19 +1306,62 @@ textarea {
   pointer-events: none;
 }
 
-.theme-select-control select {
+.theme-select-button {
+  display: flex;
   width: 100%;
   height: 100%;
+  min-height: 0;
+  align-items: center;
   border: 0;
-  appearance: none;
   border-radius: inherit;
   background: transparent;
   color: var(--theme-select-ink);
   cursor: pointer;
   font-size: 14px;
   font-weight: 800;
-  outline: none;
+  line-height: 1.2;
   padding: 0 34px 0 16px;
+  text-align: left;
+}
+
+.theme-select-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 45;
+  display: none;
+  width: 100%;
+  gap: 4px;
+  border: 1px solid var(--theme-select-line);
+  border-radius: 10px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  padding: 4px;
+}
+
+.theme-select-control.is-open .theme-select-menu {
+  display: grid;
+}
+
+.theme-select-option {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.theme-select-option.is-selected {
+  background: var(--theme-select-bg);
+  color: var(--theme-select-ink);
 }
 
 .save-code {
@@ -2466,9 +2508,23 @@ textarea {
     font-size: 20px;
   }
 
-  .theme-select-control select {
+  .theme-select-button {
     font-size: 16px;
     padding: 0 54px 0 20px;
+  }
+
+  .theme-select-menu {
+    top: calc(100% + 8px);
+    bottom: auto;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .theme-select-option {
+    min-height: 40px;
+    border-radius: 8px;
+    font-size: 16px;
+    padding: 0 14px;
   }
 
   .reset-panel {
