@@ -172,6 +172,7 @@ function render() {
   renderNavigation();
   dom.shell.dataset.scene = scene;
   dom.shell.dataset.loading = bankState.status;
+  dom.shell.dataset.answerDock = hasActiveAnswerDock() ? "visible" : "hidden";
 
   if (bankState.status === "loading") {
     dom.view.innerHTML = renderLoading();
@@ -187,6 +188,15 @@ function render() {
   else if (scene === "report") dom.view.innerHTML = renderReport();
   else if (scene === "settings") dom.view.innerHTML = renderSettings();
   else dom.view.innerHTML = renderStart();
+}
+
+function hasActiveAnswerDock() {
+  if (scene !== "run") return false;
+  const run = state.currentRun;
+  const question = getCurrentQuestion(run);
+  if (!run || !question) return false;
+  const answerState = run.answers?.[question.id] || {};
+  return !answerState.submitted && Boolean(answerState.selectedKeys?.length);
 }
 
 function renderStart() {
@@ -385,9 +395,8 @@ function renderRun() {
             <div class="move-grid">${moveButtons}</div>
           </section>
           ${hint ? `<div class="observe-hint"><p>${escapeHtml(hintText)}</p></div>` : ""}
-
-          <div class="option-grid">${optionButtons}</div>
         </article>
+        <div class="option-grid">${optionButtons}</div>
       </article>
 
       ${showAnswerDock ? `
@@ -402,7 +411,7 @@ function renderRun() {
             <span>标准选项：${escapeHtml(currentJudgement.correctAnswer || "-")}</span>
           </div>
         ` : `
-          <p>${observeRevealed ? "观照已展开，先看清题眼再确认。" : "确认后会记录本题结果，并更新心魔压力。"}</p>
+          <p>${observeRevealed ? "观照已展开，先看清题眼再确认。" : "确认后查看解析与题眼小结。"}</p>
         `}
         <footer class="run-actions">
           ${submitted ? `
@@ -411,6 +420,12 @@ function renderRun() {
             <button class="primary-button" type="button" data-action="submit-answer" ${selectedKeys.length ? "" : "disabled"}>确认答案</button>
           `}
         </footer>
+      </aside>
+      ` : ""}
+      ${observeRevealed && !showAnswerDock ? `
+      <aside class="observe-dock">
+        <strong>观照提示</strong>
+        <p>${escapeHtml(hintText || "先判断对象，再看限制条件。")}</p>
       </aside>
       ` : ""}
     </section>
@@ -536,6 +551,16 @@ function renderReport() {
       sideItems: ["正确率", "题眼短课", "心魔变化"],
     });
   }
+  const total = Number(report.total || 0);
+  const correctCount = Number(report.correctCount || 0);
+  const wrongCount = Number(report.wrongCount || 0);
+  const accuracy = total ? Math.round((correctCount / total) * 100) : 0;
+  const lessonCount = Math.min(3, Math.max(0, total));
+  const demonChange = wrongCount ? 1 : 0;
+  const summaryText = wrongCount ? "下一题建议优先处理 1 个心魔。" : "继续拓新题阵，保持短局节奏。";
+  const mobileNextText = wrongCount ? "先处理 1 个心魔，再继续题阵。" : "继续拓新题阵，保持短局节奏。";
+  const desktopNextText = wrongCount ? "下一周建议优先处理 1 个心魔。" : "继续拓新题阵，保持短局节奏。";
+  const gainText = `题眼短课 ${lessonCount} 条 · 心魔净化 ${demonChange} 个 · 连胜 +1`;
 
   return `
     <section class="screen report-screen">
@@ -545,21 +570,44 @@ function renderReport() {
         <p>本局结算</p>
       </header>
 
+      <aside class="question-rail report-question-rail" aria-label="题阵进度">
+        <span>题阵</span>
+        ${renderReportProgressRail(total || 5)}
+      </aside>
+
       <article class="report-main-card">
         <article class="report-card report-summary-card">
-          <h3>${Number(report.total || 0)} 题完成 · ${Number(report.correctCount || 0)} 对 ${Number(report.wrongCount || 0)} 错</h3>
+          <h3>${total} 题完成 · ${correctCount} 对 ${wrongCount} 错</h3>
           <strong>本局小结</strong>
-          <p>${escapeHtml(report.nextStep || "下一局建议优先处理 1 个心魔。")}</p>
+          <p>${escapeHtml(summaryText)}</p>
+          <div class="report-grid" aria-label="本局指标">
+            <article class="metric-card">
+              <strong>${accuracy}%</strong>
+              <span>正确率</span>
+            </article>
+            <article class="metric-card">
+              <strong>${wrongCount}</strong>
+              <span>待净化心魔</span>
+            </article>
+            <article class="metric-card">
+              <strong>${lessonCount}</strong>
+              <span>题眼短课</span>
+            </article>
+          </div>
         </article>
 
         <article class="report-card report-gain-card">
           <h3>本局收获</h3>
-          <p>${escapeHtml(report.gains || "题眼短课 3 条 · 心魔净化 1 个 · 连胜 +1")}</p>
+          <p>${escapeHtml(gainText)}</p>
+          <div class="report-gain-list">
+            <span>题眼短课 ${lessonCount} 条</span>
+            <span>心魔净化 ${demonChange} 个</span>
+          </div>
         </article>
 
         <article class="report-card report-next-card">
           <h3>下一步</h3>
-          <p>${escapeHtml(report.nextStep)}</p>
+          <p><span class="mobile-copy">${escapeHtml(mobileNextText)}</span><span class="desktop-copy">${escapeHtml(desktopNextText)}</span></p>
         </article>
 
         <div class="screen-actions">
@@ -568,6 +616,15 @@ function renderReport() {
         </div>
       </article>
     </section>
+  `;
+}
+
+function renderReportProgressRail(total = 5) {
+  const count = Math.max(1, Number(total || 5));
+  return `
+    <div class="run-progress-rail" aria-label="题阵进度">
+      ${Array.from({ length: count }, (_, index) => `<span class="${index === count - 1 ? "is-current" : ""}">${index + 1}</span>`).join("")}
+    </div>
   `;
 }
 
