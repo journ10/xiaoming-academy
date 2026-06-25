@@ -199,13 +199,37 @@ function hasActiveAnswerDock() {
   return !answerState.submitted && Boolean(answerState.selectedKeys?.length);
 }
 
+function classList(...tokens) {
+  return tokens.filter(Boolean).join(" ");
+}
+
+function renderScreenHead({ eyebrow, title, description, className = "" }) {
+  return `
+    <header class="${classList("screen-head", className)}">
+      <span class="eyebrow">${escapeHtml(eyebrow || title)}</span>
+      <h2>${escapeHtml(title)}</h2>
+      <p>${description}</p>
+    </header>
+  `;
+}
+
+function renderButton({ action, label, variant = "primary", className = "", attrs = "" }) {
+  const variantClass = {
+    primary: "primary-button",
+    secondary: "ghost-button",
+    danger: "danger-button",
+  }[variant] || "ghost-button";
+
+  return `<button class="${classList(variantClass, className)}" type="button" data-action="${escapeHtml(action)}" ${attrs}>${escapeHtml(label)}</button>`;
+}
+
 function renderStart() {
   const currentRun = state.currentRun;
   const recommendation = createStartRecommendation(questionBank.playable, state);
   const styleLabels = ["稳修", "突击", "复盘"];
   const targetChoicesLabel = "拓新题阵 / 净魔题阵 / 冲刺题阵";
   const activeTargetId = selectedTargetId || recommendation.targetId || "explore";
-  const activeStyleId = selectedStyleId || (focusDemonId ? "" : recommendation.styleId || "steady");
+  const activeStyleId = selectedStyleId;
   const target = getTarget(activeTargetId);
   const style = getStyle(activeStyleId);
   const progress = currentRun ? getRunProgress(currentRun) : null;
@@ -231,11 +255,7 @@ function renderStart() {
 
   return `
     <section class="screen start-screen">
-      <header class="screen-head">
-        <span class="eyebrow">开局台</span>
-        <h2>开局台</h2>
-        <p>${headCopy}</p>
-      </header>
+      ${renderScreenHead({ eyebrow: "开局台", title: "开局台", description: escapeHtml(headCopy) })}
 
       <article class="start-main-card">
         <div class="start-copy">
@@ -248,7 +268,7 @@ function renderStart() {
           ` : `
             <div class="target-lockup">
               <strong>${escapeHtml(target.name)}</strong>
-              <span>${escapeHtml(style?.name || "待选")}流派 · 5 题短局</span>
+              <span>${escapeHtml(style?.name || "选择流派")} · 5 题短局</span>
             </div>
             <div class="start-info-block">
               <strong>推荐理由</strong>
@@ -263,14 +283,14 @@ function renderStart() {
 
         <aside class="choice-panel start-style-card">
           <h3>推荐流派</h3>
-          <p>可在开局前切换策略，本局推荐${escapeHtml(style?.name || "稳修")}。</p>
+          <p>可在开局前切换策略，选择后进入本局题阵。</p>
           <div class="style-grid">${styleCards}</div>
         </aside>
 
         <div class="start-action-row">
-          <button class="primary-button" type="button" data-action="start-run" ${styleRequired ? "disabled" : ""}>${actionText}</button>
-          <button class="ghost-button target-switch" type="button" data-action="toggle-targets">换目标</button>
-          <span class="soft-note">${styleRequired ? `请选择 ${styleLabels.join(" / ")}` : "完成后查看本周学习报告。"}</span>
+          ${renderButton({ action: "start-run", label: actionText, attrs: styleRequired ? "disabled" : "" })}
+          ${renderButton({ action: "toggle-targets", label: "换目标", variant: "secondary", className: "target-switch" })}
+          <span class="soft-note">${styleRequired ? `请选择 ${styleLabels.join(" / ")}` : "完成后查看本局学习报告。"}</span>
         </div>
 
         <aside class="choice-panel target-picker ${targetPickerOpen ? "is-open" : ""}" aria-label="${targetChoicesLabel}">
@@ -304,12 +324,8 @@ function renderRun() {
   if (!question) {
     return `
       <section class="screen empty-screen">
-        <header class="screen-head">
-          <span class="eyebrow">题阵</span>
-          <h2>题目还没有展开</h2>
-          <p>请回到开局台重新进入。</p>
-        </header>
-        <button class="primary-button" type="button" data-action="go-start">回到开局台</button>
+        ${renderScreenHead({ eyebrow: "题阵", title: "题目还没有展开", description: "请回到开局台重新进入。" })}
+        ${renderButton({ action: "go-start", label: "回到开局台" })}
       </section>
     `;
   }
@@ -356,17 +372,13 @@ function renderRun() {
   }).join("");
 
   const selectedLabel = selectedKeys.length ? selectedKeys.join("、") : "未选";
-  const dockLead = submitted ? (answerState.isCorrect ? "破招成功" : "需要复盘") : `已选 ${selectedLabel}`;
+  const dockLead = submitted ? (answerState.isCorrect ? "破招成功" : "需要复盘") : selectedKeys.length ? `已选 ${selectedLabel}` : "作答确认";
   const showAnswerDock = selectedKeys.length > 0;
   const hintText = hint ? hint.text.replace(/^题眼[:：]?/u, "题眼提示：") : "";
 
   return `
     <section class="screen run-screen ${submitted ? "is-submitted" : ""} ${observeRevealed ? "is-observing" : ""}">
-      <header class="screen-head compact-head">
-        <span class="eyebrow">题阵</span>
-        <h2>题阵</h2>
-        <p>第 ${currentStep}/${progress.total} 题</p>
-      </header>
+      ${renderScreenHead({ eyebrow: "题阵", title: "题阵", description: `第 ${currentStep}/${progress.total} 题`, className: "compact-head" })}
 
       <aside class="question-rail" aria-label="题阵进度">
         <span>题阵</span>
@@ -399,29 +411,17 @@ function renderRun() {
         <div class="option-grid">${optionButtons}</div>
       </article>
 
-      ${showAnswerDock ? `
-      <aside class="answer-dock">
+      <aside class="answer-dock ${showAnswerDock ? "is-active" : "is-empty"}">
         <div class="answer-dock-head">
           <span>${submitted ? "本题结果" : "当前选择"}</span>
           <strong>${escapeHtml(dockLead)}</strong>
         </div>
-        ${submitted ? `
-          <div class="answer-result ${answerState.isCorrect ? "is-correct" : "is-wrong"}">
-            <strong>${answerState.isCorrect ? "破招成功" : "需要复盘"}</strong>
-            <span>标准选项：${escapeHtml(currentJudgement.correctAnswer || "-")}</span>
-          </div>
-        ` : `
-          <p>${observeRevealed ? "观照已展开，先看清题眼再确认。" : "确认后查看解析与题眼小结。"}</p>
-        `}
+        <p>${showAnswerDock ? (observeRevealed ? "观照已展开，先看清题眼再确认。" : "确认后查看解析与题眼小结。") : "先选择一个答案，再确认作答。确认后查看解析与题眼小结。"}</p>
+        <strong class="answer-selection-state">${showAnswerDock ? `已选 ${selectedLabel}` : "尚未选择"}</strong>
         <footer class="run-actions">
-          ${submitted ? `
-            <button class="primary-button" type="button" data-action="${progress.done >= progress.total ? "go-report" : "next-question"}">${progress.done >= progress.total ? "查看学习报告" : "下一题"}</button>
-          ` : `
-            <button class="primary-button" type="button" data-action="submit-answer" ${selectedKeys.length ? "" : "disabled"}>确认答案</button>
-          `}
+          ${renderButton({ action: "submit-answer", label: "确认答案", attrs: selectedKeys.length ? "" : "disabled" })}
         </footer>
       </aside>
-      ` : ""}
       ${observeRevealed && !showAnswerDock ? `
       <aside class="observe-dock">
         <strong>观照提示</strong>
@@ -436,16 +436,12 @@ function renderFeedback(run, answerState, currentJudgement, progress) {
   const isCorrect = Boolean(answerState.isCorrect);
   const nextAction = progress.done >= progress.total ? "go-report" : "next-question";
   const nextLabel = progress.done >= progress.total ? "查看学习报告" : "下一题";
-  const resultTitle = isCorrect ? "答对了，破招成功" : "还差一步，回看题眼";
-  const resultCopy = isCorrect ? "你抓住了本题的限制条件。" : `标准选项：${escapeHtml(currentJudgement?.correctAnswer || "-")}`;
+  const resultTitle = isCorrect ? "答对了，破招成功" : "答错了，已加入心魔";
+  const resultCopy = isCorrect ? "你抓住了本题的限制条件。" : `正确答案是 ${escapeHtml(currentJudgement?.correctAnswer || "-")}。这个错因会进入心魔，后续可集中处理。`;
 
   return `
     <section class="screen feedback-screen ${isCorrect ? "is-correct" : "is-wrong"}">
-      <header class="screen-head compact-head">
-        <span class="eyebrow">破招</span>
-        <h2>破招</h2>
-        <p>本题已完成</p>
-      </header>
+      ${renderScreenHead({ eyebrow: "破招", title: "破招", description: "本题已完成", className: "compact-head" })}
 
       <aside class="question-rail" aria-label="题阵进度">
         <span>题阵</span>
@@ -469,7 +465,7 @@ function renderFeedback(run, answerState, currentJudgement, progress) {
           <p>这类题先看限制条件，再排除相似说法。</p>
         </section>
 
-        <button class="primary-button feedback-next" type="button" data-action="${nextAction}">${nextLabel}</button>
+        ${renderButton({ action: nextAction, label: nextLabel, className: "feedback-next" })}
       </article>
     </section>
   `;
@@ -502,11 +498,7 @@ function renderDemons() {
 
   return `
     <section class="screen demons-screen">
-      <header class="screen-head">
-        <span class="eyebrow">心魔</span>
-        <h2>心魔</h2>
-        <p>把反复错因变成下一局目标</p>
-      </header>
+      ${renderScreenHead({ eyebrow: "心魔", title: "心魔", description: "把反复错因变成下一局目标" })}
 
       <article class="demon-main-card">
         <article class="focus-panel">
@@ -520,7 +512,11 @@ function renderDemons() {
             <strong>建议</strong>
             <span>净魔题阵 · 复盘流派</span>
           </div>
-          <button class="primary-button" type="button" data-action="prepare-purify" data-demon-id="${escapeHtml(highPressure?.id || "")}" ${highPressure ? "" : "disabled"}>进入净魔题阵</button>
+          ${renderButton({
+            action: "prepare-purify",
+            label: "进入净魔题阵",
+            attrs: `data-demon-id="${escapeHtml(highPressure?.id || "")}" ${highPressure ? "" : "disabled"}`,
+          })}
         </article>
 
         <section class="demon-list-card">
@@ -564,11 +560,7 @@ function renderReport() {
 
   return `
     <section class="screen report-screen">
-      <header class="screen-head">
-        <span class="eyebrow">学习报告</span>
-        <h2>学习报告</h2>
-        <p>本局结算</p>
-      </header>
+      ${renderScreenHead({ eyebrow: "学习报告", title: "学习报告", description: "本局结算" })}
 
       <aside class="question-rail report-question-rail" aria-label="题阵进度">
         <span>题阵</span>
@@ -611,8 +603,8 @@ function renderReport() {
         </article>
 
         <div class="screen-actions">
-          <button class="primary-button" type="button" data-action="go-start">再来一局</button>
-          <button class="ghost-button target-switch" type="button" data-action="go-start">换目标</button>
+          ${renderButton({ action: "go-start", label: "再来一局" })}
+          ${renderButton({ action: "go-start", label: "换目标", variant: "secondary", className: "target-switch" })}
         </div>
       </article>
     </section>
@@ -643,11 +635,11 @@ function renderPreflightEmpty({
 }) {
   return `
     <section class="screen preflight-empty-screen ${sceneClass}">
-      <header class="screen-head">
-        <span class="eyebrow">${escapeHtml(eyebrow)}</span>
-        <h2>${escapeHtml(title)}</h2>
-        <p><span class="mobile-copy">${escapeHtml(description)}</span><span class="desktop-copy">${escapeHtml(desktopDescription)}</span></p>
-      </header>
+      ${renderScreenHead({
+        eyebrow,
+        title,
+        description: `<span class="mobile-copy">${escapeHtml(description)}</span><span class="desktop-copy">${escapeHtml(desktopDescription)}</span>`,
+      })}
 
       <aside class="question-rail empty-question-rail" aria-label="题阵进度">
         <span>题阵</span>
@@ -661,7 +653,7 @@ function renderPreflightEmpty({
           <span class="empty-state-label">尚未开始</span>
           <h3>${escapeHtml(emptyTitle)}</h3>
           <p><span class="mobile-copy">${escapeHtml(emptyDescription)}</span><span class="desktop-copy">${escapeHtml(desktopEmptyDescription)}</span></p>
-          <button class="primary-button" type="button" data-action="go-start">去开局台</button>
+          ${renderButton({ action: "go-start", label: "去开局台" })}
           <small>${escapeHtml(footnote)}</small>
         </section>
 
@@ -678,37 +670,49 @@ function renderPreflightEmpty({
 
 function renderSettings() {
   const themeLabel = state.theme === "light" ? "明亮" : "夜读";
+  const nextThemeLabel = state.theme === "light" ? "夜读" : "明亮";
+  const exportDisplay = exportedCode || "XM-7K2-4P9";
   return `
     <section class="screen settings-screen">
-      <header class="screen-head">
-        <span class="eyebrow">设置</span>
-        <h2>设置</h2>
-        <p>存档与风格</p>
-      </header>
+      ${renderScreenHead({ eyebrow: "设置", title: "设置", description: "存档与风格" })}
 
       <div class="settings-grid">
         <section class="settings-section settings-card storage-card">
           <h3>存档</h3>
-          <p>导出或导入备份码；重置会清空本机进度。</p>
-          <div class="settings-button-row">
-            <button class="primary-button" type="button" data-action="export-code">导出</button>
-            <button class="ghost-button" type="button" data-action="import-code">导入</button>
-            <button class="danger-button" type="button" data-action="reset-progress">重置</button>
+          <p>用备份码迁移本机进度；导入前会先确认覆盖。</p>
+          <div class="save-code-panel export-code-panel">
+            <strong>导出码</strong>
+            <span>复制当前进度，用于换设备恢复。</span>
+            <textarea class="save-code export-code-output" readonly data-export-output>${escapeHtml(exportDisplay)}</textarea>
+            ${renderButton({ action: "export-code", label: exportedCode ? "复制备份码" : "生成备份码" })}
           </div>
-          <textarea class="save-code ${exportedCode ? "is-open" : "is-hidden"}" readonly data-export-output placeholder="点击导出生成存档码">${escapeHtml(exportedCode)}</textarea>
-          <textarea class="save-code sr-only" data-import-code>${escapeHtml(importDraft)}</textarea>
+          <div class="save-code-panel import-code-panel">
+            <strong>导入码</strong>
+            <span>粘贴备份码，确认后覆盖本机进度。</span>
+            <textarea class="save-code import-code-input" data-import-code placeholder="粘贴备份码">${escapeHtml(importDraft)}</textarea>
+            <div class="import-action-row">
+              ${renderButton({ action: "import-code", label: "验证并导入" })}
+              ${renderButton({ action: "reset-progress", label: "重置本机", variant: "danger", className: "mobile-reset-button" })}
+            </div>
+          </div>
         </section>
 
         <section class="settings-section settings-card appearance-card">
-          <h3>风格</h3>
-          <p>当前${themeLabel}，可切换明亮。</p>
-          <button class="theme-select-row" type="button" data-action="set-theme" data-theme-value="${state.theme === "light" ? "night" : "light"}">
-            <span>主题</span>
-            <strong>${themeLabel}</strong>
-          </button>
+          <div class="theme-block">
+            <h3>风格</h3>
+            <p>当前${themeLabel}，可切换${nextThemeLabel}。</p>
+            <button class="theme-select-row" type="button" data-action="set-theme" data-theme-value="${state.theme === "light" ? "night" : "light"}">
+              <span>主题</span>
+              <strong>${themeLabel}</strong>
+            </button>
+          </div>
           <div class="theme-segment" role="group" aria-label="主题切换">
             <button type="button" class="${state.theme === "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="light">明亮</button>
             <button type="button" class="${state.theme !== "light" ? "is-selected" : ""}" data-action="set-theme" data-theme-value="night">夜读</button>
+          </div>
+          <div class="reset-panel">
+            <span>需要清空本机进度时使用</span>
+            ${renderButton({ action: "reset-progress", label: "重置本机", variant: "danger" })}
           </div>
         </section>
       </div>
@@ -719,11 +723,7 @@ function renderSettings() {
 function renderLoading() {
   return `
     <section class="screen empty-screen">
-      <header class="screen-head">
-        <span class="eyebrow">开局台</span>
-        <h2>正在准备题阵</h2>
-        <p>${escapeHtml(bankState.message)}</p>
-      </header>
+      ${renderScreenHead({ eyebrow: "开局台", title: "正在准备题阵", description: escapeHtml(bankState.message) })}
       <div class="loading-bar"><span></span></div>
     </section>
   `;
@@ -732,12 +732,8 @@ function renderLoading() {
 function renderLoadError() {
   return `
     <section class="screen empty-screen">
-      <header class="screen-head">
-        <span class="eyebrow">开局台</span>
-        <h2>题阵暂时无法进入</h2>
-        <p>${escapeHtml(bankState.message)}</p>
-      </header>
-      <button class="primary-button" type="button" data-action="reload-bank">重试</button>
+      ${renderScreenHead({ eyebrow: "开局台", title: "题阵暂时无法进入", description: escapeHtml(bankState.message) })}
+      ${renderButton({ action: "reload-bank", label: "重试" })}
     </section>
   `;
 }
@@ -924,15 +920,18 @@ function setTheme(theme) {
 }
 
 function exportSaveCode() {
-  exportedCode = encodeSaveState(state);
+  if (!exportedCode) exportedCode = encodeSaveState(state);
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(exportedCode).catch(() => {});
+  }
   render();
-  showToast("已生成存档码。");
+  showToast("已生成备份码。");
 }
 
 function importSaveCode() {
-  const promptedCode = importDraft.trim() || window.prompt("粘贴存档码") || "";
+  const promptedCode = importDraft.trim();
   if (!promptedCode.trim()) {
-    showToast("请先粘贴存档码。");
+    showToast("请先粘贴备份码。");
     return;
   }
   state = decodeSaveState(promptedCode);
