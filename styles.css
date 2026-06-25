@@ -15,6 +15,7 @@
   --mobile-page-x: 20px;
   --mobile-page-top: 26px;
   --mobile-bottom-safe: 96px;
+  --mobile-nav-item-w: 66px;
   --mobile-title-size: 30px;
   --mobile-title-line: 1.18;
   --mobile-subtitle-size: 14px;
@@ -230,7 +231,7 @@ textarea {
   position: relative;
   display: grid;
   justify-self: center;
-  width: 58px;
+  width: min(var(--mobile-nav-item-w), 100%);
   min-width: 0;
   height: 30px;
   min-height: 30px;

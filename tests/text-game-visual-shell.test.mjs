@@ -40,6 +40,7 @@ test("visual system implements light and night responsive shells", () => {
   assert.match(cssSource, /--pc-w:\s*1360px/u);
   assert.match(cssSource, /--pc-h:\s*820px/u);
   assert.match(cssSource, /--pc-nav-h:\s*106px/u);
+  assert.match(cssSource, /--mobile-nav-item-w:\s*66px/u);
   assert.match(cssSource, /\.app-shell\s*\{[\s\S]*min-height:\s*100dvh/u);
   assert.match(cssSource, /\.top-nav\s*\{/u);
   assert.match(cssSource, /\.bottom-nav\s*\{[\s\S]*position:\s*absolute/u);
