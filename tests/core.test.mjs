@@ -92,6 +92,41 @@ test("selectRunQuestions builds five-question runs and backfills from reliable h
   assert.equal(new Set(selected.map((item) => item.id)).size, 5);
 });
 
+test("question index stubs are selectable only for lazy hydration routes", () => {
+  const indexStub = {
+    id: "indexed-law-1",
+    sourceId: "pdf-idx-1",
+    year: "2026",
+    type: "单项选择题",
+    topic: "教育法律法规与政策制度",
+    primaryDomain: { id: "law", name: "教育法律法规与政策制度" },
+    difficulty: 2,
+    concept: "教育法律法规与政策制度 · 义务教育法",
+    errorPatterns: ["memory-gap"],
+    qualityStatus: "clean",
+    gameplayStatus: "mainline",
+    lesson: { id: "lesson-indexed-law-1" },
+    chunkId: "chunk-0001",
+  };
+
+  assert.equal(prepareQuestionBank([indexStub]).playable.length, 0);
+
+  const lazyBank = prepareQuestionBank([indexStub], { allowIndexStubs: true });
+  assert.equal(lazyBank.playable.length, 1);
+
+  const run = createRun(lazyBank.playable, createInitialState(), {
+    targetId: "explore",
+    styleId: "steady",
+    length: 1,
+    allowIndexStubs: true,
+  });
+
+  assert.equal(run.questions.length, 1);
+  assert.equal(run.questions[0].id, "indexed-law-1");
+  assert.equal(run.questions[0].chunkId, "chunk-0001");
+  assert.equal(run.questionIds[0], "indexed-law-1");
+});
+
 test("purify runs prioritize high-pressure demon questions", () => {
   const bank = prepareQuestionBank(rawQuestions);
   const state = createInitialState({

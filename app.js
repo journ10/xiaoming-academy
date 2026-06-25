@@ -21,15 +21,24 @@ const scenes = ["start", "run", "demons", "report", "settings"];
 const storageKey = "xiaoming-academy-runtime-v2";
 const cacheVersion = "runtime-redesign-20260625";
 const requestTimeoutMs = 18000;
+const compressedQuestionIndexUrls = [
+  versionedDataUrl("./data/question-index.json.gz"),
+  versionedDataUrl("/xiaoming-academy/data/question-index.json.gz"),
+];
 const questionIndexUrls = [
   versionedDataUrl("./data/question-index.json"),
   versionedDataUrl("/xiaoming-academy/data/question-index.json"),
+];
+const compressedRuntimeQuestionUrls = [
+  versionedDataUrl("./data/questions.runtime.json.gz"),
+  versionedDataUrl("/xiaoming-academy/data/questions.runtime.json.gz"),
 ];
 const runtimeQuestionUrls = [
   versionedDataUrl("./data/questions.runtime.json"),
   versionedDataUrl("/xiaoming-academy/data/questions.runtime.json"),
 ];
 const questionChunkPath = "data/question-chunks";
+let compressedJsonSupport;
 
 const labels = {
   start: "开局台",
@@ -58,6 +67,7 @@ let questionIndexById = new Map();
 let questionChunkById = new Map();
 let loadedQuestionChunkIds = new Set();
 let hydratedQuestionById = new Map();
+let bankUsesLazyIndex = false;
 let selectedTargetId = "";
 let selectedStyleId = "";
 let focusDemonId = "";
@@ -95,15 +105,19 @@ async function initialize() {
   try {
     bankState = { status: "loading", message: "正在读取真题题阵。" };
     render();
+    questionIndexById = new Map();
+    hydratedQuestionById = new Map();
     const loaded = await loadBuiltInQuestionBank();
-    questionBank = prepareQuestionBank(loaded.questions);
+    bankUsesLazyIndex = Boolean(loaded.lazy);
+    questionBank = prepareQuestionBank(loaded.questions, { allowIndexStubs: bankUsesLazyIndex });
     questionIndexById = new Map(questionBank.all.map((question) => [question.id, question]));
-    seedHydratedQuestions(questionBank.all);
+    if (!bankUsesLazyIndex) seedHydratedQuestions(questionBank.all);
     bankState = {
       status: "ready",
       message: `已准备 ${questionBank.playable.length} 道题。`,
     };
   } catch (error) {
+    bankUsesLazyIndex = false;
     questionBank = prepareQuestionBank([]);
     bankState = {
       status: "error",
@@ -114,31 +128,33 @@ async function initialize() {
 }
 
 async function loadBuiltInQuestionBank() {
-  let indexPayload = null;
-  let indexError = null;
-
   try {
-    indexPayload = await fetchFirstJson(questionIndexUrls);
-    configureQuestionChunks(indexPayload?.chunks || []);
-    const indexQuestions = parseQuestionImport(indexPayload);
-    questionIndexById = new Map(indexQuestions.map((question) => [question.id, question]));
-  } catch (error) {
-    indexError = error;
-    configureQuestionChunks([]);
-  }
-
-  try {
-    const runtimePayload = await fetchFirstJson(runtimeQuestionUrls);
-    const runtimeQuestions = parseQuestionImport(runtimePayload);
-    configureQuestionChunks(runtimePayload?.chunks || indexPayload?.chunks || []);
-    return { questions: runtimeQuestions };
-  } catch (error) {
-    if (indexPayload) {
-      const indexQuestions = parseQuestionImport(indexPayload);
-      return { questions: indexQuestions };
+    return await loadQuestionIndex();
+  } catch (indexError) {
+    try {
+      return await loadRuntimeQuestionBank();
+    } catch (runtimeError) {
+      throw new Error(runtimeError.message || indexError?.message || "题库暂时无法读取。");
     }
-    throw new Error(error.message || indexError?.message || "题库暂时无法读取。");
   }
+}
+
+async function loadQuestionIndex() {
+  const indexPayload = await fetchFirstJson(getPreferredJsonUrls(compressedQuestionIndexUrls, questionIndexUrls));
+  const indexQuestions = parseQuestionImport(indexPayload);
+  if (!indexQuestions.length || !indexPayload?.chunks?.length) {
+    throw new Error("题库索引暂时无法读取。");
+  }
+  configureQuestionChunks(indexPayload.chunks);
+  return { questions: indexQuestions, chunks: indexPayload.chunks, lazy: true };
+}
+
+async function loadRuntimeQuestionBank() {
+  const runtimePayload = await fetchFirstJson(getPreferredJsonUrls(compressedRuntimeQuestionUrls, runtimeQuestionUrls));
+  const runtimeQuestions = parseQuestionImport(runtimePayload);
+  if (!runtimeQuestions.length) throw new Error("题库暂时无法读取。");
+  configureQuestionChunks(runtimePayload?.chunks || []);
+  return { questions: runtimeQuestions, chunks: runtimePayload?.chunks || [], lazy: false };
 }
 
 async function ensureQuestionsHydrated(questionIds = []) {
@@ -551,12 +567,20 @@ function renderReport() {
   const correctCount = Number(report.correctCount || 0);
   const wrongCount = Number(report.wrongCount || 0);
   const accuracy = total ? Math.round((correctCount / total) * 100) : 0;
-  const lessonCount = Math.min(3, Math.max(0, total));
-  const demonChange = wrongCount ? 1 : 0;
-  const summaryText = wrongCount ? "下一题建议优先处理 1 个心魔。" : "继续拓新题阵，保持短局节奏。";
-  const mobileNextText = wrongCount ? "先处理 1 个心魔，再继续题阵。" : "继续拓新题阵，保持短局节奏。";
-  const desktopNextText = wrongCount ? "下一周建议优先处理 1 个心魔。" : "继续拓新题阵，保持短局节奏。";
-  const gainText = `题眼短课 ${lessonCount} 条 · 心魔净化 ${demonChange} 个 · 连胜 +1`;
+  const lessonCount = Number(report.lessonCount ?? total);
+  const newDemonCount = Array.isArray(report.newDemons) ? report.newDemons.length : 0;
+  const strengthenedDemonCount = Array.isArray(report.strengthenedDemons) ? report.strengthenedDemons.length : 0;
+  const purifiedDemonCount = Array.isArray(report.purifiedDemons) ? report.purifiedDemons.length : 0;
+  const pendingDemonCount = newDemonCount + strengthenedDemonCount || wrongCount;
+  const targetProgress = report.targetProgress;
+  const targetSummary = targetProgress
+    ? `${targetProgress.label} ${targetProgress.current} / ${targetProgress.target}${targetProgress.completed ? "，目标完成" : "，继续推进"}`
+    : "";
+  const summaryText = targetSummary || (wrongCount ? "下一局建议优先处理 1 个心魔。" : "继续拓新题阵，保持短局节奏。");
+  const nextText = report.nextStep || (wrongCount ? "先处理 1 个心魔，再继续题阵。" : "继续拓新题阵，保持短局节奏。");
+  const mobileNextText = nextText;
+  const desktopNextText = nextText;
+  const gainText = report.gains || `题眼短课 ${lessonCount} 条 · 新增心魔 ${newDemonCount} 个 · 净化心魔 ${purifiedDemonCount} 个`;
 
   return `
     <section class="screen report-screen">
@@ -578,7 +602,7 @@ function renderReport() {
               <span>正确率</span>
             </article>
             <article class="metric-card">
-              <strong>${wrongCount}</strong>
+              <strong>${pendingDemonCount}</strong>
               <span>待净化心魔</span>
             </article>
             <article class="metric-card">
@@ -593,7 +617,8 @@ function renderReport() {
           <p>${escapeHtml(gainText)}</p>
           <div class="report-gain-list">
             <span>题眼短课 ${lessonCount} 条</span>
-            <span>心魔净化 ${demonChange} 个</span>
+            <span>新增心魔 ${newDemonCount} 个</span>
+            <span>心魔净化 ${purifiedDemonCount} 个</span>
           </div>
         </article>
 
@@ -806,6 +831,7 @@ async function startRun() {
     focusDemonId,
     fallbackQuestions: questionBank.playable,
     length: 5,
+    allowIndexStubs: bankUsesLazyIndex,
   });
   await ensureQuestionsHydrated(nextRun.questionIds);
   nextRun = hydrateRun(nextRun);
@@ -1026,12 +1052,17 @@ function configureQuestionChunks(chunks = []) {
 function getQuestionChunkUrls(chunk) {
   const url = chunk?.url || `${questionChunkPath}/${chunk?.id}.json`;
   const compressedUrl = chunk?.compressedUrl || `${url}.gz`;
-  return [
-    versionedDataUrl(`./${url}`),
-    versionedDataUrl(`/xiaoming-academy/${url}`),
+  return getPreferredJsonUrls([
     versionedDataUrl(`./${compressedUrl}`),
     versionedDataUrl(`/xiaoming-academy/${compressedUrl}`),
-  ];
+  ], [
+    versionedDataUrl(`./${url}`),
+    versionedDataUrl(`/xiaoming-academy/${url}`),
+  ]);
+}
+
+function getPreferredJsonUrls(compressedUrls = [], plainUrls = []) {
+  return supportsCompressedJson() ? [...compressedUrls, ...plainUrls] : plainUrls;
 }
 
 async function fetchFirstJson(urls = []) {
@@ -1040,7 +1071,7 @@ async function fetchFirstJson(urls = []) {
     try {
       const response = await fetchWithTimeout(url);
       if (!response.ok) throw new Error("题库入口暂时没有回应。");
-      return await response.json();
+      return await parseJsonResponse(response, url);
     } catch (error) {
       lastError = error;
     }
@@ -1059,6 +1090,46 @@ async function fetchWithTimeout(url) {
   } finally {
     window.clearTimeout(timeoutId);
   }
+}
+
+async function parseJsonResponse(response, url) {
+  if (!isCompressedJsonUrl(url)) return response.json();
+  const fallback = response.clone();
+  if (!response.body || typeof DecompressionStream !== "function") {
+    return fallback.json();
+  }
+  try {
+    const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
+    return await new Response(stream).json();
+  } catch {
+    try {
+      return await fallback.json();
+    } catch {
+      throw new Error("题库压缩包暂时无法展开。");
+    }
+  }
+}
+
+function supportsCompressedJson() {
+  if (compressedJsonSupport !== undefined) return compressedJsonSupport;
+  if (
+    typeof DecompressionStream !== "function"
+    || typeof ReadableStream !== "function"
+    || typeof Response !== "function"
+  ) {
+    compressedJsonSupport = false;
+    return compressedJsonSupport;
+  }
+  try {
+    compressedJsonSupport = Boolean(new DecompressionStream("gzip"));
+  } catch {
+    compressedJsonSupport = false;
+  }
+  return compressedJsonSupport;
+}
+
+function isCompressedJsonUrl(url) {
+  return String(url || "").split("?")[0].endsWith(".gz");
 }
 
 function versionedDataUrl(url) {

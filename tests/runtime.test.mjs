@@ -75,6 +75,16 @@ test("runtime keeps built-in question bank loading and lazy chunk hydration", ()
   assert.match(app, /hydratedQuestionById/);
 });
 
+test("built-in question bank prefers the lazy index instead of loading the full runtime payload", () => {
+  const app = read("app.js");
+  const body = functionBody(app, "loadBuiltInQuestionBank");
+
+  assert.match(body, /loadQuestionIndex\(/);
+  assert.match(body, /loadRuntimeQuestionBank\(/);
+  assert.doesNotMatch(body, /fetchFirstJson\(runtimeQuestionUrls\)/);
+  assert.match(app, /data\/question-index\.json\.gz/);
+});
+
 test("start scene supports continuing unfinished runs and local target/style selection", () => {
   const app = read("app.js");
   const body = functionBody(app, "renderStart");
