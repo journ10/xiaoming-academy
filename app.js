@@ -696,7 +696,6 @@ function renderPreflightEmpty({
 function renderSettings() {
   const themeLabel = state.theme === "light" ? "明亮" : "夜读";
   const nextThemeLabel = state.theme === "light" ? "夜读" : "明亮";
-  const exportDisplay = exportedCode || "XM-7K2-4P9";
   return `
     <section class="screen settings-screen">
       ${renderScreenHead({ eyebrow: "设置", title: "设置", description: "存档与风格" })}
@@ -708,7 +707,7 @@ function renderSettings() {
           <div class="save-code-panel export-code-panel">
             <strong>导出码</strong>
             <span>复制当前进度，用于换设备恢复。</span>
-            <textarea class="save-code export-code-output" readonly data-export-output>${escapeHtml(exportDisplay)}</textarea>
+            <textarea class="save-code export-code-output" readonly data-export-output>${escapeHtml(exportedCode)}</textarea>
             ${renderButton({ action: "export-code", label: exportedCode ? "复制备份码" : "生成备份码" })}
           </div>
           <div class="save-code-panel import-code-panel">

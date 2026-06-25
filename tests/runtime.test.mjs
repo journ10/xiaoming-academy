@@ -124,6 +124,7 @@ test("settings scene keeps save-code import export reset and theme switching", (
   assert.match(app, /function exportSaveCode\(/);
   assert.match(app, /function importSaveCode\(/);
   assert.match(app, /function resetProgress\(/);
+  assert.doesNotMatch(body, /XM-7K2-4P9/u);
 });
 
 test("stylesheet implements the light and night responsive design system", () => {
